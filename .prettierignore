@@ -1,0 +1,5 @@
+# ignore jsonl files
+*.jsonl
+**/.github
+**/data
+**/taxonomy

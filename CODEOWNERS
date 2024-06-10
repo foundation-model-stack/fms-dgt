@@ -1,0 +1,11 @@
+#####################################################
+#
+# List of approvers for sdg repository
+#
+#####################################################
+#
+# Learn about CODEOWNERS file format:
+#  https://help.github.com/en/articles/about-code-owners
+#
+
+*  @mvcrouse @sivasankalpp @pavan046
