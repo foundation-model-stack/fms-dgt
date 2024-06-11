@@ -136,7 +136,7 @@ class SQLDataGenerationSchema(BaseModel):
         "SQL data generation task", description="description of the task."
     )
     # NOTE: from instruct-lab/taxonomy
-    created_by: str = Field(..., description="Creator of the configuration.")
+    created_by: Optional[str] = Field(None, description="Creator of the configuration.")
     database_type: DatabaseType = Field(
         DatabaseType.postgres, description="Type of database"
     )
