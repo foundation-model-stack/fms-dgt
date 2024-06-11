@@ -38,7 +38,7 @@ Default configuration for generators and validators used by the data builder is 
 
 TBD
 
-# Notice
+## Notice
 
 The code in this folder is modified from the instruct-lab repository on GitHub. For the original code, see [instruct-lab](https://github.com/instructlab/instructlab/tree/main/src/instructlab/generator) with the following license.
 
