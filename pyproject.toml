@@ -1,0 +1,99 @@
+[build-system]
+requires = ["setuptools>=40.8.0", "setuptools-scm>=8.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fms_sdg"
+dynamic = ["version"]
+description = "A scalable framework for synthetic data generation"
+license = { "text" = "Apache-2.0" }
+readme = "README.md"
+classifiers = [
+    "License :: OSI Approved :: Apache License",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "accelerate>=0.26.0",
+    "datasets>=2.16.0",
+    "jsonlines",
+    "peft>=0.5.0",
+    "pybind11>=2.6.2",
+    "pytablewriter",
+    "rouge-score>=0.0.4",
+    "scikit-learn>=0.24.1",
+    "sqlitedict",
+    "torch>=2.3",
+    "tqdm-multiprocess",
+    "transformers>=4.1",
+    "zstandard",
+    "dill",
+    "word2number",
+    "more_itertools",
+    "GitPython",
+    "Jinja2",
+]
+
+[tool.setuptools.packages.find]
+include = ["fms_sdg*"]
+
+# required to include yaml files in pip installation
+[tool.setuptools.package-data]
+fms_sdg = ["**/*.yaml", "tasks/**/*"]
+
+[project.scripts]
+fms_sdg = "fms_sdg.__main__:cli_evaluate"
+
+[project.urls]
+Homepage = "https://github.com/foundation-model-stack/fms-sdg"
+Repository = "https://github.com/foundation-model-stack/fms-sdg"
+
+[project.optional-dependencies]
+genai = ["ibm-generative-ai", "python-dotenv>=1.0.1,<2.0.0"]
+gptq = ["auto-gptq[triton]>=0.6.0"]
+openai = ["openai>=1.3.9", "tiktoken", "python-dotenv>=1.0.1,<2.0.0"]
+sentencepiece = ["sentencepiece>=0.1.98"]
+sql = ["pydantic>=2.4.2", "pydantic-settings>=2.0.3", "pyyaml>=6.0.1", "sqlglot==23.11.2"]
+testing = ["pytest", "pytest-cov", "pytest-xdist"]
+vllm = ["vllm>=0.3.2", "xformers==0.0.26.post1", "flash-attn>=2.5.8"]
+dev-test = [
+    # TODO: Add packages when tests are built out
+    # "pytest>=6",
+    # "pytest-cov>=2.10.1",
+    # "pytest-timeout>=2.1.0,<3",
+]
+dev-fmt = [
+    "pre-commit>=3.0.4,<4.0",
+    "ruff==0.4.1",
+]
+dev-build = [
+    "setuptools>=60",
+    "setuptools-scm>=8.0",
+]
+
+# NOTE: This is "all" from the user and dev perspective
+all-dev = [
+    "fms_sdg[all, dev-test, dev-fmt, dev-build]"
+]
+all = [
+    "fms_sdg[genai]",
+    "fms_sdg[openai]",
+    "fms_sdg[sentencepiece]",
+    "fms_sdg[sql]",
+    # Disable as its Linux CUDA specific
+    # Use can set with the [vllm] target
+    # "fms_sdg[vllm]",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+ignore = ["I001"] # Import block is un-sorted or un-formatted (clash with isort instead)
+
+[tool.ruff.lint]
+select = ["I"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = [
+    "F401", # imported but unused
+    "F403" # unable to detect undefined names
+]

@@ -1,0 +1,225 @@
+# Synthetic Data Generation (SDG) Design
+
+## Abstract
+
+Framework which enables different algorithms and models to be used to generate synthetic data. Have a defined interface on how algorithms and models can "Plug and Play".
+
+## Motivation
+
+Synthetic data generation (SDG) involves the use of computational methods and simulations to create data. This means that seed data is used to create artificial data that have some of the statistical characteristics of the seed data. This is a game changer when fine tuning models using user data contributions as it acts as a "petri dish" to magnify the data for tuning. As SDG can be resource intensive depending on the algorithm and model used, it would be really useful to be able to choose the algorithm and model as per your preference and resource capability.
+
+## Rationale
+
+If a user wishes to generate synthetic data on commodity hardware like a Mac M-series laptop, a modified version of [self-instruct](https://arxiv.org/abs/2212.10560) and a quantized model would be usable and performant. However, the fidelity of the data generation might be low. If the user has access to a Kubernetes cluster with 100 GPUs then using the [LAB](https://arxiv.org/abs/2403.01081) algoritm with a full model is a better option. The ability to be able to choose the algorithms and models on the fly using the framework is the key.
+
+## Specification
+
+### Architecture
+
+The key architectural components are:
+
+- Task: A task that will be executed by a data builder. It contains global definitions, termination criteria, and seed data
+- Seed Data: The raw input data to the SDG algorithm
+- Data Builder: The algorithm that generates the new synthetic data. Each builder expects the seed data to be in a standard format
+- Generator: Inferences a Large Language Model (LLM) to generate synthetic data. Used by data builder
+- Validator: Validates the ganerated synthetic data against a LLM. Used by data builder
+
+The overall architecture is fairly straightforward. At the top level, there are _tasks_ and _databuilders_. Tasks specify independent data generation objectives. These will have their own seed data, their own termination criteria, their own global variable definitions, etc. Data builders specify the process by which data for a set of tasks should be generated. A data builder will have its own specification for what it expects as inputs. Roughly speaking, there is a many-to-one correspondence between tasks and data builders (though, in theory, tasks could be solved by different data builders as long as their data abided by the constraints of the data builder). Below we have a figure showing how both of these components pass into the main data generation loop
+
+<img src="./inputs.png" width="600">
+
+The data generation loop will continue to run until a set number of examples (specified with the `num_outputs_to_generate` argument to `generate_data`) is generated. It runs in an iterative loop where on each iteration, for a particular task, a data builder is passed (1) the seed data of the task and (2) _all_ of the data that has been generated for that task. After each iteration of the loop, it stores the data to the desired location (`output_dir` argument). Below we provide a diagram of this process
+
+<img src="./generation.png" width="600">
+
+### Tasks
+
+Data files are used to instantiate data generation tasks. An example of one can be found [here](../data/writing/freeform/debate/qna.yaml) (see below for the relevant snippet).
+
+```yaml
+created_by: IBM Research
+data_builder: simple
+seed_examples:
+  - answer: Economist:\n"Implementing a universal basic income ..."
+    question:
+      Debate the merits and drawbacks of implementing a universal basic income
+      between an economist, a sociologist, and a policy maker.
+task_description: "Example of a task"
+```
+
+Our goal was to be as non-prescriptive as possible, allowing people to load their own data with their own fields without having to modify it to fit into the framework. As such, in the YAML, the only components that must **always** be specified are the `created_by`, `data_builder`, `seed_examples`, and `task_description` fields. Beyond those, there are no constraints to a data file, i.e., the designer of a task can include whatever they want here.
+
+Internally, the data of a YAML file will populate [Task / Data objects](../fms_sdg/databuilders/simple/task.py) (see below for relevant snippet)
+
+```python
+@dataclass
+class ExampleSdgData(SdgData):
+    """This class is intended to hold the seed / machine generated instruction data"""
+
+    task_description: str
+    instruction: str
+    input: str
+    output: str
+    document: str
+
+class ExampleSdgTask(SdgTask):
+    """This class is intended to hold general task information"""
+
+    DATA_TYPE = ExampleSdgData
+
+    def __init__(
+        self,
+        *args: Any,
+        **kwargs: Any,
+    ):
+        super().__init__(*args, **kwargs)
+
+    def instantiate_example(self, **kwargs: Any):
+        return self.DATA_TYPE(
+            task_name=self.name,
+            task_description=self.task_description,
+            instruction=kwargs.get("question"),
+            input=kwargs.get("context", ""),
+            output=kwargs.get("answer"),
+            document=kwargs.get("document", None),
+        )
+```
+
+You can see from the above that the task object allows you to define your own example instantiation code. This can be used to add in global data (e.g., anything outside of the `seed_examples` field), to each data instance without having to store it redundantly in the YAML data file (i.e., copies of the same field for every entry of `seed_examples`).
+
+As stated before, each iteration of generation will have the data builders taking in dataclass instances (both the seed examples and the examples generated thus far).
+
+### Data Builders
+
+Data builders (see [here](../fms_sdg/databuilders/simple/generate.py) for an example) contain the means by which our framework generates data. They consist of some number of _generators_ and some number of _validators_. Generators are, roughly speaking, things that take in inputs and generate some output (e.g., most often an LLM taking in a prompt and then returning a string). Correspondingly, validators are things that inspect an object and return True or False to signify whether that object is valid (e.g., validating the output of an LLM for well-formedness constraints in the case of code generation).
+
+Each data builder is defined with a \_\_call\_\_ function. Importantly, the call function takes as input a list of the dataclass instances described above. This leads to an inherent composability of data builders, where the outputs of one data builder can be fed as the inputs to another (ideally leading to more code reuse across the repository).
+
+```python
+def __call__(
+    self,
+    request_idx: int,
+    instruction_data: List[ExampleSdgData],
+) -> Tuple[List[ExampleSdgData], int]:
+
+    ... code goes here ...
+
+    return outputs, discarded
+```
+
+As with task definitions, we aimed to be very non-prescriptive in how the \_\_call\_\_ functions are defined. That being said, we do require any computationally expensive calls that leverage batch processes (e.g., LLM calls) to go through Generators / Validators (with generators for LLMs already being provided [here](../fms_sdg/generators/)).
+
+An important aspect to keep in mind when defining a new data builder is the notion of _task parallelism_. That is, to make things more efficient, all tasks that can be executed by the same data builder will be run simultaneously. Thus, the inputs to the \_\_call\_\_ function will be a mixed list of instruction data (i.e., elements of the list can come from one of _N_ tasks). When doing things like combining instructions together (e.g., to serve as an ICL example to produce a new output), one has to make sure to keep track the provenance of the data.
+
+Data builders are very configurable. An example of a configuration can be found [here](../fms_sdg/databuilders/simple/simple.yaml) (see below for the relevant snippet).
+
+```yaml
+name: simple
+generators:
+  llm1:
+    type: genai
+    temperature: 0.0
+    max_new_tokens: 512
+    min_new_tokens: 1
+    model_id_or_path: mistralai/mixtral-8x7b-instruct-v01
+validators:
+  val1:
+    type: rouge_scorer
+    threshold: 1.0
+metadata:
+  version: 1.0
+```
+
+In this, the `generators` and `validators` fields show the default settings for the generators and validators, respectively. This allows for trivial substitution of parameters like model types, LLM backends (e.g., `genai`, `vllm`, `openai`) without having to change the underlying code.
+
+### Generators and Validators
+
+As mentioned above, in the data builder `__call__` function, you will make use of "generators" and "validators", which are the components in this framework that do the heavy lifting. We have provided a number of LLM-based generators for [IBM GenAI](https://ibm.github.io/ibm-generative-ai/v3.0.0/index.html), [OpenAI](https://github.com/openai/openai-python) and [vLLM](https://github.com/vllm-project/vllm). To use a specific generator, you need to specify it in both the YAML and in the `generate.py` file as a attribute of the task's class. From a design standpoint, we aim to keep all multiprocessing and parallelism contained to the generators and the validators, i.e., **not** in the `__call__` function. By defining these ahead of time and restricting heavy operations to these objects, we can allow for better performance optimizations in terms of speed and resource allocation.
+
+To define a new generator or validator, first take a look at the base classes that the concrete implementation will inherit from. These are found in `./fms_sdg/base/<generator/validator>.py`. Generators and validators must define a `generate_batch` or `validate_batch` function, respectively.
+
+The arguments to a generator or validator will always be a batch of `Instance` objects (see `./scale*sdg/base/instance.py`). `Instance` objects are very simple, consisting primarily of `_args*` and `_kwargs_` fields. We use these because the inputs to a generator may have a wide range of settings (e.g., different temperatures, models, etc.), and this allows us to batch those requests together as much as we can. Importantly, the generator or validator will treat the `_args_` and `_kwargs_` fields as they would in a function call, so you **must** provide `_args_` or `_kwargs_` as a list or dictionary, respectively.
+
+For example, a generator called with:
+
+```python
+inst_lst = [Instance(args, kwargs), Instance(args, kwargs)]
+validator_class.validate_batch(inst_lst)
+```
+
+will internally call a function similar to the following:
+
+```python
+def validate_batch(inst_lst):
+    for inst in inst_lst:
+        inst.result = generator_fn(*inst.args, **inst.kwargs)
+```
+
+Hence, an instance object that does not treat `_args_` as a list, e.g., `Instance(args='abc')` will have issues. In addition, all generator and validator functions must return `None`, with the result of function calls on these `Instance` objects being stored in the `result` field. For convenience, there is also a `data` field in each `Instance` object that lets one pass an arbitrary object along with the `Instance`. This is quite helpful for moving along a partially constructed SDG data instance through multiple different generators.
+
+### Interfaces
+
+The interfaces are as follows:
+
+- `generate_data()`: Generate synthentic data
+  - `data_path` (str): Path to data directory (or data file), this is where all task data will be loaded from
+  - `num_outputs_to_generate` (int): Number of outputs to generate
+  - `num_prompt_instructions` (int): Number of prompt instructions to generate
+  - `max_gen_requests` (int): How many iterations of generation should be attempted
+  - `output_dir` (str): Path to output generated data
+  - `lm_cache` (str): Use db cache for LM generation at location (or create one at that location if a cache does not exist)
+  - `include_data_path` (str): Path to specify data overrides
+  - `include_builder_path` (str): Path to specify data builder config overrides
+  - `prompt_file_path` (str): Optional path to a prompt file (optional, used for some databuilders)
+  - `console_output` (bool, default=True): Print certain logging messages to console
+  - `restart_generation` (bool, default=False): Erase existing synthetic data for specified task and restart generation from scratch
+
+To call this from the command line use the \_\_main\_\_.py file, e.g.,
+
+```shell
+python -m fms_sdg.__main__ --data-path ./data/logical_reasoning/causal/qna.yaml
+```
+
+or to run all files in a directory, just specify the top-level directory
+
+```shell
+python -m fms_sdg.__main__ --data-path ./data/logical_reasoning/
+```
+
+### Implementation
+
+The framework is to be implemeted as a Python library. Here is an example of calling SDG using the framework:
+
+```python
+# Local
+from fms_sdg.generate_data import generate_data
+
+
+generate_data(
+    num_outputs_to_generate=2,
+    num_prompt_instructions=2,
+    data_path="data",
+    max_gen_requests=2,
+    output_dir="output",
+    lm_cache=None,
+    include_data_path=None,
+    include_builder_path=None,
+    prompt_file_path="prompt.txt",
+    restart_generation=True,
+)
+```
+
+## Extending Scalable SDG Capability
+
+### Defining a New Data Builder
+
+Data builder defines the algorithm, generation and validation for a SDG process. The builder is defined by 4 main components:
+
+1. A configuration YAML file in the `./fms_sdg/databuilders directory`. For example, `./fms_sdg/databuilders/simple/simple.yaml`
+2. A Python file called `generate.py` which defines the data builder class. For example, `./fms_sdg/databuilders/simple/generate.py`
+3. A Python function `__call**` within a data builder class which is the entry point for calling the data builder. For example, `SimpleInstructDataBuilder.__call**` in `./fms_sdg/databuilders/simple/generate.py`
+4. A Python file called `task.py` which defines the expected data schema. For example, `./fms_sdg/databuilders/simple/task.py`
+
+**Note:** When a data builder is loaded, the `generate.py` file is imported by the session manager. If you have any dependencies, you'll want to make sure that they are specified in that file.
+
+To define a new data builder, make a directory for your data builder in the data builders subdirectory. You can copy over the YAML and `generate.py` file from the `./templates/` directory to get started. Once you have finished defining the data builder, you can then change the `data_builder` field of any YAML data file in the data directory to point to the data builder you've just defined. Then you can run the code as shown in the [README](../README.md#testing-out-the-framework).
