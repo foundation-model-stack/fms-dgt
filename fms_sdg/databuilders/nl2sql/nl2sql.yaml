@@ -1,0 +1,13 @@
+name: nl2sql
+generators:
+  llm1:
+    type: genai
+    temperature: 0.0
+    max_new_tokens: 512
+    min_new_tokens: 1
+    model_id_or_path: ibm/granite-8b-code-instruct
+validators:
+  val1:
+    type: sql_syntax_validator
+metadata:
+  version: 1.0

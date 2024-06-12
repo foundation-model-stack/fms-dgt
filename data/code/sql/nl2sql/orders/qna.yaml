@@ -1,0 +1,19 @@
+created_by: drugilsberg
+task_description: Natural Language to SQL data generation task for a Postgres database of orders
+data_builder: nl2sql
+database_type: postgres
+ddl_schema:
+  "CREATE TABLE users (\n    user_id INTEGER,\n    first_name VARCHAR(155),\n    last_name VARCHAR(155),\n    email VARCHAR(155),\n    city VARCHAR(155),\n    country VARCHAR(155)\n);\nCREATE TABLE orders (\n    order_id INTEGER,\n    user_id INTEGER,\n    product_name VARCHAR(155),\n    price FLOAT,\n    quantity INT,\n    order_date DATE,\n    order_state VARCHAR(155),\n    CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id) REFERENCES users (user_id)\n);"
+ground_truth:
+  - query: SELECT * FROM users
+    utterance: Get me all the users
+  - query: SELECT * FROM orders LIMIT 50
+    utterance: List the first 50 orders
+  - query: SELECT COUNT(*) FROM orders WHERE orders.order_date BETWEEN "2023-01-01" AND "2023-12-31"
+    utterance: How many orders in 2023?
+  - query: SELECT orders.user_id, SUM(orders.price) FROM orders WHERE orders.order_date BETWEEN "2024-01-01" AND "2024-12-31" GROUP BY orders.user_id
+    utterance: Total order price by user in 2024
+query_logs:
+  - SELECT * FROM users LIMIT 20
+  - SELECT orders.product_name, COUNT(orders.quantity) FROM orders GROUP BY orders.product_name
+  - SELECT COUNT(*) FROM users WHERE users.country = "Italy"
