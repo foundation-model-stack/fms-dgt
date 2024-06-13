@@ -27,13 +27,11 @@ import transformers
 # Local
 from fms_sdg.base.generator import BaseGenerator
 from fms_sdg.base.instance import Instance
-from fms_sdg.base.registry import register_generator
 from fms_sdg.utils import sdg_logger
 
 MODEL_ID_OR_PATH = "model_id_or_path"
 
 
-@register_generator("llm")
 class LMGenerator(BaseGenerator):
     """Class for LLM Generators"""
 

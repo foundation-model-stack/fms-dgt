@@ -65,4 +65,4 @@ class RougeValidator(BaseValidator):
             check_tokens,
         )
 
-        return max(rouge_scores).fmeasure < self._threshold
+        return max(rouge_scores, key=lambda x: x.fmeasure).fmeasure < self._threshold
