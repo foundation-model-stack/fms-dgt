@@ -1,0 +1,109 @@
+api_specifications:
+  glaive:
+    calculate_route:
+      description: Calculate the best route between multiple locations
+      name: calculate_route
+      parameters:
+        properties:
+          locations:
+            description: The locations for route calculation
+            items:
+              type: string
+            type: array
+        required:
+          - locations
+        type: object
+    calculate_tip:
+      description: Calculate the tip amount
+      name: calculate_tip
+      parameters:
+        properties:
+          bill_amount:
+            description: The total bill amount
+            type: number
+          tip_percentage:
+            description: The percentage of tip to be added
+            type: number
+        required:
+          - bill_amount
+          - tip_percentage
+        type: object
+    track_expenses:
+      description: Track personal expenses
+      name: track_expenses
+      parameters:
+        properties:
+          amount:
+            description: The amount spent
+            type: number
+          category:
+            description: The category of the expense
+            type: string
+          date:
+            description: The date of the expense in the format YYYY-MM-DD
+            type: string
+        required:
+          - category
+          - amount
+          - date
+        type: object
+    translate_text:
+      description: Translate text from one language to another
+      name: translate_text
+      parameters:
+        properties:
+          source_language:
+            description: The source language of the text
+            type: string
+          target_language:
+            description: The target language of the translation
+            type: string
+          text:
+            description: The text to be translated
+            type: string
+        required:
+          - text
+          - source_language
+          - target_language
+        type: object
+    calculate_bmi:
+      description: Calculate the Body Mass Index (BMI)
+      name: calculate_bmi
+      parameters:
+        properties:
+          height:
+            description: The height in meters
+            type: number
+          weight:
+            description: The weight in kilograms
+            type: number
+        required:
+          - weight
+          - height
+        type: object    
+    add:
+      description: Add two numbers
+      name: add
+      parameters:
+        properties:
+          num1:
+            description: First number
+            type: number
+          num2:
+            description: Second number
+            type: number
+        required:
+          - num1
+          - num2
+        type: object
+    add_calendar_event:
+      description: Add a new calendar event
+      name: add_calendar_event
+      parameters:
+        properties:
+          event:
+            description: The details of the event
+            type: string
+        required:
+          - event
+        type: object

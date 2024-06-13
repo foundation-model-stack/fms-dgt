@@ -1,0 +1,23 @@
+created_by: IBM
+task_description: API Non-nested Sequencing
+data_builder: api_function_checking
+task_instruction: "You are given a list of APIs below followed by a Query. Your task is to generate a sequence of 2 to 4 API calls that are required to execute the Query."
+min_func_count: 2
+max_func_count: 4
+exclude_api_groups:
+  - atis
+seed_examples:
+  - input:
+      I need to visit New York, Los Angeles, and Chicago. Can you help me find
+      the best route? Also, I need help with calculating a tip. My bill amount is $50 and I want
+      to leave a 15% tip.
+    output:
+      '[ {"name": "calculate_route", "arguments": {"locations": ["New York", "Los
+      Angeles", "Chicago"]}}, {"name": "calculate_tip", "arguments": {"bill_amount": 50, "tip_percentage":
+      15}} ]'
+    positive_functions:
+      - calculate_route
+      - calculate_tip
+    seed_api_group: glaive
+include:
+  - ../../base_apis.yaml
