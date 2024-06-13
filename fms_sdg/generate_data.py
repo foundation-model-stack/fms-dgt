@@ -1,7 +1,7 @@
 # Standard
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import Dict, List, Optional
 import os
 import time
 
@@ -19,19 +19,14 @@ sdg_logger = utils.sdg_logger
 
 
 def generate_data(
-    # model_family = (model_family,)
-    # model_name = (model,)
-    num_outputs_to_generate: int,
-    num_prompt_instructions: int,
     max_gen_requests: int,
     data_path: str,
     output_dir: str,
-    lm_cache: str,
-    include_data_path: str,
-    include_builder_path: str,
-    prompt_file_path: str,
-    console_output: bool = True,
-    restart_generation: bool = False,
+    task_kwargs: Dict,
+    builder_kwargs: Dict,
+    include_data_path: Optional[str] = None,
+    include_builder_path: Optional[str] = None,
+    restart_generation: Optional[bool] = False,
 ):
     # TODO: better naming convention...
     name = (
@@ -66,13 +61,12 @@ def generate_data(
             for builder in builder_list
             if builder not in builder_names and "*" not in builder
         ]
-    )  # we don't want errors if a wildcard ("*") task name was used
+    )
 
     if builder_missing:
         missing = ", ".join(builder_missing)
         raise ValueError(f"Builder specifications not found: [{missing}]")
 
-    # now let's generate new data!
     progress_bar = tqdm(total=len(task_inits))
     total_discarded = 0
     generate_start = time.time()
@@ -92,18 +86,12 @@ def generate_data(
 
         data_builder: DataBuilder = get_data_builder(builder_name)(
             config=builder_cfg,
-            lm_cache=lm_cache,
             output_dir=output_dir,
-            prompt_file_path=prompt_file_path,
-            num_prompt_instructions=num_prompt_instructions,
+            **builder_kwargs,
         )
 
         tasks: List[SdgTask] = [
-            data_builder.TASK_TYPE(
-                num_outputs_to_generate=num_outputs_to_generate,
-                output_dir=output_dir,
-                **task_init,
-            )
+            data_builder.TASK_TYPE(output_dir=output_dir, **task_init, **task_kwargs)
             for task_init in task_inits
             if task_init["data_builder"] == builder_name
         ]
@@ -134,11 +122,6 @@ def generate_data(
 
         completed_tasks = [task for task in tasks if task.is_complete()]
         tasks = [task for task in tasks if task not in completed_tasks]
-
-        if console_output:
-            print(
-                "Synthesizing new data. If you aren't satisfied with the generated data, interrupt training (Ctrl-C) and try adjusting your YAML files. Adding more examples may help."
-            )
 
         request_idx = 0
         while tasks and request_idx <= max_gen_requests:
