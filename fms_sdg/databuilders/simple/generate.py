@@ -31,9 +31,9 @@ class SimpleInstructDataBuilder(DataBuilder):
     def __init__(
         self,
         *args: Any,
-        num_prompt_instructions: Optional[int] = 2,
-        prompt_file_path: Optional[str] = None,
-        request_batch_size: Optional[int] = 5,
+        num_prompt_instructions: int = 2,
+        prompt_file_path: str = "prompt.txt",
+        request_batch_size: int = 5,
         **kwargs: Any,
     ):
         super().__init__(*args, **kwargs)
