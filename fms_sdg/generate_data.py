@@ -26,7 +26,7 @@ def generate_data(
     builder_kwargs: Dict,
     include_data_path: Optional[str] = None,
     include_builder_path: Optional[str] = None,
-    restart_generation: Optional[bool] = False,
+    restart_generation: bool = False,
 ):
     # TODO: better naming convention...
     name = (
