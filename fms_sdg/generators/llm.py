@@ -27,11 +27,13 @@ import transformers
 # Local
 from fms_sdg.base.generator import BaseGenerator
 from fms_sdg.base.instance import Instance
+from fms_sdg.base.registry import register_generator
 from fms_sdg.utils import sdg_logger
 
 MODEL_ID_OR_PATH = "model_id_or_path"
 
 
+@register_generator("llm")
 class LMGenerator(BaseGenerator):
     """Class for LLM Generators"""
 
@@ -116,6 +118,16 @@ class LMGenerator(BaseGenerator):
             continuation_enc = whole_enc[context_enc_len:]
 
         return context_enc, continuation_enc
+
+    def update_instance_with_result(
+        self, text: str, instance: Instance, until: List[str]
+    ):
+        if until is not None:
+            for term in until:
+                if len(term) > 0:
+                    text = text.split(term)[0]
+        instance.result = text
+        self.cache_hook.add_partial(f"generate_batch", instance, text)
 
     @abc.abstractmethod
     def generate_batch(

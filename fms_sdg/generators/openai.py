@@ -130,25 +130,18 @@ class OpenaiChatCompletionsLM(LMGenerator):
     def generate_batch(
         self, requests: List[Instance], disable_tqdm: bool = False
     ) -> None:
-        res = defaultdict(list)
-        re_ords = {}
-
         # we group requests by their generation_kwargs,
-        # so that we don't try to execute e.g. greedy sampling and temp=0.8 sampling
-        # in the same batch.
         grouper = generator_utils.Grouper(requests, lambda x: str(x.kwargs))
+        pbar = tqdm(
+            total=len(requests),
+            disable=(disable_tqdm or (self.rank != 0)),
+            desc="Running generate_batch requests",
+        )
         for key, reqs in grouper.get_grouped().items():
-            # within each set of reqs for given kwargs, we reorder by token length, descending.
-            re_ords[key] = utils.Reorderer(reqs, lambda x: -len(x.args[0]))
-
-        pbar = tqdm(total=len(requests), disable=(disable_tqdm or (self.rank != 0)))
-        for key, re_ord in re_ords.items():
             # n needs to be 1 because messages in
             # chat completion are not batch but
             # is regarded as a single conversation.
-            chunks: List[List[Instance]] = generator_utils.chunks(
-                re_ord.get_reordered(), n=1
-            )
+            chunks: List[List[Instance]] = generator_utils.chunks(reqs, n=1)
 
             for chunk in chunks:
                 inputs = [
@@ -186,25 +179,10 @@ class OpenaiChatCompletionsLM(LMGenerator):
 
                 for resp, instance in zip(response.choices, chunk):
                     s = resp.message.content
-
-                    if until is not None:
-                        for term in until:
-                            if len(term) > 0:
-                                s = s.split(term)[0]
-
-                    res[key].append(s)
-
-                    self.cache_hook.add_partial(f"generate_batch", instance, s)
-
+                    self.update_instance_with_result(s, instance, until)
                     pbar.update(1)
-            # reorder this group of results back to original unsorted form
-            res[key] = re_ord.get_original(res[key])
 
         pbar.close()
-
-        results = grouper.get_original(res)
-        for req, res in zip(requests, results):
-            req.result = res
 
     def loglikelihood(self, requests, disable_tqdm: bool = False):
         raise NotImplementedError("No support for logits.")

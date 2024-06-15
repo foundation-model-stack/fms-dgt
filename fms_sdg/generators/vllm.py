@@ -27,6 +27,7 @@ from fms_sdg.base.registry import register_generator
 from fms_sdg.generators.llm import LMGenerator
 from fms_sdg.generators.utils import Collator, undistribute
 from fms_sdg.utils import sdg_logger
+import fms_sdg.generators.utils as generator_utils
 
 try:
     # Third Party
@@ -77,7 +78,7 @@ class vLLMGenerator(LMGenerator):
         quantization: Optional[str] = self._config.get("quantization", None)
         max_gen_toks: int = self._config.get("max_gen_toks", 256)
         swap_space: int = self._config.get("swap_space", 4)
-        batch_size: Union[str, int] = self._config.get("batch_size", 1)
+        batch_size: Union[str, int] = self._config.get("batch_size", "auto")
         max_batch_size = self._config.get("max_batch_size", None)
         max_length: int = self._config.get("max_length", None)
         max_model_len: int = self._config.get("max_model_len", None)
@@ -208,13 +209,12 @@ class vLLMGenerator(LMGenerator):
         self,
         requests: List[List[int]] = None,
         generate: bool = False,
-        max_tokens: int = None,
         stop: Optional[List[str]] = None,
         **kwargs,
     ):
         if generate:
             kwargs = self.modify_gen_kwargs(kwargs)
-            sampling_params = SamplingParams(max_tokens=max_tokens, stop=stop, **kwargs)
+            sampling_params = SamplingParams(stop=stop, **kwargs)
         else:
             sampling_params = SamplingParams(
                 temperature=0, prompt_logprobs=1, max_tokens=1
@@ -255,8 +255,6 @@ class vLLMGenerator(LMGenerator):
     def generate_batch(
         self, requests: List[Instance], disable_tqdm: bool = False
     ) -> None:
-        res = []
-
         # batch tokenize contexts
         context = [req.args[0] for req in requests]
         context_encoding = self.tokenizer(context, add_special_tokens=False).input_ids
@@ -264,97 +262,76 @@ class vLLMGenerator(LMGenerator):
             ((a, b), c) for a, b, c in zip(context, context_encoding, requests)
         ]
 
-        def _collate_gen(_requests):
-            # the negative sign on len(toks) sorts descending - this has a few advantages:
-            # - time estimates will always be over not underestimates, which is more useful for planning
-            # - to know the size of a batch when going through the list, you know the first one is always the batch
-            #   padded context length. this is useful to simplify the batching logic and more importantly to make
-            #   automatic adaptive batches much much easier to implement
-            # - any OOMs will happen right away rather than near the end
-            return -len(_requests[0][1]), _requests[0][0]
-
-        # we group requests by their generation_kwargs,
-        # so that we don't try to execute e.g. greedy sampling and temp=0.8 sampling
-        # in the same batch.
-        re_ords = Collator(
-            request_list, sort_fn=_collate_gen, group_fn=lambda x: str(x[1].kwargs)
-        )
-        chunks = re_ords.get_batched(
-            n=int(self.batch_size) if self.batch_size != "auto" else 0, batch_fn=None
-        )
-
+        grouper = generator_utils.Grouper(request_list, lambda x: str(x[1].kwargs))
         pbar = tqdm(
             total=len(request_list),
             disable=(disable_tqdm or (self.rank != 0)),
             desc="Running generate_batch requests",
         )
-        # for each different set of kwargs, we execute all requests, by batch.
-        for chunk in chunks:
-            context_and_encoding, chunk_requests = zip(*chunk)
-            all_gen_kwargs = [req.kwargs for req in chunk_requests]
-            context, context_encoding = zip(*context_and_encoding)
-            # we assume all gen kwargs in the batch are the same
-            # this is safe to assume because the `grouper` object ensures it.
-            gen_kwargs = all_gen_kwargs[0]
-            # unpack our keyword arguments.
-            until = None
-            if isinstance(gen_kwargs, dict):
-                kwargs = copy.deepcopy(gen_kwargs)  # edge case for repeats > 1
-                if "stop_sequences" in kwargs.keys():
-                    until = kwargs.pop("stop_sequences")
-                    if isinstance(until, str):
-                        until = [until]
-                    elif not isinstance(until, list):
-                        raise ValueError(
-                            f"Expected `kwargs['stop_sequences']` to be of type Union[str,list] but got {until}"
-                        )
-                if "decoding_method" in kwargs:
-                    kwargs["do_sample"] = kwargs.pop("decoding_method") == "greedy"
-            else:
-                raise ValueError(
-                    f"Expected `kwargs` to be of type `dict` but got {gen_kwargs}"
-                )
-            # add EOS token to stop sequences
-            eos = self.tokenizer.decode(self.eot_token_id)
-            if not until:
-                until = [eos]
-            else:
-                until.append(eos)
-            if "max_gen_toks" in kwargs.keys():
-                max_gen_toks = kwargs.pop("max_gen_toks")
-            else:
-                max_gen_toks = self.max_gen_toks
 
-            # set the max length in tokens of inputs ("context_enc")
-            # max len for inputs = max length, minus room to generate the max new tokens
-            max_ctx_len = self.max_length - max_gen_toks
-            context_encoding = [x[-max_ctx_len:] for x in context_encoding]
+        for key, c_ce_reqs in grouper.get_grouped().items():
 
-            # perform batched generation
-            cont = self._model_generate(
-                requests=context_encoding,
-                generate=True,
-                max_tokens=max_gen_toks,
-                stop=until,
-                **kwargs,
+            chunks = generator_utils.chunks(
+                c_ce_reqs,
+                n=int(self.batch_size) if self.batch_size != "auto" else 0,
             )
 
-            for output, request in zip(cont, chunk_requests):
-                generated_text = output.outputs[0].text
-                request.result = generated_text
-                res.append(generated_text)
+            for chunk in chunks:
+                context_and_encoding, chunk_instances = zip(*chunk)
+                context, context_encoding = zip(*context_and_encoding)
+                # all kwargs are identical within a chunk
+                gen_kwargs = next(iter(chunk_instances)).kwargs
 
-                self.cache_hook.add_partial(f"generate_batch", request, generated_text)
+                # unpack our keyword arguments.
+                until = None
+                if isinstance(kwargs := copy.deepcopy(gen_kwargs), dict):
+                    # start with default params in self.config then overwrite with kwargs
+                    kwargs = {**self._base_kwargs, **kwargs}
+                    if "stop_sequences" in kwargs:
+                        until = kwargs.pop("stop_sequences")
+                        if isinstance(until, str):
+                            until = [until]
+                        elif not isinstance(until, list):
+                            raise ValueError(
+                                f"Expected `kwargs['stop_sequences']` to be of type Union[str,list] but got {until}"
+                            )
+                    kwargs["max_tokens"] = self.max_gen_toks
+                    if "max_new_tokens" in kwargs.keys():
+                        kwargs["max_tokens"] = kwargs.pop("max_new_tokens")
+                    if "min_new_tokens" in kwargs:
+                        kwargs["min_tokens"] = kwargs.pop("min_new_tokens")
+                    if "decoding_method" in kwargs:
+                        kwargs["do_sample"] = kwargs.pop("decoding_method") == "sample"
+                else:
+                    raise ValueError(
+                        f"Expected `kwargs` to be of type `dict` but got {gen_kwargs}"
+                    )
+                # add EOS token to stop sequences
+                eos = self.tokenizer.decode(self.eot_token_id)
+                if not until:
+                    until = [eos]
+                else:
+                    until.append(eos)
 
-                pbar.update(1)
+                # set the max length in tokens of inputs ("context_enc")
+                # max len for inputs = max length, minus room to generate the max new tokens
+                max_ctx_len = self.max_length - kwargs["max_tokens"]
+                context_encoding = [x[-max_ctx_len:] for x in context_encoding]
+
+                # perform batched generation
+                cont = self._model_generate(
+                    requests=context_encoding,
+                    generate=True,
+                    stop=until,
+                    **kwargs,
+                )
+
+                for output, instance in zip(cont, chunk_instances):
+                    s = output.outputs[0].text
+                    self.update_instance_with_result(s, instance, until)
+                    pbar.update(1)
 
         pbar.close()
-
-        # TODO: Fix this
-        # # reorder all group of results back to original unsorted form
-        # results = re_ords.get_original(res)
-        # for req, res in zip(requests, results):
-        #     req.result = res
 
     def _loglikelihood_tokens(
         self,
