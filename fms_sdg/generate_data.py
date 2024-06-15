@@ -67,7 +67,7 @@ def generate_data(
         missing = ", ".join(builder_missing)
         raise ValueError(f"Builder specifications not found: [{missing}]")
 
-    progress_bar = tqdm(total=len(task_inits))
+    progress_bar = tqdm(total=len(task_inits), desc="Running generation tasks")
     total_discarded = 0
     generate_start = time.time()
 

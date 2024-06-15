@@ -1,6 +1,6 @@
 # Standard
 from collections import ChainMap
-from typing import Any, Callable, List
+from typing import Any, Callable, List, TypeVar
 import collections
 import copy
 import fnmatch
@@ -93,6 +93,40 @@ def import_function(loader, node):
 
 
 def load_yaml_config(yaml_path=None, yaml_config=None, yaml_dir=None, mode="full"):
+    def load_file(path):
+        try:
+            if path.endswith(".yaml"):
+                data = load_yaml_config(yaml_path=path, mode=mode)
+            else:
+                with open(path, "r") as f:
+                    data = f.read()
+            return data
+        except Exception as ex:
+            # If failed to load, ignore
+            raise ex
+
+    def init_include(to_include: Any):
+        if type(to_include) == list:
+            return [init_include(x) for x in to_include]
+        elif type(to_include) == dict:
+            return {k: init_include(v) for k, v in to_include.items()}
+        elif type(to_include) == str:
+            if os.path.isfile(to_include):
+                # case where provided include is an absolute path
+                add_data = load_file(to_include)
+            elif os.path.isfile(os.path.join(yaml_dir, to_include)):
+                # case where provided include is a relative path
+                add_data = load_file(os.path.join(yaml_dir, to_include))
+            else:
+                raise ValueError(
+                    f"Should not include non-file paths in include directive: {to_include}"
+                )
+            return add_data
+        else:
+            raise ValueError(
+                f"Unhandled input format in 'include' directive: {to_include}"
+            )
+
     if mode == "simple":
         constructor_fn = ignore_constructor
     elif mode == "full":
@@ -110,31 +144,27 @@ def load_yaml_config(yaml_path=None, yaml_config=None, yaml_dir=None, mode="full
     assert yaml_dir is not None
 
     if "include" in yaml_config:
-        include_path = yaml_config["include"]
+        to_include = yaml_config["include"]
         del yaml_config["include"]
 
-        if isinstance(include_path, str):
-            include_path = [include_path]
+        if isinstance(to_include, str):
+            to_include = [to_include]
 
-        # Load from the last one first
-        include_path.reverse()
-        final_yaml_config = {}
-        for path in include_path:
-            # Assumes that path is a full path.
-            # If not found, assume the included yaml
-            # is in the same dir as the original yaml
-            if not os.path.isfile(path):
-                path = os.path.join(yaml_dir, path)
-
-            try:
-                included_yaml_config = load_yaml_config(yaml_path=path, mode=mode)
-                final_yaml_config.update(included_yaml_config)
-            except Exception as ex:
-                # If failed to load, ignore
-                raise ex
+        final_yaml_config = dict()
+        to_add = init_include(to_include)
+        if type(to_include) == list:
+            for entry in to_add:
+                final_yaml_config.update(entry)
+        elif type(to_include) == dict:
+            final_yaml_config.update(to_add)
+        else:
+            raise ValueError(
+                f"Unhandled input format in 'include' directive: {to_include}"
+            )
 
         final_yaml_config.update(yaml_config)
         return final_yaml_config
+
     return yaml_config
 
 
@@ -187,6 +217,17 @@ class Reorderer:
         assert all(cov)
 
         return res
+
+
+T = TypeVar("T")
+
+
+def group_data_by_attribute(data_list: List[T], attr: str) -> List[List[T]]:
+    attr_values = set([getattr(data_item, attr) for data_item in data_list])
+    return [
+        [data_item for data_item in data_list if getattr(data_item, attr) == attr_value]
+        for attr_value in attr_values
+    ]
 
 
 def merge_dictionaries(*args: List[dict]):

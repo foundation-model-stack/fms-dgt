@@ -141,7 +141,11 @@ class OpenaiChatCompletionsLM(LMGenerator):
             # within each set of reqs for given kwargs, we reorder by token length, descending.
             re_ords[key] = utils.Reorderer(reqs, lambda x: -len(x.args[0]))
 
-        pbar = tqdm(total=len(requests), disable=(disable_tqdm or (self.rank != 0)))
+        pbar = tqdm(
+            total=len(requests),
+            disable=(disable_tqdm or (self.rank != 0)),
+            desc="Running generate_batch requests",
+        )
         for key, re_ord in re_ords.items():
             # n needs to be 1 because messages in
             # chat completion are not batch but
