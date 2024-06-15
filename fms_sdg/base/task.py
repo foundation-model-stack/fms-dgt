@@ -5,6 +5,9 @@ import abc
 import json
 import os
 
+# Local
+from fms_sdg.utils import group_data_by_attribute
+
 DEFAULT_OUTPUT_DIR = "output"
 
 
@@ -121,8 +124,4 @@ T = TypeVar("T")
 
 
 def group_data_by_task(data_list: List[T]) -> List[List[T]]:
-    tasks = set([data_item.task_name for data_item in data_list])
-    return [
-        [data_item for data_item in data_list if data_item.task_name == task]
-        for task in tasks
-    ]
+    return group_data_by_attribute(data_list, "task_name")
