@@ -154,28 +154,20 @@ class GenAIGenerator(LMGenerator):
     def generate_batch(
         self, requests: List[Instance], disable_tqdm: bool = False
     ) -> None:
-        res = defaultdict(list)
-        re_ords: Dict[str, utils.Reorderer] = dict()
-
-        # we group requests by their generation_kwargs,
-        # so that we don't try to execute e.g. greedy sampling and temp=0.8 sampling
-        # in the same batch.
+        # group requests by kwargs
         grouper = generator_utils.Grouper(requests, lambda x: str(x.kwargs))
-        for key, reqs in grouper.get_grouped().items():
-            # within each set of reqs for given kwargs, we reorder by token length, descending.
-            re_ords[key] = utils.Reorderer(reqs, lambda x: -1)  # len(x.args[0]))
-
         pbar = tqdm(
             total=len(requests),
             disable=(disable_tqdm or (self.rank != 0)),
             desc="Running generate_batch requests",
         )
-        for key, re_ord in re_ords.items():
+
+        for key, reqs in grouper.get_grouped().items():
             # n needs to be 1 because messages in
             # chat completion are not batch but
             # is regarded as a single conversation.
             chunks: List[List[Instance]] = generator_utils.chunks(
-                re_ord.get_reordered(), n=self._genai_resource.max_calls
+                reqs, n=self._genai_resource.max_calls
             )
 
             for chunk in chunks:
@@ -217,24 +209,7 @@ class GenAIGenerator(LMGenerator):
                     )
 
                     s = result.generated_text
-
-                    if until is not None:
-                        for term in until:
-                            if len(term) > 0:
-                                s = s.split(term)[0]
-
-                    res[key].append(s)
-
-                    self.cache_hook.add_partial(f"generate_batch", instance, s)
-
+                    self.update_instance_with_result(s, instance, until)
                     pbar.update(1)
 
-            # reorder this group of results back to original unsorted form
-            res[key] = re_ord.get_original(res[key])
-
         pbar.close()
-
-        results = grouper.get_original(res)
-
-        for req, res in zip(requests, results):
-            req.result = res

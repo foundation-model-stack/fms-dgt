@@ -117,6 +117,16 @@ class LMGenerator(BaseGenerator):
 
         return context_enc, continuation_enc
 
+    def update_instance_with_result(
+        self, text: str, instance: Instance, until: List[str]
+    ):
+        if until is not None:
+            for term in until:
+                if len(term) > 0:
+                    text = text.split(term)[0]
+        instance.result = text
+        self.cache_hook.add_partial(f"generate_batch", instance, text)
+
     @abc.abstractmethod
     def generate_batch(
         self, requests: List[Instance], **kwargs: Union[str, Dict]
