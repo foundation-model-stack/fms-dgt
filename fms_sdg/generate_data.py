@@ -129,13 +129,8 @@ def generate_data(
 
             iter_discarded = 0
 
-            data_pool = [
-                e for task in tasks for e in (task.seed_data + task.machine_data)
-            ]
-
-            filtered_data, discarded = data_builder(
-                request_idx,
-                data_pool,
+            filtered_data, discarded = data_builder.call_with_task_list(
+                request_idx, tasks
             )
             for task in tasks:
                 new_data = [fid for fid in filtered_data if fid.task_name == task.name]

@@ -44,11 +44,8 @@ class Nl2SqlDataBuilder(DataBuilder):
 
     def __call__(
         self,
-        request_idx: int,
         instruction_data: List[SqlSdgData],
     ) -> Tuple[List[InstructLabSdgData], int]:
-        # NOTE: this not used in the context of sqlsdg
-        _ = request_idx
 
         outputs: List[InstructLabSdgData] = []
         discarded: int = 0
@@ -131,3 +128,9 @@ class Nl2SqlDataBuilder(DataBuilder):
                     discarded += 1
         sdg_logger.info("Data generation completed.")
         return outputs, discarded
+
+    def call_with_task_list(self, request_idx: int, tasks: List[SdgTask]):
+        # this data builder outputs data in a different format than the input, so only the original seed data should be used
+        _ = request_idx
+        data_pool = [e for task in tasks for e in task.seed_data]
+        return self(data_pool)
