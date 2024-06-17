@@ -121,6 +121,13 @@ class DataBuilder(ABC):
                     setattr(self, obj_name, obj)
                     (self._generators if i == 0 else self._validators).append(obj)
 
+    def call_with_task_list(self, request_idx: int, tasks: List[SdgTask]):
+        # default behavior is to simply extract the seed / machine generated data and pass to data builder
+        data_pool = [e for task in tasks for e in (task.seed_data + task.machine_data)]
+        args = [request_idx, data_pool]
+        kwargs = dict()
+        return self(*args, **kwargs)
+
     def __call__(
         self,
         request_idx: int,
