@@ -57,7 +57,7 @@ class SQLExecutionValidator(BaseValidator):
                 # TODO: consider using the result of the fetch
                 # for further validation in the future
                 _ = cursor.fetchall()
-            is_valid = True
+                is_valid = True
         except Exception:
             logger.warning(f"discarded generated record={record}")
         return is_valid
