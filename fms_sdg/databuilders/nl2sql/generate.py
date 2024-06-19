@@ -21,6 +21,7 @@ from fms_sdg.databuilders.simple.task import InstructLabSdgData
 from fms_sdg.generators.llm import LMGenerator
 from fms_sdg.utils import sdg_logger
 from fms_sdg.validators.nl2sql.sql_syntax_validator import SQLSyntaxValidator
+from fms_sdg.validators.nl2sql.sql_execution_validator import SQLExecutionValidator
 
 
 @register_data_builder("nl2sql")
@@ -41,6 +42,8 @@ class Nl2SqlDataBuilder(DataBuilder):
 
     # val1 is the validator which checks SQL syntax
     val1: SQLSyntaxValidator
+    # val2 is the validator which checks SQL execution
+    val2: SQLExecutionValidator
 
     def __call__(
         self,
@@ -105,6 +108,7 @@ class Nl2SqlDataBuilder(DataBuilder):
                 for sql_schema, utterance, sql_query in processed_outputs
             ]
             self.val1.validate_batch(inputs=instances_for_validation)
+            self.val2.validate_batch(inputs=instances_for_validation)
 
             sdg_logger.info("Converting to instructions...")
             for instance in instances_for_validation:

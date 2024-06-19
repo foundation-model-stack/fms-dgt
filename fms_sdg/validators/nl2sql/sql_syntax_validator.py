@@ -27,7 +27,7 @@ class SQLSyntaxValidator(BaseValidator):
         for x in inputs:
             x.result = self._validate(*x.args, **x.kwargs)
 
-    def _validate(self, record: Dict[str, str], sql_dialect: str = "postgres") -> bool:
+    def _validate(self, record: Dict[str, str], sql_dialect: str = "postgres", **kwargs: Any) -> bool:
         """Validate a record containing information on schema, query and utterance.
 
         Args:

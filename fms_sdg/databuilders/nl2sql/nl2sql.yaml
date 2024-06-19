@@ -9,5 +9,7 @@ generators:
 validators:
   val1:
     type: sql_syntax_validator
+  val2:
+    type: sql_execution_validator
 metadata:
   version: 1.0
