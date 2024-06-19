@@ -1,6 +1,6 @@
 # Standard
 from functools import partial
-from typing import Dict, Mapping, Optional, Union
+from typing import Dict, List, Mapping, Optional, Union
 import collections
 import os
 
@@ -12,19 +12,26 @@ import fms_sdg.utils as utils
 class DataBuilderIndex:
     """DataBuilderIndex indexes all data builders from the default `fms_sdg/databuilders/` and an optional directory if provided."""
 
-    def __init__(self, include_path: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        include_builder_path: Optional[str] = None,
+        include_config_path: Optional[str] = None,
+    ) -> None:
         self._builder_index = collections.defaultdict(list)
-        self.initialize_data_builders(include_path=include_path)
+        self._initialize_data_builders(
+            include_paths=[include_builder_path, include_config_path]
+        )
 
         self._all_builders = sorted(list(self._builder_index.keys()))
         self.data_builder_group_map = collections.defaultdict(list)
 
-    def initialize_data_builders(self, include_path: Optional[str] = None):
+    def _initialize_data_builders(self, include_paths: List[str]):
         all_paths = [os.path.dirname(os.path.abspath(__file__)) + "/"]
-        if include_path is not None:
-            if isinstance(include_path, str):
-                include_path = [include_path]
-            all_paths.extend(include_path)
+        for to_include in include_paths:
+            if to_include is not None:
+                if isinstance(to_include, str):
+                    to_include = [to_include]
+                all_paths.extend(to_include)
 
         for data_builder_dir in all_paths:
             self._get_data_builder(data_builder_dir)

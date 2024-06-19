@@ -65,10 +65,24 @@ def pattern_match(patterns, source_list):
     return sorted(list(task_names))
 
 
-def import_builder(inp_dir: str) -> None:
+def import_builder(inp_dir: str, include_path: str = None) -> None:
+    loaded = False
     # TODO: this must be generalized
-    import_path = f"fms_sdg.databuilders.{inp_dir}.generate"
-    importlib.import_module(import_path)
+    for imp_path in ["fms_sdg.databuilders", include_path]:
+        if imp_path is not None:
+            imp_path = imp_path.replace(os.sep, ".")
+            import_path = f"{imp_path}.{inp_dir}.generate"
+            try:
+                importlib.import_module(import_path)
+                loaded = True
+            except ModuleNotFoundError:
+                # we try both, but we will overwrite with include path
+                pass
+    if not loaded:
+        err_str = f"No module named 'fms_sdg.databuilders.{inp_dir}.generate'"
+        if include_path is not None:
+            err_str += f" or '{include_path}.{inp_dir}.generate'"
+        raise ModuleNotFoundError(err_str)
 
 
 def ignore_constructor(loader, node):

@@ -25,6 +25,7 @@ def generate_data(
     task_kwargs: Dict,
     builder_kwargs: Dict,
     include_data_path: Optional[str] = None,
+    include_config_path: Optional[str] = None,
     include_builder_path: Optional[str] = None,
     restart_generation: bool = False,
 ):
@@ -46,7 +47,10 @@ def generate_data(
 
     # gather data builders here
     builder_list = [t["data_builder"] for t in task_inits]
-    builder_index = DataBuilderIndex(include_path=include_builder_path)
+    builder_index = DataBuilderIndex(
+        include_config_path=include_config_path,
+        include_builder_path=include_builder_path,
+    )
     builder_names = builder_index.match_builders(builder_list)
     for builder in [
         builder for builder in builder_list if builder not in builder_names
@@ -82,7 +86,9 @@ def generate_data(
                 continue
 
         # builder_dir is stored in the first builder_info in the list
-        utils.import_builder(original_builder_info["builder_dir"])
+        utils.import_builder(
+            original_builder_info["builder_dir"], include_path=include_builder_path
+        )
 
         data_builder: DataBuilder = get_data_builder(builder_name)(
             config=builder_cfg,
