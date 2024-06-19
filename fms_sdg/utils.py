@@ -73,7 +73,6 @@ def import_builder(inp_dir: str, include_path: str = None) -> None:
             imp_path = imp_path.replace(os.sep, ".")
             import_path = f"{imp_path}.{inp_dir}.generate"
             try:
-                print(import_path)
                 importlib.import_module(import_path)
                 loaded = True
             except ModuleNotFoundError:
