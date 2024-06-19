@@ -32,17 +32,14 @@ def add_base_args(parser: argparse.ArgumentParser):
         "--include-builder-path",
         "--include-bp",
         type=str,
-        default=None,
         metavar="DIR",
-        help="Additional path to include if there are overrides for data builder config files to include.",
+        help="Additional path to include if there are new data builders.",
     )
     group.add_argument(
-        "--include-data-path",
-        "--include-dp",
+        "--include-config-path",
         type=str,
-        default=None,
         metavar="DIR",
-        help="Additional path to include if there are overrides for task definition files to include.",
+        help="Additional path to include if there are overrides for data builder config files.",
     )
     group.add_argument(
         "--data-path",
