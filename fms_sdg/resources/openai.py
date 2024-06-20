@@ -3,7 +3,7 @@ from typing import Dict
 
 # Local
 from fms_sdg.base.registry import register_resource
-from fms_sdg.resources.api_key import ApiKeyResource
+from fms_sdg.resources.api import ApiKeyResource
 
 
 @register_resource("openai")

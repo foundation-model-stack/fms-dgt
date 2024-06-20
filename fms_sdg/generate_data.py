@@ -122,9 +122,10 @@ def generate_data(
             if restart_generation:
                 task.clear_data()
             if os.path.exists(task.output_path):
-                task_data = task.load_data()
-                task.machine_data = task_data
-                sdg_logger.debug(f"Loaded {len(task_data)} machine-generated data")
+                task.load_data()
+                sdg_logger.debug(
+                    f"Loaded {len(task.machine_data)} machine-generated data"
+                )
 
         completed_tasks = [task for task in tasks if task.is_complete()]
         tasks = [task for task in tasks if task not in completed_tasks]

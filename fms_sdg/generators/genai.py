@@ -11,7 +11,7 @@ from tqdm import tqdm
 from fms_sdg.base.instance import Instance
 from fms_sdg.base.registry import get_resource, register_generator
 from fms_sdg.generators.llm import LMGenerator
-from fms_sdg.resources.genai_key import GenAIKeyResource
+from fms_sdg.resources.genai import GenAIKeyResource
 import fms_sdg.generators.utils as generator_utils
 import fms_sdg.utils as utils
 

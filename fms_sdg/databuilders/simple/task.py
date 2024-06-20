@@ -21,7 +21,8 @@ class InstructLabSdgData(SdgData):
 class InstructLabSdgTask(SdgTask):
     """This class is intended to hold general task information"""
 
-    DATA_TYPE = InstructLabSdgData
+    INPUT_DATA_TYPE = InstructLabSdgData
+    OUTPUT_DATA_TYPE = InstructLabSdgData
 
     def __init__(
         self,
@@ -30,8 +31,8 @@ class InstructLabSdgTask(SdgTask):
     ):
         super().__init__(*args, **kwargs)
 
-    def instantiate_example(self, **kwargs: Any):
-        return self.DATA_TYPE(
+    def instantiate_input_example(self, **kwargs: Any):
+        return self.INPUT_DATA_TYPE(
             task_name=self.name,
             taxonomy_path=self.name,
             task_description=self.task_description,

@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 
 # Local
 from fms_sdg.base.task import SdgData, SdgTask
+from fms_sdg.databuilders.simple.task import InstructLabSdgData
 
 
 @dataclass
@@ -26,7 +27,8 @@ class SqlSdgData(SdgData):
 class SqlSdgTask(SdgTask):
     """This class is intended to hold general task information"""
 
-    DATA_TYPE = SqlSdgData
+    INPUT_DATA_TYPE = SqlSdgData
+    OUTPUT_DATA_TYPE = InstructLabSdgData
 
     def __init__(
         self,
@@ -44,8 +46,8 @@ class SqlSdgTask(SdgTask):
             )
         ]
 
-    def instantiate_example(self, **kwargs: Any):
-        return self.DATA_TYPE(
+    def instantiate_input_example(self, **kwargs: Any):
+        return self.INPUT_DATA_TYPE(
             task_name=self.name,
             taxonomy_path=self.name,
             task_description=self.task_description,

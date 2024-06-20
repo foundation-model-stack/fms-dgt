@@ -45,7 +45,8 @@ class ApiSdgData(SdgData):
 class ApiSdgTask(SdgTask):
     """This class is intended to hold general task information"""
 
-    DATA_TYPE = ApiSdgData
+    INPUT_DATA_TYPE = ApiSdgData
+    OUTPUT_DATA_TYPE = ApiSdgData
 
     def __init__(
         self,
@@ -73,8 +74,8 @@ class ApiSdgTask(SdgTask):
         self._task_instruction = task_instruction
         super().__init__(*args, **kwargs)
 
-    def instantiate_example(self, **kwargs: Any):
-        return self.DATA_TYPE(
+    def instantiate_input_example(self, **kwargs: Any):
+        return self.INPUT_DATA_TYPE(
             task_name=self.name,
             api_specifications=self._api_specifications,
             seed_api_group=kwargs.get("seed_api_group"),
@@ -86,4 +87,12 @@ class ApiSdgTask(SdgTask):
             single_function=self._single_function,
             input=kwargs.get("input"),
             output=kwargs.get("output"),
+        )
+
+    def instantiate_output_example(self, **kwargs: Any):
+        return self.OUTPUT_DATA_TYPE(
+            api_specifications=kwargs.pop(
+                "api_specifications", self._api_specifications
+            ),
+            **kwargs,
         )
