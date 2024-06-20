@@ -23,7 +23,7 @@ from tqdm import tqdm
 from fms_sdg.base.instance import Instance
 from fms_sdg.base.registry import get_resource, register_generator
 from fms_sdg.generators.llm import LMGenerator
-from fms_sdg.resources.openai_key import OpenAIKeyResource
+from fms_sdg.resources.openai import OpenAIKeyResource
 import fms_sdg.generators.utils as generator_utils
 import fms_sdg.utils as utils
 

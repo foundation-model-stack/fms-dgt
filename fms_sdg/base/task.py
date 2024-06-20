@@ -15,7 +15,7 @@ DEFAULT_OUTPUT_DIR = "output"
 class SdgData(abc.ABC):
     """This class is intended to hold the seed / machine generated instruction data"""
 
-    task_name: Optional[str]
+    task_name: str
 
     def to_output_dict(self):
         return asdict(self)
@@ -31,7 +31,10 @@ class PostProcessingType(type):
 class SdgTask(metaclass=PostProcessingType):
     """This class is intended to hold general task information"""
 
-    DATA_TYPE = SdgData
+    INPUT_DATA_TYPE = SdgData
+    OUTPUT_DATA_TYPE = (
+        INPUT_DATA_TYPE  # default output data type is the main type of the task
+    )
 
     def __init__(
         self,
@@ -57,10 +60,15 @@ class SdgTask(metaclass=PostProcessingType):
 
     def __post_init__(self):
         # we use post_init for cases when examples are instantiated with elements from subclass __init__
-        self._seed_data = [self.instantiate_example(**s) for s in self._seed_data]
+        self._seed_data = [self.instantiate_input_example(**s) for s in self._seed_data]
 
-    def instantiate_example(self, **kwargs: Any):
-        return self.DATA_TYPE(task_name=self.name, **kwargs)
+    def instantiate_input_example(self, **kwargs: Any):
+        return self.INPUT_DATA_TYPE(
+            task_name=kwargs.pop("task_name", self._name), **kwargs
+        )
+
+    def instantiate_output_example(self, **kwargs: Any):
+        return self.OUTPUT_DATA_TYPE(**kwargs)
 
     @property
     def name(self):
@@ -107,12 +115,14 @@ class SdgTask(metaclass=PostProcessingType):
         output_path = self._output_path if output_path is None else output_path
         with open(output_path, "r") as f:
             try:
-                return [
-                    self.instantiate_example(**json.loads(l.strip()))
+                machine_data = [
+                    self.instantiate_output_example(**json.loads(l.strip()))
                     for l in f.readlines()
                 ]
             except ValueError:
-                return []
+                machine_data = []
+
+        self.machine_data = machine_data
 
     def clear_data(self, output_path: str = None) -> List[SdgData]:
         output_path = self._output_path if output_path is None else output_path
