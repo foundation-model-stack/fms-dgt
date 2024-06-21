@@ -1,6 +1,6 @@
 # Standard
 from dataclasses import asdict, dataclass
-from typing import Any, List, Optional, TypeVar
+from typing import Any, List, Optional, TypeVar, Union
 import abc
 import json
 import os
@@ -104,7 +104,12 @@ class SdgTask(metaclass=PostProcessingType):
         path_components.append("generated_instructions.jsonl")
         return os.path.join(*path_components)
 
-    def save_data(self, new_data: List[SdgData], output_path: str = None) -> None:
+    def save_data(
+        self, new_data: Union[SdgData, List[SdgData]], output_path: str = None
+    ) -> None:
+        if type(new_data) != list:
+            new_data = [new_data]
+
         output_path = self._output_path if output_path is None else output_path
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         with open(output_path, "a") as f:

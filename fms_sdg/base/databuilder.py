@@ -1,7 +1,7 @@
 # Standard
 from abc import ABC
 from dataclasses import dataclass
-from typing import Any, List, Mapping, Optional, Tuple, Union
+from typing import Any, Iterable, List, Mapping, Optional, Tuple, Union
 import os
 
 # Local
@@ -20,9 +20,9 @@ class DataBuilderConfig(dict):
     generators: Optional[Union[str, list]] = None
     validators: Optional[Union[str, list]] = None
     generation_kwargs: Optional[dict] = None
-    metadata: Optional[
-        dict
-    ] = None  # by default, not used in the code. allows for users to pass arbitrary info to data builders
+    metadata: Optional[dict] = (
+        None  # by default, not used in the code. allows for users to pass arbitrary info to data builders
+    )
 
     def __post_init__(self) -> None:
         if self.generation_kwargs is not None:
@@ -121,7 +121,7 @@ class DataBuilder(ABC):
                     setattr(self, obj_name, obj)
                     (self._generators if i == 0 else self._validators).append(obj)
 
-    def call_with_task_list(self, request_idx: int, tasks: List[SdgTask]):
+    def call_with_task_list(self, request_idx: int, tasks: List[SdgTask]) -> Iterable:
         # default behavior is to simply extract the seed / machine generated data and pass to data builder
         data_pool = [e for task in tasks for e in (task.seed_data + task.machine_data)]
         args = [request_idx, data_pool]

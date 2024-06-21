@@ -1,6 +1,6 @@
 # Standard
 from dataclasses import asdict
-from typing import Any, List, Set, Tuple
+from typing import Any, Iterable, List, Set, Tuple
 import time
 
 # Local
@@ -58,9 +58,9 @@ class Nl2SqlDataBuilder(DataBuilder):
             # NOTE: here we rely on the fact that all the relevant information is in the key "task_info".
             # We just need to add some "task_description" as it is redacted by data configuration loading.
             data_generation_schema_dict = asdict(instruction_data_item)
-            data_generation_schema_dict[
-                "task_description"
-            ] = instruction_data_item.task_description
+            data_generation_schema_dict["task_description"] = (
+                instruction_data_item.task_description
+            )
             data_generation_schema = SQLDataGenerationSchema(
                 **data_generation_schema_dict
             )
@@ -131,9 +131,9 @@ class Nl2SqlDataBuilder(DataBuilder):
                 else:
                     discarded += 1
         sdg_logger.info("Data generation completed.")
-        return outputs, discarded
+        return outputs
 
-    def call_with_task_list(self, request_idx: int, tasks: List[SdgTask]):
+    def call_with_task_list(self, request_idx: int, tasks: List[SdgTask]) -> Iterable:
         # this data builder outputs data in a different format than the input, so only the original seed data should be used
         _ = request_idx
         data_pool = [e for task in tasks for e in task.seed_data]
