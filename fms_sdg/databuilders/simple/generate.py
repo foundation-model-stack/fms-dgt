@@ -53,7 +53,7 @@ class SimpleInstructDataBuilder(DataBuilder):
         self,
         request_idx: int,
         instruction_data: List[InstructLabSdgData],
-    ) -> Tuple[List[InstructLabSdgData], int]:
+    ) -> List[InstructLabSdgData]:
 
         inputs: List[Instance] = []
         instruction_data = instruction_data + []

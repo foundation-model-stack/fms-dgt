@@ -20,8 +20,8 @@ from fms_sdg.databuilders.nl2sql.task import SqlSdgData, SqlSdgTask
 from fms_sdg.databuilders.simple.task import InstructLabSdgData
 from fms_sdg.generators.llm import LMGenerator
 from fms_sdg.utils import sdg_logger
-from fms_sdg.validators.nl2sql.sql_syntax_validator import SQLSyntaxValidator
 from fms_sdg.validators.nl2sql.sql_execution_validator import SQLExecutionValidator
+from fms_sdg.validators.nl2sql.sql_syntax_validator import SQLSyntaxValidator
 
 
 @register_data_builder("nl2sql")
@@ -48,7 +48,7 @@ class Nl2SqlDataBuilder(DataBuilder):
     def __call__(
         self,
         instruction_data: List[SqlSdgData],
-    ) -> Tuple[List[InstructLabSdgData], int]:
+    ) -> List[InstructLabSdgData]:
 
         outputs: List[InstructLabSdgData] = []
         discarded: int = 0

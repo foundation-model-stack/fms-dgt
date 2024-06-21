@@ -132,6 +132,6 @@ class DataBuilder(ABC):
         self,
         request_idx: int,
         instruction_data: List[SdgData],
-    ) -> Tuple[List[SdgData], int]:
+    ) -> List[SdgData]:
         """In this function we guarantee that no process outside of the user's control will make multiple parallel calls to this"""
         raise NotImplementedError

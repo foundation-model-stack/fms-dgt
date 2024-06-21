@@ -46,7 +46,7 @@ class ApiDataBuilder(DataBuilder):
         self,
         request_idx: int,
         instruction_data: List[ApiSdgData],
-    ) -> Tuple[List[ApiSdgData], int]:
+    ) -> List[ApiSdgData]:
 
         # first generate new data
         instruction_data = instruction_data + []
