@@ -103,8 +103,6 @@ def generate_data(
 
         seeds = len([s for task in tasks for s in task.seed_data])
         sdg_logger.debug(f"Loaded {seeds} human-written seed examples from {data_path}")
-        if not seeds:
-            raise SystemExit("Nothing to generate. Exiting.")
 
         date_suffix = (
             datetime.now().replace(microsecond=0).isoformat().replace(":", "_")
