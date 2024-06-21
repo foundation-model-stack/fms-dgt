@@ -72,7 +72,6 @@ def generate_data(
         raise ValueError(f"Builder specifications not found: [{missing}]")
 
     progress_bar = tqdm(total=len(task_inits), desc="Running generation tasks")
-    total_discarded = 0
     generate_start = time.time()
 
     for builder_name, builder_cfg in builder_index.load_builder_configs(
@@ -102,11 +101,6 @@ def generate_data(
             if task_init["data_builder"] == builder_name
         ]
 
-        seeds = len([s for task in tasks for s in task.seed_data])
-        sdg_logger.debug(f"Loaded {seeds} human-written seed examples from {data_path}")
-        if not seeds:
-            raise SystemExit("Nothing to generate. Exiting.")
-
         date_suffix = (
             datetime.now().replace(microsecond=0).isoformat().replace(":", "_")
         )
@@ -134,37 +128,36 @@ def generate_data(
         while tasks and request_idx <= max_gen_requests:
             request_idx += 1
 
-            iter_discarded = 0
+            filtered_data = []
+            for generated_inst in data_builder.call_with_task_list(request_idx, tasks):
+                # save incrementally
+                task = next(
+                    task for task in tasks if task.name == generated_inst.task_name
+                )
+                task.save_data(generated_inst)
+                filtered_data.append(generated_inst)
 
-            filtered_data, discarded = data_builder.call_with_task_list(
-                request_idx, tasks
-            )
             for task in tasks:
-                new_data = [fid for fid in filtered_data if fid.task_name == task.name]
+                new_data = [
+                    gen_inst
+                    for gen_inst in filtered_data
+                    if gen_inst.task_name == task.name
+                ]
                 task.machine_data.extend(new_data)
                 if task.is_complete():
                     completed_tasks.append(task)
                     progress_bar.update()
-                task.save_data(new_data)
-
-            iter_discarded += discarded
 
             tasks = [task for task in tasks if task not in completed_tasks]
 
-            total_discarded += iter_discarded
             sdg_logger.info(
-                f"Generated {sum([len(task.machine_data) for task in tasks + completed_tasks])} data (discarded {iter_discarded})"
+                f"Generated {sum([len(task.machine_data) for task in tasks + completed_tasks])} data"
             )
 
         # TODO: cleanup
         del data_builder
 
     progress_bar.close()
-
-    if total_discarded:
-        sdg_logger.info(
-            f"{total_discarded} discarded due to format (see {output_file_discarded})"
-        )
 
     generate_duration = time.time() - generate_start
     sdg_logger.info(f"Generation took {generate_duration:.2f}s")

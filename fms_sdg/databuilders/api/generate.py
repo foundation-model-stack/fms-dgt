@@ -46,7 +46,7 @@ class ApiDataBuilder(DataBuilder):
         self,
         request_idx: int,
         instruction_data: List[ApiSdgData],
-    ) -> Tuple[List[ApiSdgData], int]:
+    ) -> List[ApiSdgData]:
 
         # first generate new data
         instruction_data = instruction_data + []
@@ -74,10 +74,11 @@ class ApiDataBuilder(DataBuilder):
         post_process_duration = time.time() - post_process_start
         sdg_logger.debug(
             f"Request {request_idx} took {request_duration:.2f}s, "
-            f"post-processing took {post_process_duration:.2f}s"
+            f"post-processing took {post_process_duration:.2f}s, "
+            f"discarded {wf_discarded + rouge_discarded} instances"
         )
 
-        return outputs, wf_discarded + rouge_discarded
+        return outputs
 
     def _wf_filter_data(self, data_to_filter: List[Instance]):
         # Well-formedness filtering

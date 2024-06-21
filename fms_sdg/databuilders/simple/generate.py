@@ -53,7 +53,7 @@ class SimpleInstructDataBuilder(DataBuilder):
         self,
         request_idx: int,
         instruction_data: List[InstructLabSdgData],
-    ) -> Tuple[List[InstructLabSdgData], int]:
+    ) -> List[InstructLabSdgData]:
 
         inputs: List[Instance] = []
         instruction_data = instruction_data + []
@@ -117,6 +117,8 @@ class SimpleInstructDataBuilder(DataBuilder):
         discarded += len(val1_inputs) - len(outputs)
 
         assess_duration = time.time() - assess_start
-        sdg_logger.debug(f"Assessing generated samples took {assess_duration:.2f}s")
+        sdg_logger.debug(
+            f"Assessing generated samples took {assess_duration:.2f}s, discarded {discarded} instances"
+        )
 
-        return outputs, discarded
+        return outputs
