@@ -137,7 +137,12 @@ def encode_prompt(prompt_instructions: List[InstructLabSdgData], prompt: str):
 
     # pylint: disable=unused-variable
     for idx, task_obj in enumerate(prompt_instructions):
-        (instruction, prompt_input, prompt_output, taxonomy_path,) = (
+        (
+            instruction,
+            prompt_input,
+            prompt_output,
+            taxonomy_path,
+        ) = (
             task_obj.instruction,
             task_obj.input,
             task_obj.output,
@@ -203,7 +208,7 @@ def post_process_gpt3_response(num_prompt_instructions, response):
         # to write a program or directly output the result, so here we filter them out.
         # NOTE: this is not a comprehensive filtering for all programming instructions.
         if inst.startswith("Write a program"):
-            sdg_logger(
+            sdg_logger.info(
                 "Discarded instruction (began with 'Write a program'): "
                 + repr(splitted_data),
             )
