@@ -101,9 +101,6 @@ def generate_data(
             if task_init["data_builder"] == builder_name
         ]
 
-        seeds = len([s for task in tasks for s in task.seed_data])
-        sdg_logger.debug(f"Loaded {seeds} human-written seed examples from {data_path}")
-
         date_suffix = (
             datetime.now().replace(microsecond=0).isoformat().replace(":", "_")
         )
