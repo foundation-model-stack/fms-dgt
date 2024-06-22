@@ -48,7 +48,7 @@ class TestApiValidator:
         validator = APIGenSpecValidator("test_single_intent", dict())
 
         # single intent
-        func_calls = [{"name": "add", "arguments": {}}]
+        func_calls = [{"name": "add"}]
         question = "add 3 with 4"
         api_info = get_args(func_calls)
         args = [api_info, question, json.dumps(func_calls)]
@@ -61,8 +61,8 @@ class TestApiValidator:
         validator = APIGenSpecValidator("test_multi_intent", dict())
         # multiple intent
         func_calls = [
-            {"name": "add", "arguments": {}},
-            {"name": "add_event", "arguments": {}},
+            {"name": "add"},
+            {"name": "add_event"},
         ]
         question = "add 3 with 4"
         api_info = get_args(func_calls)

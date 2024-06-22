@@ -92,7 +92,7 @@ class APIGenSpecValidator(BaseValidator):
 
             # since we've checked that each component has an associated api, we can just grab the first (should be identical)
             matching_api = next(
-                iter(api for api in api_info.values() if api[_NAME] == component[_NAME])
+                api for api in api_info.values() if api[_NAME] == component[_NAME]
             )
             matching_api_args = (
                 matching_api[_PARAM][_PROPERTIES]
@@ -137,7 +137,7 @@ class APIGenSpecValidator(BaseValidator):
 def is_nested_match(arg_content: str, prev_components: List[Dict], api_info: Dict):
     for component in prev_components:
         matching_api = next(
-            iter(api for api in api_info.values() if api[_NAME] == component[_NAME])
+            api for api in api_info.values() if api[_NAME] == component[_NAME]
         )
         if _OUTPUT_PARAM in matching_api:
             for out_param_name, out_param_info in matching_api[_OUTPUT_PARAM][
