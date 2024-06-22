@@ -22,6 +22,7 @@ class ApiSdgData(SdgData):
     check_arg_question_overlap: bool
     intent_only: bool
     single_function: bool
+    require_nested: bool
 
     def to_output_dict(self):
         # we do this because api_specifications can be gigantic (e.g., Glaive)
@@ -59,6 +60,7 @@ class ApiSdgTask(SdgTask):
         check_arg_question_overlap: bool = True,
         intent_only: bool = False,
         single_function: bool = False,
+        require_nested: bool = False,
         **kwargs: Any,
     ):
         self._api_specifications = {
@@ -71,6 +73,7 @@ class ApiSdgTask(SdgTask):
         self._check_arg_question_overlap = check_arg_question_overlap
         self._intent_only = intent_only
         self._single_function = single_function
+        self._require_nested = require_nested
         self._task_instruction = task_instruction
         super().__init__(*args, **kwargs)
 
@@ -85,6 +88,7 @@ class ApiSdgTask(SdgTask):
             check_arg_question_overlap=self._check_arg_question_overlap,
             intent_only=self._intent_only,
             single_function=self._single_function,
+            require_nested=self._require_nested,
             input=kwargs.get("input"),
             output=kwargs.get("output"),
         )

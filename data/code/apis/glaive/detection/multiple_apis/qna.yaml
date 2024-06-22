@@ -10,7 +10,7 @@ exclude_api_groups:
 seed_examples:
   - input: Hi, I need help with calculating the tip for my bill. The total bill amount
       is $100 and I want to give a 15% tip. I also want to know my BMI. I weigh 70 kg and my height is 1.75 meters.
-    output: '[ {"name": "calculate_tip", "arguments": {}}, {"name": "calculate_bmi", "arguments": {}} ]'
+    output: '[ { "name": "calculate_tip" }, { "name": "calculate_bmi" } ]'
     positive_functions:
       - calculate_tip
       - calculate_bmi

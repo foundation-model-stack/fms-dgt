@@ -28,6 +28,14 @@ parallel_kwargs = {
     "max_ct": 2,
 }
 
+parallel_nested_kwargs = {
+    "check_arg_question_overlap": True,
+    "intent_only": False,
+    "require_nested": True,
+    "min_ct": 2,
+    "max_ct": 2,
+}
+
 
 def get_args(func_calls):
     return {
@@ -40,7 +48,7 @@ class TestApiValidator:
         validator = APIGenSpecValidator("test_single_intent", dict())
 
         # single intent
-        func_calls = [{"name": "add", "arguments": {}}]
+        func_calls = [{"name": "add"}]
         question = "add 3 with 4"
         api_info = get_args(func_calls)
         args = [api_info, question, json.dumps(func_calls)]
@@ -53,8 +61,8 @@ class TestApiValidator:
         validator = APIGenSpecValidator("test_multi_intent", dict())
         # multiple intent
         func_calls = [
-            {"name": "add", "arguments": {}},
-            {"name": "add_event", "arguments": {}},
+            {"name": "add"},
+            {"name": "add_event"},
         ]
         question = "add 3 with 4"
         api_info = get_args(func_calls)
@@ -126,6 +134,38 @@ class TestApiValidator:
             "Validator should have failed due to arg content not being in question!"
         )
 
+    def test_parallel_nested(self):
+        validator = APIGenSpecValidator("test_parallel_nested", dict())
+
+        # parallel multiple
+        func_calls = [
+            {"name": "add", "arguments": {"n1": 3, "n2": 4}},
+            {"name": "add_event", "arguments": {"event": "$add.result"}},
+        ]
+        question = "add 3 with 4 and add an event with the result of the earlier addition to my calendar"
+        api_info = get_args(func_calls)
+        args = [api_info, question, json.dumps(func_calls)]
+
+        test_instance = [Instance(args, parallel_nested_kwargs)]
+        validator.validate_batch(test_instance)
+        assert test_instance[0].result
+
+        func_calls = [
+            {"name": "add", "arguments": {"n1": 3, "n2": 4}},
+            {"name": "add_event", "arguments": {"event": "i am going to the store"}},
+        ]
+        question = "add 3 with 4 and add an event store to my calendar"
+        api_info = get_args(func_calls)
+        args = [api_info, question, json.dumps(func_calls)]
+
+        test_instance = [Instance(args, parallel_nested_kwargs)]
+        validator.validate_batch(test_instance)
+        assert not test_instance[
+            0
+        ].result, (
+            "Validator should have failed due to arg content not being in question!"
+        )
+
     def test_yes_no(self):
         validator = ApiGenSpecYesNoValidation("test_yes_no", dict())
 
@@ -146,6 +186,7 @@ TEST_APIS = {
             },
             "required": ["n1", "n2"],
         },
+        "output_parameters": {"properties": {"result": {"type": "number"}}},
     },
     "add_event": {
         "name": "add_event",
@@ -153,5 +194,6 @@ TEST_APIS = {
             "properties": {"event": {"type": "string"}},
             "required": ["event"],
         },
+        "output_parameters": {"properties": {"added_successfully": {"type": "bool"}}},
     },
 }

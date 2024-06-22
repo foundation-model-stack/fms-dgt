@@ -1,5 +1,5 @@
 # Standard
-from typing import Any, List
+from typing import Any, Dict, List
 import json
 
 # Local
@@ -14,6 +14,7 @@ _PARAM = "parameters"
 _PROPERTIES = "properties"
 _ARGS = "arguments"
 _REQUIRED = "required"
+_OUTPUT_PARAM = "output_parameters"
 
 # Classes
 
@@ -34,6 +35,7 @@ class APIGenSpecValidator(BaseValidator):
         answer: str,
         check_arg_question_overlap: bool = True,
         intent_only: bool = False,
+        require_nested: bool = False,
         min_ct: int = 1,
         max_ct: int = 1,
     ) -> bool:
@@ -71,7 +73,9 @@ class APIGenSpecValidator(BaseValidator):
         ):
             return False
 
-        for component in sep_components:
+        has_nested = False
+
+        for i, component in enumerate(sep_components):
 
             # basic malformedness check
             if any([k for k in component.keys() if k not in [_NAME, _ARGS]]):
@@ -80,7 +84,7 @@ class APIGenSpecValidator(BaseValidator):
             if intent_only:
 
                 # intent detection should not have arguments
-                if component[_ARGS]:
+                if _ARGS in component:
                     return False
 
                 # we'll skip the rest of these checks if we're just interested in intent-detection
@@ -88,9 +92,7 @@ class APIGenSpecValidator(BaseValidator):
 
             # since we've checked that each component has an associated api, we can just grab the first (should be identical)
             matching_api = next(
-                iter(
-                    [api for api in api_info.values() if api[_NAME] == component[_NAME]]
-                )
+                api for api in api_info.values() if api[_NAME] == component[_NAME]
             )
             matching_api_args = (
                 matching_api[_PARAM][_PROPERTIES]
@@ -116,14 +118,35 @@ class APIGenSpecValidator(BaseValidator):
                 if not arg_name in matching_api_args:
                     return False
 
+                is_nested_call = require_nested and is_nested_match(
+                    arg_content, sep_components[:i], api_info
+                )
+                has_nested = is_nested_call or has_nested
+
                 # handle the case where slot values are not mentioned in the question
                 if (
                     check_arg_question_overlap
+                    and not is_nested_call
                     and str(arg_content).lower() not in question.lower()
                 ):
                     return False
 
-        return True
+        return (require_nested and has_nested) or not (require_nested or has_nested)
+
+
+def is_nested_match(arg_content: str, prev_components: List[Dict], api_info: Dict):
+    for component in prev_components:
+        matching_api = next(
+            api for api in api_info.values() if api[_NAME] == component[_NAME]
+        )
+        if _OUTPUT_PARAM in matching_api:
+            for out_param_name, out_param_info in matching_api[_OUTPUT_PARAM][
+                _PROPERTIES
+            ].items():
+                nested_call = "$" + ".".join([component[_NAME], out_param_name])
+                if nested_call == arg_content:
+                    return True
+    return False
 
 
 @register_validator("api_yes_no")

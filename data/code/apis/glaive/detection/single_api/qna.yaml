@@ -10,13 +10,13 @@ exclude_api_groups:
 seed_examples:
   - input: Hi, I need help with calculating the tip for my bill. The total bill amount
       is $100 and I want to give a 15% tip.
-    output: '[ {"name": "calculate_tip", "arguments": {}} ]'
+    output: '[ { "name": "calculate_tip" } ]'
     positive_functions:
       - calculate_tip
     seed_api_group: glaive
   - input: "Hi, I have a sentence in French that I need translated to English. The sentence\
       \ is \"Je suis tr\xE8s heureux de vous rencontrer\"."
-    output: '[ {"name": "translate_text", "arguments": {}} ]'
+    output: '[ { "name": "translate_text" } ]'
     positive_functions:
       - translate_text
     seed_api_group: glaive
