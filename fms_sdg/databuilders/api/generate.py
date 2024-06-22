@@ -103,6 +103,7 @@ class ApiDataBuilder(DataBuilder):
                 kwargs = {
                     "check_arg_question_overlap": new_instr.check_arg_question_overlap,
                     "intent_only": new_instr.intent_only,
+                    "require_nested": new_instr.require_nested,
                     "min_ct": (
                         new_instr.func_count_bounds[0]
                         if new_instr.single_function
