@@ -52,6 +52,7 @@ def generate_data(
         include_builder_path=include_builder_path,
     )
     builder_names = builder_index.match_builders(builder_list)
+    sdg_logger.debug("All builders: %s", builder_names)
     for builder in [
         builder for builder in builder_list if builder not in builder_names
     ]:
@@ -83,6 +84,7 @@ def generate_data(
             _, builder_cfg = builder_cfg
             if builder_cfg is None:
                 continue
+        sdg_logger.debug("Builder config for %s: %s", builder_name, builder_cfg)
 
         # builder_dir is stored in the first builder_info in the list
         utils.import_builder(

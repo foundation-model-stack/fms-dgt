@@ -90,6 +90,9 @@ class DataBuilder(ABC):
             # user may not define a generator / validator
             if info_src is not None:
                 for obj_name, obj_config in info_src.items():
+                    sdg_logger.debug(
+                        "Initializing object %s with config %s", obj_name, obj_config
+                    )
                     obj = (get_generator if i == 0 else get_validator)(
                         obj_config[TYPE_KEY]
                     )(obj_name, obj_config)

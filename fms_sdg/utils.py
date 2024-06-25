@@ -11,10 +11,11 @@ import os
 # Third Party
 import yaml
 
+log_level = getattr(logging, os.getenv("LOG_LEVEL", "info").upper())
 logging.basicConfig(
     format="%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s",
     datefmt="%Y-%m-%d:%H:%M:%S",
-    level=logging.INFO,
+    level=log_level,
 )
 sdg_logger = logging.getLogger("fms_sdg")
 
