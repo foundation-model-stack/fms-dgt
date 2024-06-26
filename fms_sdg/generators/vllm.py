@@ -39,8 +39,6 @@ try:
 except ModuleNotFoundError:
     pass
 
-sdg_logger = sdg_logger
-
 
 # TODO: this can be made more efficient for our purposes by rewriting the async code ourselves
 @register_generator("vllm")
