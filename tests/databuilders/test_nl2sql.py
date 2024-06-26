@@ -1,4 +1,3 @@
-# Third-party
 # Third Party
 import pytest
 
