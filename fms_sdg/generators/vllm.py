@@ -146,7 +146,7 @@ class vLLMGenerator(LMGenerator):
         if prefix_token_id is not None:
             sdg_logger.info(
                 "Loglikelihood prefix token id used in evaluation: %s",
-                self.prefix_token_id
+                self.prefix_token_id,
             )
 
         self._max_gen_toks = max_gen_toks

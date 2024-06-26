@@ -205,7 +205,7 @@ class CachingLM:
                         sdg_logger.warning(
                             "Arguments to lm.generate_batch() '%s' include non-deterministic "
                             "sampling. Caching will not be performed for such requests.",
-                            req.kwargs
+                            req.kwargs,
                         )
                         warned = True
                     res.append(None)
@@ -221,7 +221,7 @@ class CachingLM:
             sdg_logger.info(
                 "Cached requests: %s, Requests remaining: %s",
                 len(requests) - len(remaining_reqs),
-                len(remaining_reqs)
+                len(remaining_reqs),
             )
 
             # actually run the LM on the requests that do not have cached results

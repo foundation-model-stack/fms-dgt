@@ -20,9 +20,9 @@ class DataBuilderConfig(dict):
     generators: Optional[Union[str, list]] = None
     validators: Optional[Union[str, list]] = None
     generation_kwargs: Optional[dict] = None
-    metadata: Optional[dict] = (
-        None  # by default, not used in the code. allows for users to pass arbitrary info to data builders
-    )
+    metadata: Optional[
+        dict
+    ] = None  # by default, not used in the code. allows for users to pass arbitrary info to data builders
 
     def __post_init__(self) -> None:
         if self.generation_kwargs is not None:
@@ -100,7 +100,7 @@ class DataBuilder(ABC):
                     if lm_cache is not None and isinstance(obj, LMGenerator):
                         sdg_logger.info(
                             "Using cache at %s",
-                            lm_cache + '_rank' + str(obj.rank) + '.db'
+                            lm_cache + "_rank" + str(obj.rank) + ".db",
                         )
                         obj = CachingLM(
                             obj,

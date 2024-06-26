@@ -154,7 +154,7 @@ def generate_data(
 
             sdg_logger.info(
                 "Generated %s data",
-                sum([len(task.machine_data) for task in tasks + completed_tasks])
+                sum([len(task.machine_data) for task in tasks + completed_tasks]),
             )
 
         # TODO: cleanup

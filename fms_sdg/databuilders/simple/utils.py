@@ -137,12 +137,7 @@ def encode_prompt(prompt_instructions: List[InstructLabSdgData], prompt: str):
 
     # pylint: disable=unused-variable
     for idx, task_obj in enumerate(prompt_instructions):
-        (
-            instruction,
-            prompt_input,
-            prompt_output,
-            taxonomy_path,
-        ) = (
+        (instruction, prompt_input, prompt_output, taxonomy_path,) = (
             task_obj.instruction,
             task_obj.input,
             task_obj.output,
@@ -199,7 +194,7 @@ def post_process_gpt3_response(num_prompt_instructions, response):
         if any(find_word_in_string(word, inst) for word in _WORD_DENYLIST):
             sdg_logger.info(
                 "Discarded instruction (contained a word from the denylist): %s",
-                repr(splitted_data)
+                repr(splitted_data),
             )
             discarded += 1
             continue
@@ -210,7 +205,7 @@ def post_process_gpt3_response(num_prompt_instructions, response):
         if inst.startswith("Write a program"):
             sdg_logger.info(
                 "Discarded instruction (began with 'Write a program'): %s",
-                repr(splitted_data)
+                repr(splitted_data),
             )
             discarded += 1
             continue
@@ -218,7 +213,7 @@ def post_process_gpt3_response(num_prompt_instructions, response):
         if inst[0] in string.punctuation:
             sdg_logger.info(
                 "Discarded instruction (began with punctuation): %s",
-                repr(splitted_data)
+                repr(splitted_data),
             )
             discarded += 1
             continue
