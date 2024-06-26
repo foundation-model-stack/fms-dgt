@@ -271,7 +271,7 @@ def read_data_file(file_path: str):
         contents = load_yaml_config(file_path)
 
         if not contents:
-            sdg_logger.warn(f"Skipping {file_path} because it is empty!")
+            sdg_logger.warn("Skipping %s because it is empty!", file_path)
             return None
 
         if file_path.startswith("." + os.sep):

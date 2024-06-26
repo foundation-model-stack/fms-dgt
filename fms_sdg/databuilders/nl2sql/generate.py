@@ -65,7 +65,8 @@ class Nl2SqlDataBuilder(DataBuilder):
                 **data_generation_schema_dict
             )
             sdg_logger.info(
-                f"Running generation pipeline with data configuration: {data_generation_schema.model_dump_json(indent=2)}"
+                "Running generation pipeline with data configuration: %s",
+                data_generation_schema.model_dump_json(indent=2)
             )
             prompting_pipeline = SQLDataGenerationPromptingPipeline()
             instances = prompting_pipeline.run(

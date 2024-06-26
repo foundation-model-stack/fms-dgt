@@ -180,7 +180,7 @@ def post_process_gpt3_response(num_prompt_instructions, response):
         splitted_data = re.split(r"\*\*\s+(Instruction|Input|Output):?", inst)
         if len(splitted_data) != 7:
             sdg_logger.info(
-                "Discarded instruction (didn't match expected format): " + repr(inst),
+                "Discarded instruction (didn't match expected format): %s", repr(inst)
             )
             discarded += 1
             continue
@@ -191,15 +191,15 @@ def post_process_gpt3_response(num_prompt_instructions, response):
         # filter out too short or too long instructions
         if len(inst.split()) <= 3 or len(inst.split()) > 150:
             sdg_logger.info(
-                "Discarded instruction (wrong number of words): " + repr(splitted_data),
+                "Discarded instruction (wrong number of words): %s", repr(splitted_data)
             )
             discarded += 1
             continue
         # filter based on keywords that are not suitable for language models.
         if any(find_word_in_string(word, inst) for word in _WORD_DENYLIST):
             sdg_logger.info(
-                "Discarded instruction (contained a word from the denylist): "
-                + repr(splitted_data),
+                "Discarded instruction (contained a word from the denylist): %s",
+                repr(splitted_data)
             )
             discarded += 1
             continue
@@ -209,23 +209,23 @@ def post_process_gpt3_response(num_prompt_instructions, response):
         # NOTE: this is not a comprehensive filtering for all programming instructions.
         if inst.startswith("Write a program"):
             sdg_logger.info(
-                "Discarded instruction (began with 'Write a program'): "
-                + repr(splitted_data),
+                "Discarded instruction (began with 'Write a program'): %s",
+                repr(splitted_data)
             )
             discarded += 1
             continue
         # filter those starting with punctuation
         if inst[0] in string.punctuation:
             sdg_logger.info(
-                "Discarded instruction (began with punctuation): "
-                + repr(splitted_data),
+                "Discarded instruction (began with punctuation): %s",
+                repr(splitted_data)
             )
             discarded += 1
             continue
         # filter those starting with non-english character
         if not inst[0].isascii():
             sdg_logger.info(
-                "Discarded instruction(began with non-ascii): " + repr(splitted_data),
+                "Discarded instruction(began with non-ascii): %s", repr(splitted_data)
             )
             discarded += 1
             continue

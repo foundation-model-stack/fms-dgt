@@ -92,8 +92,10 @@ class SimpleInstructDataBuilder(DataBuilder):
 
         post_process_duration = time.time() - post_process_start
         sdg_logger.debug(
-            f"Request {request_idx} took {request_duration:.2f}s, "
-            f"post-processing took {post_process_duration:.2f}s"
+            "Request %s took %.2fs, post-processing took %.2fs",
+            request_idx,
+            request_duration,
+            post_process_duration
         )
 
         # now we assess and filter with rouge
@@ -118,7 +120,9 @@ class SimpleInstructDataBuilder(DataBuilder):
 
         assess_duration = time.time() - assess_start
         sdg_logger.debug(
-            f"Assessing generated samples took {assess_duration:.2f}s, discarded {discarded} instances"
+            "Assessing generated samples took %.2fs, discarded %s instances",
+            assess_duration,
+            discarded
         )
 
         return outputs

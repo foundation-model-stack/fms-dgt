@@ -99,7 +99,8 @@ class DataBuilder(ABC):
 
                     if lm_cache is not None and isinstance(obj, LMGenerator):
                         sdg_logger.info(
-                            f"Using cache at {lm_cache + '_rank' + str(obj.rank) + '.db'}"
+                            "Using cache at %s",
+                            lm_cache + '_rank' + str(obj.rank) + '.db'
                         )
                         obj = CachingLM(
                             obj,
