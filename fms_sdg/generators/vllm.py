@@ -39,8 +39,6 @@ try:
 except ModuleNotFoundError:
     pass
 
-sdg_logger = sdg_logger
-
 
 # TODO: this can be made more efficient for our purposes by rewriting the async code ourselves
 @register_generator("vllm")
@@ -123,7 +121,9 @@ class vLLMGenerator(LMGenerator):
                 "0.3.3"
             ), "data_parallel is only compatible with vllm < v0.3.3."
             sdg_logger.warning(
-                "You might experience occasional issues with model weight downloading when data_parallel is in use. To ensure stable performance, run with data_parallel_size=1 until the weights are downloaded and cached."
+                "You might experience occasional issues with model weight downloading "
+                "when data_parallel is in use. To ensure stable performance, run with "
+                "data_parallel_size=1 until the weights are downloaded and cached."
             )
             self.model_args["worker_use_ray"] = True
             self.batch_size = "auto"
@@ -145,7 +145,8 @@ class vLLMGenerator(LMGenerator):
         self.custom_prefix_token_id = prefix_token_id
         if prefix_token_id is not None:
             sdg_logger.info(
-                f"Loglikelihood prefix token id used in evaluation: {self.prefix_token_id}"
+                "Loglikelihood prefix token id used in evaluation: %s",
+                self.prefix_token_id,
             )
 
         self._max_gen_toks = max_gen_toks

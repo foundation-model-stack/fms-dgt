@@ -11,7 +11,6 @@ from fms_sdg.base.instance import Instance
 from fms_sdg.base.registry import register_data_builder
 from fms_sdg.base.task import SdgTask
 from fms_sdg.generators.llm import LMGenerator
-from fms_sdg.utils import sdg_logger
 from fms_sdg.validators.rouge import RougeValidator
 
 

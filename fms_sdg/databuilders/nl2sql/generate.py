@@ -58,14 +58,15 @@ class Nl2SqlDataBuilder(DataBuilder):
             # NOTE: here we rely on the fact that all the relevant information is in the key "task_info".
             # We just need to add some "task_description" as it is redacted by data configuration loading.
             data_generation_schema_dict = asdict(instruction_data_item)
-            data_generation_schema_dict["task_description"] = (
-                instruction_data_item.task_description
-            )
+            data_generation_schema_dict[
+                "task_description"
+            ] = instruction_data_item.task_description
             data_generation_schema = SQLDataGenerationSchema(
                 **data_generation_schema_dict
             )
             sdg_logger.info(
-                f"Running generation pipeline with data configuration: {data_generation_schema.model_dump_json(indent=2)}"
+                "Running generation pipeline with data configuration: %s",
+                data_generation_schema.model_dump_json(indent=2),
             )
             prompting_pipeline = SQLDataGenerationPromptingPipeline()
             instances = prompting_pipeline.run(

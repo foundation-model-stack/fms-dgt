@@ -52,6 +52,7 @@ def generate_data(
         include_builder_path=include_builder_path,
     )
     builder_names = builder_index.match_builders(builder_list)
+    sdg_logger.debug("All builders: %s", builder_names)
     for builder in [
         builder for builder in builder_list if builder not in builder_names
     ]:
@@ -83,6 +84,7 @@ def generate_data(
             _, builder_cfg = builder_cfg
             if builder_cfg is None:
                 continue
+        sdg_logger.debug("Builder config for %s: %s", builder_name, builder_cfg)
 
         # builder_dir is stored in the first builder_info in the list
         utils.import_builder(
@@ -118,7 +120,7 @@ def generate_data(
             if os.path.exists(task.output_path):
                 task.load_data()
                 sdg_logger.debug(
-                    f"Loaded {len(task.machine_data)} machine-generated data"
+                    "Loaded %s machine-generated data", len(task.machine_data)
                 )
 
         completed_tasks = [task for task in tasks if task.is_complete()]
@@ -151,7 +153,8 @@ def generate_data(
             tasks = [task for task in tasks if task not in completed_tasks]
 
             sdg_logger.info(
-                f"Generated {sum([len(task.machine_data) for task in tasks + completed_tasks])} data"
+                "Generated %s data",
+                sum([len(task.machine_data) for task in tasks + completed_tasks]),
             )
 
         # TODO: cleanup
@@ -160,4 +163,4 @@ def generate_data(
     progress_bar.close()
 
     generate_duration = time.time() - generate_start
-    sdg_logger.info(f"Generation took {generate_duration:.2f}s")
+    sdg_logger.info("Generation took %.2fs", generate_duration)

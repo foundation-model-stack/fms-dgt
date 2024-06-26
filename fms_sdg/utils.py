@@ -11,10 +11,11 @@ import os
 # Third Party
 import yaml
 
+log_level = getattr(logging, os.getenv("LOG_LEVEL", "info").upper())
 logging.basicConfig(
     format="%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s",
     datefmt="%Y-%m-%d:%H:%M:%S",
-    level=logging.INFO,
+    level=log_level,
 )
 sdg_logger = logging.getLogger("fms_sdg")
 
@@ -270,7 +271,7 @@ def read_data_file(file_path: str):
         contents = load_yaml_config(file_path)
 
         if not contents:
-            sdg_logger.warn(f"Skipping {file_path} because it is empty!")
+            sdg_logger.warn("Skipping %s because it is empty!", file_path)
             return None
 
         if file_path.startswith("." + os.sep):

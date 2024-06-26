@@ -123,7 +123,9 @@ class DataBuilderIndex:
 
                 if len(self._builder_index[builder_name]) > 2:
                     sdg_logger.warning(
-                        f"Multiple overriding configuration files detected for data builder {builder_name}. By default, configurations will be merged."
+                        "Multiple overriding configuration files detected for data builder %s. "
+                        "By default, configurations will be merged.",
+                        builder_name,
                     )
 
         if os.path.isfile(builder_path):

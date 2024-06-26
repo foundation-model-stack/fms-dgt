@@ -189,7 +189,9 @@ class CachingLM:
             warned = False
             # figure out which ones are cached and which ones are new
             sdg_logger.info(
-                f"Loading '{attr}' responses from cache '{self.cache_db}' where possible..."
+                "Loading '%s' responses from cache '%s' where possible...",
+                attr,
+                self.cache_db,
             )
             for req in tqdm(requests, desc="Checking cached requests"):
                 hsh = hash_args(attr, req)
@@ -201,7 +203,9 @@ class CachingLM:
                     # (else every "randomly sampled" generation would be identical for repeats > 1).
                     if not warned:
                         sdg_logger.warning(
-                            f"Arguments to lm.generate_batch() '{req.kwargs}' include non-deterministic sampling. Caching will not be performed for such requests."
+                            "Arguments to lm.generate_batch() '%s' include non-deterministic "
+                            "sampling. Caching will not be performed for such requests.",
+                            req.kwargs,
                         )
                         warned = True
                     res.append(None)
@@ -215,7 +219,9 @@ class CachingLM:
                     remaining_reqs.append(req)
 
             sdg_logger.info(
-                f"Cached requests: {len(requests) - len(remaining_reqs)}, Requests remaining: {len(remaining_reqs)}"
+                "Cached requests: %s, Requests remaining: %s",
+                len(requests) - len(remaining_reqs),
+                len(remaining_reqs),
             )
 
             # actually run the LM on the requests that do not have cached results

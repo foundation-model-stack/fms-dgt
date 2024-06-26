@@ -35,9 +35,6 @@ import time
 import torch
 import transformers
 
-# Local
-from fms_sdg.utils import sdg_logger
-
 
 class MultiTokenEOSCriteria(transformers.StoppingCriteria):
     """Criteria to stop on the specified multi-token sequence."""
