@@ -48,12 +48,6 @@ def add_base_args(parser: argparse.ArgumentParser):
         help=f"Path to local data.",
     )
     group.add_argument(
-        "--max-gen-requests",
-        type=int,
-        help="Maximum number of attempts to solve tasks",
-        default=DEFAULT_MAX_GEN_ATTEMPTS,
-    )
-    group.add_argument(
         "--output-dir",
         type=str,
         default=DEFAULT_GENERATED_FILES_OUTPUT_DIR,
@@ -89,6 +83,13 @@ def add_builder_args(parser: argparse.ArgumentParser):
         metavar="DIR",
         help="A path to a sqlite db file for caching model responses. `None` if not caching.",
     )
+    group.add_argument(
+        "--max-gen-requests",
+        type=int,
+        help="Maximum number of attempts to solve tasks",
+        default=DEFAULT_MAX_GEN_ATTEMPTS,
+    )
+
     return group
 
 
