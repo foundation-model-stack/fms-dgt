@@ -115,11 +115,6 @@ class OpenaiChatCompletionsLM(LMGenerator):
     def max_gen_toks(self) -> int:
         return 256
 
-    def loglikelihood(
-        self, requests: List[Instance], disable_tqdm: bool = False
-    ) -> None:
-        raise NotImplementedError
-
     def generate_batch(
         self, requests: List[Instance], disable_tqdm: bool = False
     ) -> None:
@@ -179,10 +174,12 @@ class OpenaiChatCompletionsLM(LMGenerator):
 
                 for resp, instance in zip(response.choices, chunk):
                     s = resp.message.content
-                    self.update_instance_with_result(s, instance, until)
+                    self.update_instance_with_result(
+                        "generate_batch", s, instance, until
+                    )
                     pbar.update(1)
 
         pbar.close()
 
-    def loglikelihood(self, requests, disable_tqdm: bool = False):
+    def loglikelihood_batch(self, requests, disable_tqdm: bool = False):
         raise NotImplementedError("No support for logits.")

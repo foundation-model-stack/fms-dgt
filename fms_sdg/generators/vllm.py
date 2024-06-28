@@ -329,7 +329,9 @@ class vLLMGenerator(LMGenerator):
 
                 for output, instance in zip(cont, chunk_instances):
                     s = output.outputs[0].text
-                    self.update_instance_with_result(s, instance, until)
+                    self.update_instance_with_result(
+                        "generate_batch", s, instance, until
+                    )
                     pbar.update(1)
 
         pbar.close()

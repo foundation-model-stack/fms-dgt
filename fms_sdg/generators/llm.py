@@ -11,7 +11,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 """
 
 # Standard
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 import abc
 import copy
 import hashlib
@@ -61,24 +61,28 @@ class LMGenerator(BaseGenerator):
         return self._rank
 
     def update_instance_with_result(
-        self, text: str, instance: Instance, until: List[str]
+        self,
+        method: str,
+        res: Any,
+        instance: Instance,
+        until: Optional[List[str]] = None,
     ):
-        if until is not None:
+        if until is not None and type(res) == str:
             for term in until:
                 if len(term) > 0:
-                    text = text.split(term)[0]
-        instance.result = text
-        self.cache_hook.add_partial(f"generate_batch", instance, text)
-
-    @abc.abstractmethod
-    def loglikelihood(
-        self, requests: List[Instance], disable_tqdm: bool = False
-    ) -> None:
-        pass
+                    res = res.split(term)[0]
+        instance.result = res
+        self.cache_hook.add_partial(method, instance, res)
 
     @abc.abstractmethod
     def generate_batch(
         self, requests: List[Instance], **kwargs: Union[str, Dict]
+    ) -> None:
+        pass
+
+    @abc.abstractmethod
+    def loglikelihood_batch(
+        self, requests: List[Instance], disable_tqdm: bool = False
     ) -> None:
         pass
 
