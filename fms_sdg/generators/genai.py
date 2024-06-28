@@ -66,25 +66,9 @@ class GenAIGenerator(LMGenerator):
     def max_gen_toks(self) -> int:
         return 256
 
-    @property
-    def batch_size(self):
-        # Isn't used because we override _loglikelihood_tokens
-        raise NotImplementedError()
-
-    @property
-    def device(self):
-        # Isn't used because we override _loglikelihood_tokens
-        raise NotImplementedError()
-
-    def tok_encode(self, string: str, **kwargs) -> List[int]:
-        raise NotImplementedError
-
-    def _encode_pair(self, context, continuation):
-        return context, continuation
-
-    def _loglikelihood_tokens(
-        self, requests, disable_tqdm: bool = False
-    ) -> List[float]:
+    def loglikelihood(
+        self, requests: List[Instance], disable_tqdm: bool = False
+    ) -> None:
         res = []
 
         def _collate(x):

@@ -13,21 +13,37 @@ from fms_sdg.base.registry import get_generator
 from fms_sdg.generators.llm import CachingLM, LMGenerator
 
 GREEDY_CFG = {
-    "type": "genai",
     "decoding_method": "greedy",
     "temperature": 1.0,
     "max_new_tokens": 5,
     "min_new_tokens": 1,
+}
+GREEDY_GENAI_CFG = {
+    "type": "genai",
     "model_id_or_path": "ibm/granite-8b-code-instruct",
+    **GREEDY_CFG,
+}
+GREEDY_VLLM_CFG = {
+    "type": "vllm",
+    "model_id_or_path": "ibm/granite-8b-code-instruct",
+    **GREEDY_CFG,
+}
+GREEDY_OPENAI_CFG = {
+    "type": "openai",
+    "model_id_or_path": "gpt-3.5-turbo",
+    **GREEDY_CFG,
 }
 PROMPTS = [f"Question: x = {i} + 1\nAnswer: x =" for i in range(25)]
 
 
 class TestLlmGenerators:
-    @pytest.mark.parametrize("model_backend", ["genai"])
-    def test_generate_batch(self, model_backend):
+    # @pytest.mark.parametrize("model_backend", ["genai", "openai-chat"])
+    # @pytest.mark.parametrize("model_cfg", [GREEDY_GENAI_CFG, GREEDY_OPENAI_CFG])
+    @pytest.mark.parametrize("model_backend", ["openai-chat"])
+    @pytest.mark.parametrize("model_cfg", [GREEDY_OPENAI_CFG])
+    def test_generate_batch(self, model_backend, model_cfg):
         lm: LMGenerator = get_generator(model_backend)(
-            name=f"test_{model_backend}", config=GREEDY_CFG
+            name=f"test_{model_backend}", config=model_cfg
         )
 
         inputs: List[Instance] = []
