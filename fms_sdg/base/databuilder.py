@@ -1,8 +1,13 @@
 # Standard
 from abc import ABC
 from dataclasses import dataclass
-from typing import Any, Iterable, List, Mapping, Optional, Tuple, Union
+from datetime import datetime
+from typing import Any, Iterable, List, Mapping, Optional, Union
 import os
+import time
+
+# Third Party
+from tqdm import tqdm
 
 # Local
 from fms_sdg.base.generator import BaseGenerator
@@ -43,8 +48,13 @@ class DataBuilder(ABC):
 
     def __init__(
         self,
-        config: Optional[Mapping] = None,
-        lm_cache: Optional[str] = None,
+        config: Mapping = None,
+        lm_cache: str = None,
+        output_dir: str = None,
+        restart_generation: bool = False,
+        max_gen_requests: int = None,
+        task_inits: dict = None,
+        task_kwargs: dict = None,
         **kwargs: Any,
     ) -> None:
         """ """
@@ -52,9 +62,28 @@ class DataBuilder(ABC):
             DataBuilderConfig(**config) if config else DataBuilderConfig()
         )
         self._name = self.config.name
+        self._max_gen_requests = max_gen_requests
+        self._restart_generation = restart_generation
 
-        # initializing
+        # initializing generators / validators
         self._init_gv(lm_cache=lm_cache)
+
+        # TODO: Data loader goes here
+        self._tasks: List[SdgTask] = [
+            self.TASK_TYPE(output_dir=output_dir, **task_init, **task_kwargs)
+            for task_init in task_inits
+        ]
+        #
+
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir, exist_ok=True)
+
+        date_suffix = (
+            datetime.now().replace(microsecond=0).isoformat().replace(":", "_")
+        )
+        self._output_file_discarded = os.path.join(
+            output_dir, f"discarded_{self.config.name}_{date_suffix}.log"
+        )
 
     @property
     def config(self) -> DataBuilderConfig:
@@ -125,7 +154,65 @@ class DataBuilder(ABC):
                     setattr(self, obj_name, obj)
                     (self._generators if i == 0 else self._validators).append(obj)
 
-    def call_with_task_list(self, request_idx: int, tasks: List[SdgTask]) -> Iterable:
+    def execute_tasks(self):
+        # main entry point to task execution
+        tasks = self._tasks + []
+
+        # load the LM-generated data
+        for task in tasks:
+            if self._restart_generation:
+                task.clear_data()
+            if os.path.exists(task.output_path):
+                task.load_data()
+                sdg_logger.debug(
+                    "Loaded %s machine-generated data", len(task.machine_data)
+                )
+
+        completed_tasks = [task for task in tasks if task.is_complete()]
+        tasks = [task for task in tasks if task not in completed_tasks]
+
+        progress_bar = tqdm(total=len(tasks), desc="Running generation tasks")
+        generate_start = time.time()
+
+        request_idx = 0
+        while tasks and request_idx <= self._max_gen_requests:
+            request_idx += 1
+
+            filtered_data: List[SdgData] = []
+            for generated_inst in self.call_with_task_list(request_idx, tasks):
+                # save incrementally
+                task = next(
+                    task for task in tasks if task.name == generated_inst.task_name
+                )
+                task.save_data(generated_inst)
+                filtered_data.append(generated_inst)
+
+            for task in tasks:
+                new_data = [
+                    gen_inst
+                    for gen_inst in filtered_data
+                    if gen_inst.task_name == task.name
+                ]
+                task.machine_data.extend(new_data)
+                if task.is_complete():
+                    completed_tasks.append(task)
+                    progress_bar.update()
+
+            tasks = [task for task in tasks if task not in completed_tasks]
+
+            sdg_logger.info(
+                "Generated %s data",
+                sum([len(task.machine_data) for task in tasks + completed_tasks]),
+            )
+
+        progress_bar.close()
+
+        generate_duration = time.time() - generate_start
+        sdg_logger.info("Generation took %.2fs", generate_duration)
+
+    def call_with_task_list(
+        self, request_idx: int, tasks: List[SdgTask]
+    ) -> Iterable[SdgData]:
         # default behavior is to simply extract the seed / machine generated data and pass to data builder
         data_pool = [e for task in tasks for e in (task.seed_data + task.machine_data)]
         args = [request_idx, data_pool]
