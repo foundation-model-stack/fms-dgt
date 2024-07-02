@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 # Local
 from fms_sdg.base.generator import BaseGenerator
-from fms_sdg.base.registry import get_generator, get_validator
+from fms_sdg.base.registry import get_dataloader, get_generator, get_validator
 from fms_sdg.base.task import SdgData, SdgTask
 from fms_sdg.base.validator import BaseValidator
 from fms_sdg.generators.llm import CachingLM, LMGenerator
@@ -22,6 +22,7 @@ from fms_sdg.utils import all_annotations, sdg_logger
 class DataBuilderConfig(dict):
     # data builder naming/registry
     name: Optional[str] = None
+    dataloader: Optional[dict] = None
     generators: Optional[Union[str, list]] = None
     validators: Optional[Union[str, list]] = None
     generation_kwargs: Optional[dict] = None
@@ -214,7 +215,9 @@ class DataBuilder(ABC):
         self, request_idx: int, tasks: List[SdgTask]
     ) -> Iterable[SdgData]:
         # default behavior is to simply extract the seed / machine generated data and pass to data builder
-        data_pool = [e for task in tasks for e in (task.seed_data + task.machine_data)]
+        data_pool = [
+            e for task in tasks for e in (list(task.load_data()) + task.machine_data)
+        ]
         args = [request_idx, data_pool]
         kwargs = dict()
         return self(*args, **kwargs)

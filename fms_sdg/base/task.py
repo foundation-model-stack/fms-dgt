@@ -6,6 +6,7 @@ import json
 import os
 
 # Local
+from fms_sdg.base.registry import get_dataloader
 from fms_sdg.utils import group_data_by_attribute
 
 DEFAULT_OUTPUT_DIR = "output"
@@ -42,6 +43,7 @@ class SdgTask(metaclass=PostProcessingType):
         task_description: str,
         created_by: str,
         data_builder: str,
+        dataloader: Optional[str] = None,
         output_dir: Optional[str] = None,
         seed_data: Optional[List[Any]] = None,
         num_outputs_to_generate: Optional[int] = None,
@@ -51,16 +53,22 @@ class SdgTask(metaclass=PostProcessingType):
         self._task_description = task_description
         self._created_by = created_by
         self._data_builder = data_builder
+
+        self._dataloader = get_dataloader(
+            dataloader if dataloader is not None else "default"
+        )(seed_data=seed_data, proc_fn=self.instantiate_input_example)
+
         self._num_outputs_to_generate = num_outputs_to_generate
         self.machine_data = []
 
         self._output_dir = output_dir if output_dir is not None else DEFAULT_OUTPUT_DIR
         self._output_path = self._get_default_output_path()
-        self._seed_data = seed_data
 
     def __post_init__(self):
         # we use post_init for cases when examples are instantiated with elements from subclass __init__
-        self._seed_data = [self.instantiate_input_example(**s) for s in self._seed_data]
+        self._seed_data = [
+            self.instantiate_input_example(**s) for s in self._dataloader
+        ]
 
     def instantiate_input_example(self, **kwargs: Any):
         return self.INPUT_DATA_TYPE(
