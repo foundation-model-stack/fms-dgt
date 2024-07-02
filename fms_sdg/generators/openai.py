@@ -87,7 +87,7 @@ class OpenaiChatCompletionsLM(LMGenerator):
         except ModuleNotFoundError:
             raise Exception(
                 "attempted to use 'openai' LM type, but package `openai` or `tiktoken` are not installed. \
-    please install these via `pip install lm-eval[openai]` or `pip install -e .[openai]`",
+    please install these via `pip install .[openai]`",
             )
 
         self.model_id_or_path: str = config.get(
@@ -110,10 +110,6 @@ class OpenaiChatCompletionsLM(LMGenerator):
     def max_length(self) -> int:
         # Note: the OpenAI API supports up to 2049 tokens, with the first token being the first input token
         return 2048
-
-    @property
-    def max_gen_toks(self) -> int:
-        return 256
 
     def generate_batch(
         self, requests: List[Instance], disable_tqdm: bool = False
@@ -152,7 +148,6 @@ class OpenaiChatCompletionsLM(LMGenerator):
                             raise ValueError(
                                 f"Expected `kwargs['stop_sequences']` to be of type Union[str,list] but got {until}"
                             )
-                    kwargs["max_tokens"] = self.max_gen_toks
                     if "max_new_tokens" in kwargs.keys():
                         kwargs["max_tokens"] = kwargs.pop("max_new_tokens")
                     if "min_new_tokens" in kwargs:

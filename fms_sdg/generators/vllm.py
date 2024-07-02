@@ -268,7 +268,6 @@ class vLLMGenerator(LMGenerator):
                             raise ValueError(
                                 f"Expected `kwargs['stop_sequences']` to be of type Union[str,list] but got {until}"
                             )
-                    kwargs["max_tokens"] = self.max_gen_toks
                     if "max_new_tokens" in kwargs.keys():
                         kwargs["max_tokens"] = kwargs.pop("max_new_tokens")
                     if "min_new_tokens" in kwargs:

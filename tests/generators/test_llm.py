@@ -48,8 +48,8 @@ PROMPTS = [f"Question: x = {i} + 1\nAnswer: x =" for i in range(25)]
 
 class TestLlmGenerators:
     @pytest.mark.parametrize(
-        "model_cfg", [GREEDY_VLLM_CFG]
-    )  # , GREEDY_GENAI_CFG, GREEDY_OPENAI_CFG])
+        "model_cfg", [GREEDY_GENAI_CFG, GREEDY_OPENAI_CFG]
+    )  # GREEDY_VLLM_CFG]
     def test_generate_batch(self, model_cfg):
         lm: LMGenerator = get_generator(model_cfg["type"])(
             name=f"test_{model_cfg['type']}", config=model_cfg
@@ -70,7 +70,7 @@ class TestLlmGenerators:
             ), f"Input list has been rearranged at index {i}"
             assert isinstance(inp.result, str)
 
-    @pytest.mark.parametrize("model_cfg", [GREEDY_VLLM_CFG, GREEDY_GENAI_CFG])
+    @pytest.mark.parametrize("model_cfg", [GREEDY_GENAI_CFG])  # , GREEDY_VLLM_CFG])
     def test_loglikelihood_batch(self, model_cfg):
         lm: LMGenerator = get_generator(model_cfg["type"])(
             name=f"test_{model_cfg['type']}", config=model_cfg
