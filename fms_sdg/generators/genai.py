@@ -51,19 +51,6 @@ class GenAIGenerator(LMGenerator):
         )
         self.client = Client(credentials=credentials)
 
-    @property
-    def eot_token_id(self):
-        return ""
-
-    @property
-    def max_length(self) -> int:
-        # Note: the OpenAI API supports up to 2049 tokens, with the first token being the first input token
-        return 2048
-
-    @property
-    def max_gen_toks(self) -> int:
-        return 256
-
     def generate_batch(
         self, requests: List[Instance], disable_tqdm: bool = False
     ) -> None:
@@ -206,6 +193,14 @@ class GenAIGenerator(LMGenerator):
                     s = score_result.input_tokens
                     # tok_ct - 1 since first token in encoding is bos
                     s_toks = s[-(tok_count - 1) :]
+
+                    # s_tt = [
+                    #     ((s_t.text, s_t.logprob) if s_t is not None else s_t)
+                    #     for s_t in s_toks
+                    # ]
+                    # print(s_tt)
+                    # print("-- genai")
+
                     answer = sum(
                         [tok.logprob for tok in s_toks if tok.logprob is not None]
                     )

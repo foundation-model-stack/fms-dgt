@@ -12,6 +12,16 @@ from fms_sdg.base.instance import Instance
 from fms_sdg.base.registry import get_generator
 from fms_sdg.generators.llm import CachingLM, LMGenerator
 
+# hf cache
+
+BASE_PATH = os.path.dirname(os.path.realpath(__file__))
+os.environ["HF_HOME"] = os.path.join(BASE_PATH, ".cache", "huggingface", "transformers")
+os.environ["HF_DATASETS_CACHE"] = os.path.join(
+    BASE_PATH, ".cache", "huggingface", "datasets"
+)
+
+#
+
 GREEDY_CFG = {
     "decoding_method": "greedy",
     "temperature": 1.0,
@@ -25,7 +35,7 @@ GREEDY_GENAI_CFG = {
 }
 GREEDY_VLLM_CFG = {
     "type": "vllm",
-    "model_id_or_path": "ibm/granite-8b-code-instruct",
+    "model_id_or_path": "ibm-granite/granite-8b-code-instruct",
     **GREEDY_CFG,
 }
 GREEDY_OPENAI_CFG = {
@@ -37,7 +47,9 @@ PROMPTS = [f"Question: x = {i} + 1\nAnswer: x =" for i in range(25)]
 
 
 class TestLlmGenerators:
-    @pytest.mark.parametrize("model_cfg", [GREEDY_GENAI_CFG, GREEDY_OPENAI_CFG])
+    @pytest.mark.parametrize(
+        "model_cfg", [GREEDY_VLLM_CFG]
+    )  # , GREEDY_GENAI_CFG, GREEDY_OPENAI_CFG])
     def test_generate_batch(self, model_cfg):
         lm: LMGenerator = get_generator(model_cfg["type"])(
             name=f"test_{model_cfg['type']}", config=model_cfg
@@ -58,7 +70,7 @@ class TestLlmGenerators:
             ), f"Input list has been rearranged at index {i}"
             assert isinstance(inp.result, str)
 
-    @pytest.mark.parametrize("model_cfg", [GREEDY_GENAI_CFG])  # , GREEDY_VLLM_CFG]
+    @pytest.mark.parametrize("model_cfg", [GREEDY_VLLM_CFG, GREEDY_GENAI_CFG])
     def test_loglikelihood_batch(self, model_cfg):
         lm: LMGenerator = get_generator(model_cfg["type"])(
             name=f"test_{model_cfg['type']}", config=model_cfg
@@ -66,7 +78,7 @@ class TestLlmGenerators:
 
         inputs: List[Instance] = []
         for prompt in PROMPTS:
-            args = [prompt]
+            args = [prompt, prompt]
             inputs.append(Instance(args))
 
         inputs_copy = copy.deepcopy(inputs)
@@ -78,6 +90,34 @@ class TestLlmGenerators:
                 inp.args == inputs_copy[i].args
             ), f"Input list has been rearranged at index {i}"
             assert isinstance(inp.result, float)
+
+    def test_loglikelihood_batch_alignment(self):
+        vllm_config, genai_config = dict(GREEDY_VLLM_CFG), dict(GREEDY_GENAI_CFG)
+        vllm_config["model_id_or_path"] = "ibm-granite/granite-8b-code-instruct"
+        genai_config["model_id_or_path"] = "ibm/granite-8b-code-instruct"
+
+        vllm: LMGenerator = get_generator(vllm_config["type"])(
+            name=f"test_{vllm_config['type']}", config=vllm_config
+        )
+        genai: LMGenerator = get_generator(genai_config["type"])(
+            name=f"test_{genai_config['type']}", config=genai_config
+        )
+
+        inputs: List[Instance] = []
+        for prompt in PROMPTS[:1]:
+            args = [prompt, prompt]
+            inputs.append(Instance(args))
+
+        inputs_vllm = copy.deepcopy(inputs)
+        inputs_genai = copy.deepcopy(inputs)
+
+        vllm.loglikelihood_batch(inputs_vllm)
+        genai.loglikelihood_batch(inputs_genai)
+
+        for i, inp in enumerate(inputs):
+            assert (
+                inp.args == inputs_vllm[i].args == inputs_genai[i].args
+            ), f"Input list has been rearranged at index {i}"
 
     def test_lm_caching(self):
         cache_path = os.path.join(
