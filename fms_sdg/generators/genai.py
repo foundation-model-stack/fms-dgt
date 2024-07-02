@@ -194,13 +194,6 @@ class GenAIGenerator(LMGenerator):
                     # tok_ct - 1 since first token in encoding is bos
                     s_toks = s[-(tok_count - 1) :]
 
-                    # s_tt = [
-                    #     ((s_t.text, s_t.logprob) if s_t is not None else s_t)
-                    #     for s_t in s_toks
-                    # ]
-                    # print(s_tt)
-                    # print("-- genai")
-
                     answer = sum(
                         [tok.logprob for tok in s_toks if tok.logprob is not None]
                     )

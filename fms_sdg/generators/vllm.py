@@ -441,22 +441,6 @@ class vLLMGenerator(LMGenerator):
             for logprob_dict in continuation_logprobs_dicts
         ]
 
-        # toks = [
-        #     (
-        #         [
-        #             ((logprob.decoded_token, logprob.logprob))
-        #             for token, logprob in logprob_dict.items()
-        #         ]
-        #         if logprob_dict is not None
-        #         else None
-        #     )
-        #     for logprob_dict in outputs.prompt_logprobs
-        # ]
-        # print(toks)
-        # print("== vllm")
-
-        # Calculate continuation_logprobs
-        # assume ctxlen always >= 1
         continuation_logprobs = sum(
             logprob_dict.get(token)
             for token, logprob_dict in zip(
