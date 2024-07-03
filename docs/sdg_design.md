@@ -49,7 +49,7 @@ task_description: "Example of a task"
 
 Our goal was to be as non-prescriptive as possible, allowing people to load their own data with their own fields without having to modify it to fit into the framework. As such, in the YAML, the only components that must **always** be specified are the `created_by`, `data_builder`, `seed_examples`, and `task_description` fields. Beyond those, there are no constraints to a data file, i.e., the designer of a task can include whatever they want here.
 
-Internally, the data of a YAML file will populate [Task / Data objects](../fms_sdg/databuilders/simple/task.py) (see below for relevant snippet)
+Internally, the data of a YAML file will populate [Task / Data objects](../fms_dgt/databuilders/simple/task.py) (see below for relevant snippet)
 
 ```python
 @dataclass
@@ -91,7 +91,7 @@ As stated before, each iteration of generation will have the data builders takin
 
 ### Data Builders
 
-Data builders (see [here](../fms_sdg/databuilders/simple/generate.py) for an example) contain the means by which our framework generates data. They consist of some number of _generators_ and some number of _validators_. Generators are, roughly speaking, things that take in inputs and generate some output (e.g., most often an LLM taking in a prompt and then returning a string). Correspondingly, validators are things that inspect an object and return True or False to signify whether that object is valid (e.g., validating the output of an LLM for well-formedness constraints in the case of code generation).
+Data builders (see [here](../fms_dgt/databuilders/simple/generate.py) for an example) contain the means by which our framework generates data. They consist of some number of _generators_ and some number of _validators_. Generators are, roughly speaking, things that take in inputs and generate some output (e.g., most often an LLM taking in a prompt and then returning a string). Correspondingly, validators are things that inspect an object and return True or False to signify whether that object is valid (e.g., validating the output of an LLM for well-formedness constraints in the case of code generation).
 
 Each data builder is defined with a \_\_call\_\_ function. Importantly, the call function takes as input a list of the dataclass instances described above. This leads to an inherent composability of data builders, where the outputs of one data builder can be fed as the inputs to another (ideally leading to more code reuse across the repository).
 
@@ -107,11 +107,11 @@ def __call__(
     return outputs, discarded
 ```
 
-As with task definitions, we aimed to be very non-prescriptive in how the \_\_call\_\_ functions are defined. That being said, we do require any computationally expensive calls that leverage batch processes (e.g., LLM calls) to go through Generators / Validators (with generators for LLMs already being provided [here](../fms_sdg/generators/)).
+As with task definitions, we aimed to be very non-prescriptive in how the \_\_call\_\_ functions are defined. That being said, we do require any computationally expensive calls that leverage batch processes (e.g., LLM calls) to go through Generators / Validators (with generators for LLMs already being provided [here](../fms_dgt/generators/)).
 
 An important aspect to keep in mind when defining a new data builder is the notion of _task parallelism_. That is, to make things more efficient, all tasks that can be executed by the same data builder will be run simultaneously. Thus, the inputs to the \_\_call\_\_ function will be a mixed list of instruction data (i.e., elements of the list can come from one of _N_ tasks). When doing things like combining instructions together (e.g., to serve as an ICL example to produce a new output), one has to make sure to keep track the provenance of the data.
 
-Data builders are very configurable. An example of a configuration can be found [here](../fms_sdg/databuilders/simple/simple.yaml) (see below for the relevant snippet).
+Data builders are very configurable. An example of a configuration can be found [here](../fms_dgt/databuilders/simple/simple.yaml) (see below for the relevant snippet).
 
 ```yaml
 name: simple
@@ -136,7 +136,7 @@ In this, the `generators` and `validators` fields show the default settings for 
 
 As mentioned above, in the data builder `__call__` function, you will make use of "generators" and "validators", which are the components in this framework that do the heavy lifting. We have provided a number of LLM-based generators for [IBM GenAI](https://ibm.github.io/ibm-generative-ai/v3.0.0/index.html), [OpenAI](https://github.com/openai/openai-python) and [vLLM](https://github.com/vllm-project/vllm). To use a specific generator, you need to specify it in both the YAML and in the `generate.py` file as a attribute of the task's class. From a design standpoint, we aim to keep all multiprocessing and parallelism contained to the generators and the validators, i.e., **not** in the `__call__` function. By defining these ahead of time and restricting heavy operations to these objects, we can allow for better performance optimizations in terms of speed and resource allocation.
 
-To define a new generator or validator, first take a look at the base classes that the concrete implementation will inherit from. These are found in `./fms_sdg/base/<generator/validator>.py`. Generators and validators must define a `generate_batch` or `validate_batch` function, respectively.
+To define a new generator or validator, first take a look at the base classes that the concrete implementation will inherit from. These are found in `./fms_dgt/base/<generator/validator>.py`. Generators and validators must define a `generate_batch` or `validate_batch` function, respectively.
 
 The arguments to a generator or validator will always be a batch of `Instance` objects (see `./scale*sdg/base/instance.py`). `Instance` objects are very simple, consisting primarily of `_args*` and `_kwargs_` fields. We use these because the inputs to a generator may have a wide range of settings (e.g., different temperatures, models, etc.), and this allows us to batch those requests together as much as we can. Importantly, the generator or validator will treat the `_args_` and `_kwargs_` fields as they would in a function call, so you **must** provide `_args_` or `_kwargs_` as a list or dictionary, respectively.
 
@@ -177,13 +177,13 @@ The interfaces are as follows:
 To call this from the command line use the \_\_main\_\_.py file, e.g.,
 
 ```shell
-python -m fms_sdg.__main__ --data-path ./data/logical_reasoning/causal/qna.yaml
+python -m fms_dgt.__main__ --data-path ./data/logical_reasoning/causal/qna.yaml
 ```
 
 or to run all files in a directory, just specify the top-level directory
 
 ```shell
-python -m fms_sdg.__main__ --data-path ./data/logical_reasoning/
+python -m fms_dgt.__main__ --data-path ./data/logical_reasoning/
 ```
 
 ### Implementation
@@ -192,7 +192,7 @@ The framework is to be implemeted as a Python library. Here is an example of cal
 
 ```python
 # Local
-from fms_sdg.generate_data import generate_data
+from fms_dgt.generate_data import generate_data
 
 
 generate_data(
@@ -215,10 +215,10 @@ generate_data(
 
 Data builder defines the algorithm, generation and validation for a SDG process. The builder is defined by 4 main components:
 
-1. A configuration YAML file in the `./fms_sdg/databuilders directory`. For example, `./fms_sdg/databuilders/simple/simple.yaml`
-2. A Python file called `generate.py` which defines the data builder class. For example, `./fms_sdg/databuilders/simple/generate.py`
-3. A Python function `__call**` within a data builder class which is the entry point for calling the data builder. For example, `SimpleInstructDataBuilder.__call**` in `./fms_sdg/databuilders/simple/generate.py`
-4. A Python file called `task.py` which defines the expected data schema. For example, `./fms_sdg/databuilders/simple/task.py`
+1. A configuration YAML file in the `./fms_dgt/databuilders directory`. For example, `./fms_dgt/databuilders/simple/simple.yaml`
+2. A Python file called `generate.py` which defines the data builder class. For example, `./fms_dgt/databuilders/simple/generate.py`
+3. A Python function `__call**` within a data builder class which is the entry point for calling the data builder. For example, `SimpleInstructDataBuilder.__call**` in `./fms_dgt/databuilders/simple/generate.py`
+4. A Python file called `task.py` which defines the expected data schema. For example, `./fms_dgt/databuilders/simple/task.py`
 
 **Note:** When a data builder is loaded, the `generate.py` file is imported by the session manager. If you have any dependencies, you'll want to make sure that they are specified in that file.
 

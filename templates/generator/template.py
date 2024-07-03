@@ -2,9 +2,9 @@
 from typing import Any, Dict, List
 
 # Local
-from fms_sdg.base.generator import BaseGenerator
-from fms_sdg.base.instance import Instance
-from fms_sdg.base.registry import register_generator
+from fms_dgt.base.generator import BaseGenerator
+from fms_dgt.base.instance import Instance
+from fms_dgt.base.registry import register_generator
 
 
 @register_generator("template_generator")
