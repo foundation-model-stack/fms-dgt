@@ -36,6 +36,7 @@ try:
     from vllm.transformers_utils.tokenizer import get_tokenizer
     from vllm.utils import random_uuid
     import ray
+    import transformers
 except ModuleNotFoundError:
     pass
 
@@ -157,15 +158,6 @@ class vLLMGenerator(LMGenerator):
         return self.tokenizer.eos_token_id
 
     @property
-    def prefix_token_id(self):
-        # it is used as prefix for loglikelihood
-        if self.custom_prefix_token_id is not None:
-            return self.custom_prefix_token_id
-        if self.tokenizer.bos_token_id is not None:
-            return self.tokenizer.bos_token_id
-        return self.tokenizer.eos_token_id
-
-    @property
     def max_length(self):
         if self._max_length:  # if max length manually set, return it
             return self._max_length
@@ -185,26 +177,6 @@ class vLLMGenerator(LMGenerator):
     @property
     def max_gen_toks(self):
         return self._max_gen_toks
-
-    def tok_encode(
-        self,
-        string: str,
-        left_truncate_len=None,
-        add_special_tokens=None,
-        truncation=False,
-    ):
-        """ """
-        if not add_special_tokens:
-            add_special_tokens = False or self.add_bos_token
-        encoding = self.tokenizer.encode(
-            string, add_special_tokens=add_special_tokens, truncation=truncation
-        )
-
-        # left-truncate the encoded context to be at most `left_truncate_len` tokens long
-        if left_truncate_len:
-            encoding = encoding[-left_truncate_len:]
-
-        return encoding
 
     def _model_generate(
         self,
@@ -296,7 +268,6 @@ class vLLMGenerator(LMGenerator):
                             raise ValueError(
                                 f"Expected `kwargs['stop_sequences']` to be of type Union[str,list] but got {until}"
                             )
-                    kwargs["max_tokens"] = self.max_gen_toks
                     if "max_new_tokens" in kwargs.keys():
                         kwargs["max_tokens"] = kwargs.pop("max_new_tokens")
                     if "min_new_tokens" in kwargs:
@@ -329,62 +300,113 @@ class vLLMGenerator(LMGenerator):
 
                 for output, instance in zip(cont, chunk_instances):
                     s = output.outputs[0].text
-                    self.update_instance_with_result(s, instance, until)
+                    self.update_instance_with_result(
+                        "generate_batch", s, instance, until
+                    )
                     pbar.update(1)
 
         pbar.close()
 
+    def loglikelihood_batch(self, requests, disable_tqdm: bool = False) -> None:
+        new_reqs = []
+        for req in requests:
+            context, continuation = req.args
+            if len(req.args) == 1:
+                continuation_enc = self.tok_encode(req.args[0])
+                context_enc = []
+            else:
+                context_enc, continuation_enc = self._encode_pair(context, continuation)
+
+            new_reqs.append((context_enc, continuation_enc, req))
+
+        return self._loglikelihood_tokens(new_reqs, disable_tqdm=disable_tqdm)
+
+    def _encode_pair(self, context, continuation):
+        n_spaces = len(context) - len(context.rstrip())
+        if n_spaces > 0:
+            continuation = context[-n_spaces:] + continuation
+            context = context[:-n_spaces]
+
+        model_class = getattr(self, "AUTO_MODEL_CLASS", None)
+
+        if model_class == transformers.AutoModelForSeq2SeqLM:
+            context_enc = self.tok_encode(context)
+            continuation_enc = self.tok_encode(continuation, add_special_tokens=False)
+        else:
+            whole_enc = self.tok_encode(context + continuation)
+            context_enc_len = len(self.tok_encode(context))
+
+            context_enc = whole_enc[:context_enc_len]
+            continuation_enc = whole_enc[context_enc_len:]
+
+        return context_enc, continuation_enc
+
+    def tok_encode(
+        self,
+        string: str,
+        left_truncate_len=None,
+        add_special_tokens=None,
+        truncation=False,
+    ):
+        """ """
+        if not add_special_tokens:
+            add_special_tokens = False or self.add_bos_token
+        encoding = self.tokenizer.encode(string, truncation=truncation)
+
+        # left-truncate the encoded context to be at most `left_truncate_len` tokens long
+        if left_truncate_len:
+            encoding = encoding[-left_truncate_len:]
+
+        return encoding
+
     def _loglikelihood_tokens(
         self,
-        requests: List[Tuple[Tuple[str, str], List[int], List[int]]],
+        requests: List[Tuple[List[int], List[int], Instance]],
         disable_tqdm: bool = False,
     ) -> List[float]:
-        res = []
-
-        def _collate(x):
-            toks = x[1] + x[2]
-            return -len(toks), tuple(toks)
-
-        # Reorder requests by length and batch
-        re_ord = Collator(requests, sort_fn=_collate)
-        chunks = re_ord.get_batched(
-            n=int(self.batch_size) if self.batch_size != "auto" else 0, batch_fn=None
-        )
-
+        grouper = generator_utils.Grouper(requests, lambda x: str(x[-1].kwargs))
         pbar = tqdm(
             total=len(requests),
-            disable=disable_tqdm,
-            desc="Running loglikelihood requests",
+            disable=(disable_tqdm or (self.rank != 0)),
+            desc="Running loglikelihood_batch requests",
         )
-        for chunk in chunks:
-            inputs = []
-            ctxlens = []
-            for cache_key, context_enc, continuation_enc in chunk:
-                inp = (context_enc + continuation_enc)[-(self.max_length) :]
-                ctxlen = len(context_enc) - max(
-                    0, len(context_enc) + len(continuation_enc) - (self.max_length)
-                )
 
-                inputs.append(inp)
-                ctxlens.append(ctxlen)
+        for key, c_c_reqs in grouper.get_grouped().items():
 
-            outputs = self._model_generate(requests=inputs, generate=False)
+            chunks = generator_utils.chunks(
+                c_c_reqs,
+                n=int(self.batch_size) if self.batch_size != "auto" else 0,
+            )
 
-            for output, ctxlen, (cache_key, _, _), inp in zip(
-                outputs, ctxlens, chunk, inputs
-            ):
-                answer = self._parse_logprobs(
-                    tokens=inp,
-                    outputs=output,
-                    ctxlen=ctxlen,
-                )
+            for chunk in chunks:
+                context_encs, continuation_encs, chunk_instances = zip(*chunk)
+                inputs, ctxlens = [], []
+                for context_enc, continuation_enc in zip(
+                    context_encs, continuation_encs
+                ):
+                    inp = (context_enc + continuation_enc)[-(self.max_length) :]
+                    ctxlen = len(context_enc) - max(
+                        0, len(context_enc) + len(continuation_enc) - self.max_length
+                    )
+                    inputs.append(inp)
+                    ctxlens.append(ctxlen)
 
-                res.append(answer)
+                outputs = self._model_generate(requests=inputs, generate=False)
 
-                pbar.update(1)
+                for output, ctxlen, inp, instance in zip(
+                    outputs, ctxlens, inputs, chunk_instances
+                ):
+                    answer = self._parse_logprobs(
+                        tokens=inp,
+                        outputs=output,
+                        ctxlen=ctxlen,
+                    )
+                    self.update_instance_with_result(
+                        "loglikelihood_batch", answer, instance
+                    )
+                    pbar.update(1)
 
         pbar.close()
-        return re_ord.get_original(res)
 
     @staticmethod
     def _parse_logprobs(tokens: List, outputs, ctxlen: int) -> Tuple[float, bool]:
@@ -406,20 +428,10 @@ class vLLMGenerator(LMGenerator):
         # The first entry of prompt_logprobs is None because the model has no previous tokens to condition on.
         continuation_logprobs_dicts = outputs.prompt_logprobs
 
-        def coerce_logprob_to_num(logprob):
-            # vLLM changed the return type of logprobs from float
-            # to a Logprob object storing the float value + extra data
-            # (https://github.com/vllm-project/vllm/pull/3065).
-            # If we are dealing with vllm's Logprob object, return
-            # the logprob value stored as an attribute. Otherwise,
-            # return the object itself (which should be a float
-            # for older versions of vLLM).
-            return getattr(logprob, "logprob", logprob)
-
         continuation_logprobs_dicts = [
             (
                 {
-                    token: coerce_logprob_to_num(logprob)
+                    token: getattr(logprob, "logprob", logprob)
                     for token, logprob in logprob_dict.items()
                 }
                 if logprob_dict is not None
@@ -428,8 +440,6 @@ class vLLMGenerator(LMGenerator):
             for logprob_dict in continuation_logprobs_dicts
         ]
 
-        # Calculate continuation_logprobs
-        # assume ctxlen always >= 1
         continuation_logprobs = sum(
             logprob_dict.get(token)
             for token, logprob_dict in zip(
@@ -437,19 +447,6 @@ class vLLMGenerator(LMGenerator):
             )
         )
 
-        # # Determine if is_greedy
-        # is_greedy = True
-        # for token, logprob_dict in zip(
-        #     tokens[ctxlen:], continuation_logprobs_dicts[ctxlen:]
-        # ):
-        #     # Get the token with the maximum log probability from the logprob_dict
-        #     if logprob_dict:  # Ensure the logprob_dict is not None
-        #         top_token = max(logprob_dict, key=logprob_dict.get)
-        #         if top_token != token:
-        #             is_greedy = False
-        #             break
-
-        # return continuation_logprobs, is_greedy
         return continuation_logprobs
 
     @staticmethod

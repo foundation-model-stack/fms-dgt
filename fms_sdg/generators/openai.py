@@ -11,7 +11,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 """
 
 # Standard
-from collections import defaultdict
 from importlib.util import find_spec
 from typing import Any, Dict, List
 import copy
@@ -25,7 +24,6 @@ from fms_sdg.base.registry import get_resource, register_generator
 from fms_sdg.generators.llm import LMGenerator
 from fms_sdg.resources.openai import OpenAIKeyResource
 import fms_sdg.generators.utils as generator_utils
-import fms_sdg.utils as utils
 
 try:
     # Third Party
@@ -89,7 +87,7 @@ class OpenaiChatCompletionsLM(LMGenerator):
         except ModuleNotFoundError:
             raise Exception(
                 "attempted to use 'openai' LM type, but package `openai` or `tiktoken` are not installed. \
-    please install these via `pip install lm-eval[openai]` or `pip install -e .[openai]`",
+    please install these via `pip install .[openai]`",
             )
 
         self.model_id_or_path: str = config.get(
@@ -112,20 +110,6 @@ class OpenaiChatCompletionsLM(LMGenerator):
     def max_length(self) -> int:
         # Note: the OpenAI API supports up to 2049 tokens, with the first token being the first input token
         return 2048
-
-    @property
-    def max_gen_toks(self) -> int:
-        return 256
-
-    @property
-    def batch_size(self):
-        # Isn't used because we override _loglikelihood_tokens
-        raise NotImplementedError()
-
-    @property
-    def device(self):
-        # Isn't used because we override _loglikelihood_tokens
-        raise NotImplementedError()
 
     def generate_batch(
         self, requests: List[Instance], disable_tqdm: bool = False
@@ -154,16 +138,22 @@ class OpenaiChatCompletionsLM(LMGenerator):
                 if isinstance(kwargs := copy.deepcopy(gen_kwargs), dict):
                     # start with default params in self.config then overwrite with kwargs
                     kwargs = {**self._base_kwargs, **kwargs}
-
-                    kwargs["max_tokens"] = kwargs.pop("max_gen_toks", self.max_gen_toks)
-                    if "max_new_tokens" in kwargs:
-                        kwargs["max_tokens"] = kwargs.pop("max_new_tokens")
-                    if "stop_sequences" in kwargs:
-                        kwargs["stop"] = kwargs.pop("stop_sequences")
-                    if "decoding_method" in kwargs:
-                        kwargs["do_sample"] = kwargs.pop("decoding_method") == "greedy"
-                    model_id = kwargs.pop("model_id", self.model_id_or_path)
+                    model_id = kwargs.pop("model_id_or_path", self.model_id_or_path)
                     kwargs["stop"] = until
+                    if "stop_sequences" in kwargs:
+                        until = kwargs.pop("stop_sequences")
+                        if isinstance(until, str):
+                            until = [until]
+                        elif not isinstance(until, list):
+                            raise ValueError(
+                                f"Expected `kwargs['stop_sequences']` to be of type Union[str,list] but got {until}"
+                            )
+                    if "max_new_tokens" in kwargs.keys():
+                        kwargs["max_tokens"] = kwargs.pop("max_new_tokens")
+                    if "min_new_tokens" in kwargs:
+                        kwargs.pop("min_new_tokens")
+                    if "decoding_method" in kwargs:
+                        kwargs.pop("decoding_method")
                 else:
                     raise ValueError(
                         f"Expected repr(kwargs) to be of type repr(dict) but got {kwargs}"
@@ -179,10 +169,12 @@ class OpenaiChatCompletionsLM(LMGenerator):
 
                 for resp, instance in zip(response.choices, chunk):
                     s = resp.message.content
-                    self.update_instance_with_result(s, instance, until)
+                    self.update_instance_with_result(
+                        "generate_batch", s, instance, until
+                    )
                     pbar.update(1)
 
         pbar.close()
 
-    def loglikelihood(self, requests, disable_tqdm: bool = False):
+    def loglikelihood_batch(self, requests, disable_tqdm: bool = False):
         raise NotImplementedError("No support for logits.")
