@@ -41,11 +41,11 @@ include = ["fms_sdg*"]
 fms_sdg = ["**/*.yaml", "tasks/**/*"]
 
 [project.scripts]
-fms_sdg = "fms_sdg.__main__:cli_evaluate"
+fms_sdg = "fms_sdg.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/foundation-model-stack/fms-sdg"
-Repository = "https://github.com/foundation-model-stack/fms-sdg"
+Homepage = "https://github.com/foundation-model-stack/fms-dgt"
+Repository = "https://github.com/foundation-model-stack/fms-dgt"
 
 [project.optional-dependencies]
 genai = ["ibm-generative-ai", "python-dotenv>=1.0.1,<2.0.0"]

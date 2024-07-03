@@ -117,11 +117,7 @@ def gather_grouped_args(
     raise ValueError(f"Unrecognized group name: {group_name}")
 
 
-if __name__ == "__main__":
-    """
-    python -m fms_sdg.__main__ --data-path <path-to-data> --lm_cache <path-to-cache>
-    """
-
+def main():
     parser = get_parser()
 
     args = parser.parse_args()
@@ -135,3 +131,10 @@ if __name__ == "__main__":
         builder_kwargs=builder_kwargs,
         **base_args,
     )
+
+
+if __name__ == "__main__":
+    """
+    python -m fms_sdg.__main__ --data-path <path-to-data> --lm_cache <path-to-cache>
+    """
+    main()

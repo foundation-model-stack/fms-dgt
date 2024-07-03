@@ -87,12 +87,17 @@ The default data builder is set to run with the GenAI api unless overridden. We 
 python -m fms_sdg.__main__ --data-path ./data/logical_reasoning/causal/qna.yaml
 ```
 
+Alternatively, you can also use the CLI
+```command
+fms_sdg --data-path ./data/logical_reasoning/causal/qna.yaml
+```
+
 #### Testing with vLLM
 
 For convenience, we have provided an additional configuration file that can be modified to test out using a local model with vLLM. First, open [the config file](./configs/demo.yaml) and update the model field `model_id_or_path` to substitute the `<local-path-to-model>` variable with the path of a model that has been downloaded locally.
 
 ```command
-python -m fms_sdg.__main__ --data-path ./data/logical_reasoning/causal/qna.yaml --include-builder-path ./configs/demo.yaml
+python -m fms_sdg.__main__ --data-path ./data/logical_reasoning/causal/qna.yaml --include-config-path ./configs/demo.yaml
 ```
 
 **Note:** vLLM [requires Linux OS and CUDA](https://docs.vllm.ai/en/latest/getting_started/installation.html#requirements).
