@@ -1,12 +1,12 @@
 # Third Party
 import pytest
 
-# Local
-from fms_sdg.databuilders.nl2sql.sqlinstruct.models import SQLTriplet
-from fms_sdg.databuilders.nl2sql.sqlinstruct.prompts.prompt_template import (
+# First Party
+from fms_dgt.databuilders.nl2sql.sqlinstruct.models import SQLTriplet
+from fms_dgt.databuilders.nl2sql.sqlinstruct.prompts.prompt_template import (
     PromptTemplate,
 )
-from fms_sdg.databuilders.nl2sql.sqlinstruct.prompts.sql_prompts import (
+from fms_dgt.databuilders.nl2sql.sqlinstruct.prompts.sql_prompts import (
     SchemaAndQueryToUtterancePrompt,
     SchemaAndUtteranceToQueryPrompt,
     SchemaToUtteranceAndQueryPrompt,
