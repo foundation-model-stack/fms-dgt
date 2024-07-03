@@ -3,7 +3,7 @@ requires = ["setuptools>=40.8.0", "setuptools-scm>=8.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "fms_sdg"
+name = "fms_dgt"
 dynamic = ["version"]
 description = "A scalable framework for synthetic data generation"
 license = { "text" = "Apache-2.0" }
@@ -35,18 +35,18 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["fms_sdg*"]
+include = ["fms_dgt*"]
 
 # required to include yaml files in pip installation
 [tool.setuptools.package-data]
-fms_sdg = ["**/*.yaml", "tasks/**/*"]
+fms_dgt = ["**/*.yaml", "tasks/**/*"]
 
 [project.scripts]
-fms_sdg = "fms_sdg.__main__:cli_evaluate"
+fms_dgt = "fms_dgt.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/foundation-model-stack/fms-sdg"
-Repository = "https://github.com/foundation-model-stack/fms-sdg"
+Homepage = "https://github.com/foundation-model-stack/fms-dgt"
+Repository = "https://github.com/foundation-model-stack/fms-dgt"
 
 [project.optional-dependencies]
 genai = ["ibm-generative-ai", "python-dotenv>=1.0.1,<2.0.0"]
@@ -73,16 +73,16 @@ dev-build = [
 
 # NOTE: This is "all" from the user and dev perspective
 all-dev = [
-    "fms_sdg[all, dev-test, dev-fmt, dev-build]"
+    "fms_dgt[all, dev-test, dev-fmt, dev-build]"
 ]
 all = [
-    "fms_sdg[genai]",
-    "fms_sdg[openai]",
-    "fms_sdg[sentencepiece]",
-    "fms_sdg[sql]",
+    "fms_dgt[genai]",
+    "fms_dgt[openai]",
+    "fms_dgt[sentencepiece]",
+    "fms_dgt[sql]",
     # Disable as its Linux CUDA specific
     # Use can set with the [vllm] target
-    # "fms_sdg[vllm]",
+    # "fms_dgt[vllm]",
 ]
 
 [tool.ruff]

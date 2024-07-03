@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Any, Optional
 
 # Local
-from fms_sdg.base.task import SdgData, SdgTask
+from fms_dgt.base.task import SdgData, SdgTask
 
 
 @dataclass
@@ -30,6 +30,7 @@ class TemplateSdgTask(SdgTask):
     def instantiate_example(self, **kwargs: Any):
         """This is how one would read in an IL file, which has question / context / answer values for each example"""
         return self.DATA_TYPE(
+            task_name=self.name,
             instruction=kwargs.get("question"),
             input=kwargs.get("context", ""),
             output=kwargs.get("answer"),

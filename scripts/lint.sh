@@ -5,7 +5,7 @@ cd $(dirname ${BASH_SOURCE[0]})/..
 fnames=""
 for fname in $@
 do
-    if [[ "$fname" == *".py" ]] || [ -d $fname ] && [[ "$fname" == "fms_sdg"* ]]
+    if [[ "$fname" == *".py" ]] || [ -d $fname ] && [[ "$fname" == "fms_dgt"* ]]
     then
         fnames="$fnames $fname"
     else
@@ -14,7 +14,7 @@ do
 done
 if [ "$fnames" == "" ]
 then
-    fnames="fms_sdg"
+    fnames="fms_dgt"
 fi
 
 ruff check $arg $fnames
