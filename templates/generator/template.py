@@ -7,7 +7,6 @@ from pandas import DataFrame
 
 # Local
 from fms_dgt.base.block import BaseGeneratorBlock
-from fms_dgt.base.instance import Instance
 from fms_dgt.base.registry import register_block
 
 

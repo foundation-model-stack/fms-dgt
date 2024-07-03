@@ -1,5 +1,5 @@
 # Standard
-from typing import Any, List, Tuple
+from typing import Any, Dict, List, Tuple
 import copy
 
 # First Party
@@ -7,7 +7,6 @@ from templates.databuilder.task import TemplateSdgData, TemplateSdgTask
 
 # Local
 from fms_dgt.base.databuilder import DataBuilder
-from fms_dgt.base.instance import Instance
 from fms_dgt.base.registry import register_data_builder
 from fms_dgt.base.task import SdgTask
 from fms_dgt.blocks.generators.llm import LMGeneratorBlock
@@ -41,7 +40,7 @@ class TemplateDataBuilder(DataBuilder):
 
         # None of this code should work, you should replace it with your own SDG flow. However, it will illustrate the general process
 
-        generator_inputs: List[Instance] = []
+        generator_inputs: List[Dict] = []
         for idata in instruction_data:
             # example of how to form an argument to the LLM generator
             prompt = idata.instruction + "\n\n" + idata.input
