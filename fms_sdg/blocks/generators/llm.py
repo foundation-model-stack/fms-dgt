@@ -27,14 +27,14 @@ import pandas as pd
 import transformers
 
 # Local
-from fms_sdg.base.block import BaseBlock
+from fms_sdg.base.block import BaseGeneratorBlock
 from fms_sdg.base.instance import Instance
 from fms_sdg.utils import sdg_logger
 
 MODEL_ID_OR_PATH = "model_id_or_path"
 
 
-class LMGeneratorBlock(BaseBlock):
+class LMGeneratorBlock(BaseGeneratorBlock):
     """Class for LLM Generators"""
 
     def __init__(self, name: str, config: Dict, **kwargs: Any):
@@ -98,11 +98,40 @@ class LMGeneratorBlock(BaseBlock):
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
-        method: str = None,
+        method: str = "generate",
+        **kwargs: Any,
     ) -> None:
-        assert method in ["generate", "loglikelihood"]
+
+        # simplify generation here
+        instances: List[Instance] = []
+        for inp in inputs:
+            inp_args, inp_kwargs = self.get_args_kwargs(inp, arg_fields, kwarg_fields)
+            instances.append(Instance(args=inp_args, kwargs=inp_kwargs, data=inp))
+
         if method == "generate":
-            self.generate_batch(inputs)
+            self.generate_batch(
+                instances,
+                **kwargs,
+            )
+        elif method == "loglikelihood":
+            self.loglikelihood_batch(
+                instances,
+                **kwargs,
+            )
+        else:
+            err_str = (
+                f"Unhandled method type: {method}"
+                if method is not None
+                else "Must set 'method' kwarg to 'generate' or 'loglikelihood'"
+            )
+            raise ValueError(err_str)
+
+        outputs = []
+        for inst in instances:
+            self.write_result(inst.data, inst.result, result_field)
+            outputs.append(inst.data)
+
+        return outputs
 
 
 ### SQLite-based caching of LM responses
@@ -147,6 +176,8 @@ class CachingLM:
         self.dbdict
 
     def __getattr__(self, attr):
+        print(attr)
+        input("--")
         lm_attr = getattr(self.lm, attr)
         if not callable(lm_attr):
             return lm_attr
@@ -213,6 +244,17 @@ class CachingLM:
                 req.result = req_res
 
         return fn
+
+    # def __call__(
+    #     self,
+    #     inputs: Union[List[Dict], pd.DataFrame, Dataset],
+    #     *args: Any,
+    #     arg_fields: Optional[List[str]] = None,
+    #     kwarg_fields: Optional[List[str]] = None,
+    #     result_field: Optional[str] = None,
+    #     method: str = "generate",
+    #     **kwargs: Any,
+    # ) -> None:
 
     def get_cache_hook(self):
         return CacheHook(self)

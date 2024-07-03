@@ -1,19 +1,17 @@
 # Standard
-from typing import Any, List, Optional, Tuple
-import copy
+from typing import Any, Dict, List, Optional
 import random
 import time
 
 # Local
 from fms_sdg.base.databuilder import DataBuilder
-from fms_sdg.base.instance import Instance
 from fms_sdg.base.registry import register_data_builder
 from fms_sdg.base.task import group_data_by_task
 from fms_sdg.blocks.generators.llm import LMGeneratorBlock
+from fms_sdg.blocks.validators.api import APIGenSpecValidator, ApiGenSpecYesNoValidation
+from fms_sdg.blocks.validators.rouge import RougeValidator
 from fms_sdg.databuilders.api.task import ApiSdgData, ApiSdgTask
 from fms_sdg.utils import sdg_logger
-from fms_sdg.validators.api import APIGenSpecValidator, ApiGenSpecYesNoValidation
-from fms_sdg.validators.rouge import RougeValidator
 import fms_sdg.databuilders.api.utils as api_utils
 
 
@@ -51,22 +49,26 @@ class ApiDataBuilder(DataBuilder):
         # first generate new data
         instruction_data = instruction_data + []
         random.shuffle(instruction_data)
-        gen_inputs: List[Instance] = []
+        gen_inputs: List[Dict] = []
         for task_data in group_data_by_task(instruction_data):
             for _ in range(self._num_base_examples):
                 prompt, new_instr = self._construct_new_data(task_data)
-                args = [prompt]
-                kwargs = {"stop_sequences": [f"API:"]}
-                gen_inputs.append(Instance(args, kwargs, data=new_instr))
+                inp = {"prompt": prompt, "stop_sequences": [f"API:"], "data": new_instr}
+                gen_inputs.append(inp)
 
         request_start = time.time()
-        self.llm1.generate_batch(gen_inputs)
+        llm_outputs = self.llm1(
+            gen_inputs,
+            arg_fields=["prompt"],
+            kwarg_fields=["stop_sequences"],
+            result_field="output",
+        )
         request_duration = time.time() - request_start
 
         # now begin filtering generated data
         post_process_start = time.time()
 
-        outputs, wf_discarded = self._wf_filter_data(gen_inputs)
+        outputs, wf_discarded = self._wf_filter_data(llm_outputs)
 
         outputs, rouge_discarded = self._rouge_filter_data(outputs)
 
@@ -82,13 +84,13 @@ class ApiDataBuilder(DataBuilder):
 
         return outputs
 
-    def _wf_filter_data(self, data_to_filter: List[Instance]):
+    def _wf_filter_data(self, data_to_filter: List[Dict]):
         # Well-formedness filtering
-        val1_inputs: List[Instance] = []
+        val1_inputs: List[Dict] = []
         discarded = 0
         for gen_inp in data_to_filter:
-            new_instr: ApiSdgData = gen_inp.data
-            components = gen_inp.result.split("A:")
+            new_instr: ApiSdgData = gen_inp["data"]
+            components = gen_inp["output"].split("A:")
             if len(components) == 2:
                 question, answer = [x.strip() for x in components]
                 new_instr.input = question
@@ -101,8 +103,10 @@ class ApiDataBuilder(DataBuilder):
                 }
 
                 # grab schema from input
-                args = [new_apis, question, answer]
-                kwargs = {
+                inp = {
+                    "new_apis": new_apis,
+                    "question": question,
+                    "answer": answer,
                     "check_arg_question_overlap": new_instr.check_arg_question_overlap,
                     "intent_only": new_instr.intent_only,
                     "require_nested": new_instr.require_nested,
@@ -116,17 +120,30 @@ class ApiDataBuilder(DataBuilder):
                         if new_instr.single_function
                         else len(new_instr.positive_functions)
                     ),
+                    "data": new_instr,
                 }
-                val1_inputs.append(Instance(args, kwargs, data=new_instr))
+
+                val1_inputs.append(inp)
             else:
                 discarded += 1
 
-        self.val1.validate_batch(val1_inputs)
-
         # filter invalid data
-        outputs: List[ApiSdgData] = [
-            val1_input.data for val1_input in val1_inputs if val1_input.result
+        outputs = [
+            output["data"]
+            for output in self.val1(
+                val1_inputs,
+                arg_fields=["new_apis", "question", "answer"],
+                kwarg_fields=[
+                    "check_arg_question_overlap",
+                    "intent_only",
+                    "require_nested",
+                    "min_ct",
+                    "max_ct",
+                ],
+                result_field="output",
+            )
         ]
+
         discarded += len(val1_inputs) - len(outputs)
 
         return outputs, discarded
@@ -137,16 +154,27 @@ class ApiDataBuilder(DataBuilder):
             [instr.input for instr in data_to_filter]
         )
 
-        val2_inputs: List[Instance] = []
+        val2_inputs: List[Dict] = []
         for new_data in data_to_filter:
             # computing similarity with the pre-tokenized instructions
             new_instruction_tokens = self.val2.tokenize(new_data.input)
-            args = [new_instruction_tokens, all_instruction_tokens]
-            val2_inputs.append(Instance(args, data=new_data))
-        self.val2.validate_batch(val2_inputs)
+            inp = {
+                "new_instruction_tokens": new_instruction_tokens,
+                "all_instruction_tokens": all_instruction_tokens,
+                "data": new_data,
+            }
+            val2_inputs.append(inp)
 
         # filter rouge failed data
-        outputs = [val2_input.data for val2_input in val2_inputs if val2_input.result]
+        outputs = [
+            output["data"]
+            for output in self.val2(
+                val2_inputs,
+                arg_fields=["new_instruction_tokens", "all_instruction_tokens"],
+                result_field="output",
+            )
+        ]
+
         discarded = len(val2_inputs) - len(outputs)
 
         return outputs, discarded

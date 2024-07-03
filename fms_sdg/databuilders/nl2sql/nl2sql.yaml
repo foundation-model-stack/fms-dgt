@@ -8,7 +8,9 @@ blocks:
     model_id_or_path: ibm/granite-8b-code-instruct
   val1:
     type: sql_syntax_validator
+    filter: true
   val2:
     type: sql_execution_validator
+    filter: true
 metadata:
   version: 1.0

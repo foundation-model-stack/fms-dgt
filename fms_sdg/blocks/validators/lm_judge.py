@@ -4,14 +4,14 @@ from typing import Any, Dict, List
 # Local
 from fms_sdg.base.instance import Instance
 from fms_sdg.base.registry import get_block, register_block
-from fms_sdg.base.validator import BaseBlock
+from fms_sdg.base.validator import BaseValidatorBlock
 from fms_sdg.blocks.generators.llm import LMGeneratorBlock
 
 TYPE_KEY = "lm_type"
 
 
 @register_block("llm_judge")
-class LMJudgeValidator(BaseBlock):
+class LMJudgeValidator(BaseValidatorBlock):
     """LLM-based Validator"""
 
     def __init__(self, name: str, config: Dict, **kwargs: Any):

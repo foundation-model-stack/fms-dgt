@@ -1,13 +1,14 @@
 # Standard
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Union
 import logging
 
 # Third Party
+from datasets import Dataset
+from pandas import DataFrame
 import sqlglot
 
 # Local
-from fms_sdg.base.block import BaseBlock
-from fms_sdg.base.instance import Instance
+from fms_sdg.base.block import BaseValidatorBlock
 from fms_sdg.base.registry import register_block
 
 logger = logging.getLogger(__name__)
@@ -15,17 +16,26 @@ logger.addHandler(logging.NullHandler())
 
 
 @register_block("sql_syntax_validator")
-class SQLSyntaxValidator(BaseBlock):
+class SQLSyntaxValidator(BaseValidatorBlock):
     """SQL syntax validator."""
 
-    def validate_batch(self, inputs: List[Instance], **kwargs: Any) -> None:
-        """Validate a batch.
-
-        Args:
-            inputs: list of instances.
-        """
-        for x in inputs:
-            x.result = self._validate(*x.args, **x.kwargs)
+    def __call__(
+        self,
+        inputs: Union[List[Dict], DataFrame, Dataset],
+        *args: Any,
+        arg_fields: Optional[List[str]] = None,
+        kwarg_fields: Optional[List[str]] = None,
+        result_field: Optional[List[str]] = None,
+        **kwargs: Any,
+    ) -> None:
+        return super().__call__(
+            inputs,
+            *args,
+            arg_fields=arg_fields,
+            kwarg_fields=kwarg_fields,
+            result_field=result_field,
+            **kwargs,
+        )
 
     def _validate(
         self, record: Dict[str, str], sql_dialect: str = "postgres", **kwargs: Any

@@ -1,10 +1,13 @@
 # Standard
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Union
 import json
 
+# Third Party
+from datasets import Dataset
+from pandas import DataFrame
+
 # Local
-from fms_sdg.base.block import BaseBlock
-from fms_sdg.base.instance import Instance
+from fms_sdg.base.block import BaseValidatorBlock
 from fms_sdg.base.registry import register_block
 
 # Constants
@@ -20,13 +23,26 @@ _OUTPUT_PARAM = "output_parameters"
 
 
 @register_block("api_function_checking")
-class APIGenSpecValidator(BaseBlock):
+class APIGenSpecValidator(BaseValidatorBlock):
     """Class for API Sequence Prediction Validator"""
 
-    def validate_batch(self, inputs: List[Instance], **kwargs: Any) -> None:
-        """Takes in a list of Instance objects (each containing their own arg / kwargs) and sets their result flag to true or false"""
-        for x in inputs:
-            x.result = self._validate(*x.args, **x.kwargs)
+    def __call__(
+        self,
+        inputs: Union[List[Dict], DataFrame, Dataset],
+        *args: Any,
+        arg_fields: Optional[List[str]] = None,
+        kwarg_fields: Optional[List[str]] = None,
+        result_field: Optional[List[str]] = None,
+        **kwargs: Any,
+    ) -> None:
+        return super().__call__(
+            inputs,
+            *args,
+            arg_fields=arg_fields,
+            kwarg_fields=kwarg_fields,
+            result_field=result_field,
+            **kwargs,
+        )
 
     def _validate(
         self,

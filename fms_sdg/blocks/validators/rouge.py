@@ -1,10 +1,13 @@
 # Standard
 from functools import partial
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
+
+# Third Party
+from datasets import Dataset
+from pandas import DataFrame
 
 # Local
-from fms_sdg.base.block import BaseBlock
-from fms_sdg.base.instance import Instance
+from fms_sdg.base.block import BaseValidatorBlock
 from fms_sdg.base.registry import register_block
 
 try:
@@ -15,7 +18,7 @@ except ModuleNotFoundError:
 
 
 @register_block("rouge_scorer")
-class RougeValidator(BaseBlock):
+class RougeValidator(BaseValidatorBlock):
     """Base Class for all Validators"""
 
     def __init__(self, name: str, config: Dict) -> None:
@@ -41,10 +44,23 @@ class RougeValidator(BaseBlock):
                 self._cache[inp] = self.scorer._tokenizer.tokenize(inp)
             return self._cache[inp]
 
-    def validate_batch(self, inputs: List[Instance], **kwargs: Any) -> None:
-        """Takes in a list of Instance objects (each containing their own arg / kwargs) and returns a list of tuples [[<is_true>, instance0], [<is_true>, instance1], ...]"""
-        for x in inputs:
-            x.result = self._validate(*x.args, **x.kwargs)
+    def __call__(
+        self,
+        inputs: Union[List[Dict], DataFrame, Dataset],
+        *args: Any,
+        arg_fields: Optional[List[str]] = None,
+        kwarg_fields: Optional[List[str]] = None,
+        result_field: Optional[List[str]] = None,
+        **kwargs: Any,
+    ) -> None:
+        return super().__call__(
+            inputs,
+            *args,
+            arg_fields=arg_fields,
+            kwarg_fields=kwarg_fields,
+            result_field=result_field,
+            **kwargs,
+        )
 
     def _validate(self, new_tokens: List[int], check_tokens: List[List[int]]) -> bool:
         """Runs through all the validators if data list is None. Otherwise just runs through the validators specified for data in the List"""

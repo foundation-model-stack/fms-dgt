@@ -17,8 +17,10 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 import copy
 
 # Third Party
+from datasets import Dataset
 from more_itertools import distribute
 from packaging.version import parse as parse_version
+from pandas import DataFrame
 from tqdm import tqdm
 
 # Local
@@ -461,3 +463,23 @@ class vLLMGeneratorBlock(LMGeneratorBlock):
             "spaces_between_special_tokens", False
         )
         return kwargs
+
+    def __call__(
+        self,
+        inputs: Union[List[Dict], DataFrame, Dataset],
+        *args: Any,
+        arg_fields: Union[List[str], None] = None,
+        kwarg_fields: Union[List[str], None] = None,
+        result_field: Union[str, None] = None,
+        method: str = "generate",
+        **kwargs: Any,
+    ) -> None:
+        return super().__call__(
+            inputs,
+            *args,
+            arg_fields=arg_fields,
+            kwarg_fields=kwarg_fields,
+            result_field=result_field,
+            method=method,
+            **kwargs,
+        )
