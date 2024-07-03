@@ -9,8 +9,8 @@ from fms_sdg.base.databuilder import DataBuilder
 from fms_sdg.base.instance import Instance
 from fms_sdg.base.registry import register_data_builder
 from fms_sdg.base.task import group_data_by_task
+from fms_sdg.blocks.generators.llm import LMGeneratorBlock
 from fms_sdg.databuilders.api.task import ApiSdgData, ApiSdgTask
-from fms_sdg.generators.llm import LMGenerator
 from fms_sdg.utils import sdg_logger
 from fms_sdg.validators.api import APIGenSpecValidator, ApiGenSpecYesNoValidation
 from fms_sdg.validators.rouge import RougeValidator
@@ -38,7 +38,7 @@ class ApiDataBuilder(DataBuilder):
         ), "Number of prompt examples must be at least 1"
 
     # llm1 is the main generator that will produce the synthetic examples
-    llm1: LMGenerator
+    llm1: LMGeneratorBlock
     val1: APIGenSpecValidator
     val2: RougeValidator
 
@@ -218,7 +218,7 @@ class ApiYesNoDataBuilder(ApiDataBuilder):
     """Class for API Sequence task"""
 
     # llm1 is the main generator that will produce the synthetic examples
-    llm1: LMGenerator
+    llm1: LMGeneratorBlock
     val1: ApiGenSpecYesNoValidation
 
 
@@ -227,5 +227,5 @@ class ApiDetectionDataBuilder(ApiDataBuilder):
     """Class for API Sequence task"""
 
     # llm1 is the main generator that will produce the synthetic examples
-    llm1: LMGenerator
+    llm1: LMGeneratorBlock
     val1: APIGenSpecValidator

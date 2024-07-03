@@ -4,15 +4,18 @@ import copy
 import random
 import time
 
+# Third Party
+import pandas as pd
+
 # Local
 from fms_sdg.base.databuilder import DataBuilder
 from fms_sdg.base.instance import Instance
 from fms_sdg.base.registry import register_data_builder
 from fms_sdg.base.task import SdgTask, group_data_by_task
+from fms_sdg.blocks.generators.llm import LMGeneratorBlock
+from fms_sdg.blocks.validators.rouge import RougeValidator
 from fms_sdg.databuilders.simple.task import InstructLabSdgData, InstructLabSdgTask
-from fms_sdg.generators.llm import LMGenerator
 from fms_sdg.utils import sdg_logger
-from fms_sdg.validators.rouge import RougeValidator
 import fms_sdg.databuilders.simple.utils as utils
 
 
@@ -23,7 +26,7 @@ class SimpleInstructDataBuilder(DataBuilder):
     TASK_TYPE: SdgTask = InstructLabSdgTask
 
     # llm1 is the main generator that will produce the synthetic examples
-    llm1: LMGenerator
+    llm1: LMGeneratorBlock
 
     # val1 is the validator which checks rouge score
     val1: RougeValidator
@@ -55,6 +58,9 @@ class SimpleInstructDataBuilder(DataBuilder):
         instruction_data: List[InstructLabSdgData],
     ) -> List[InstructLabSdgData]:
 
+        print(pd.DataFrame([instruction_data[0]]).to_markdown())
+        input("--")
+
         inputs: List[Instance] = []
         instruction_data = instruction_data + []
         random.shuffle(instruction_data)
@@ -66,6 +72,12 @@ class SimpleInstructDataBuilder(DataBuilder):
                 prompt = self._encode_prompt(prompt_instructions)
                 args = [prompt]
                 kwargs = {"stop_sequences": [f"* Task {len(prompt_instructions)+2}"]}
+                print(
+                    pd.DataFrame(
+                        [Instance(args, kwargs, data=prompt_instructions)]
+                    ).to_markdown()
+                )
+                input("--")
                 inputs.append(Instance(args, kwargs, data=prompt_instructions))
 
         request_start = time.time()

@@ -3,9 +3,9 @@ from typing import Any, Dict, List
 import json
 
 # Local
+from fms_sdg.base.block import BaseBlock
 from fms_sdg.base.instance import Instance
-from fms_sdg.base.registry import register_validator
-from fms_sdg.base.validator import BaseValidator
+from fms_sdg.base.registry import register_block
 
 # Constants
 
@@ -19,8 +19,8 @@ _OUTPUT_PARAM = "output_parameters"
 # Classes
 
 
-@register_validator("api_function_checking")
-class APIGenSpecValidator(BaseValidator):
+@register_block("api_function_checking")
+class APIGenSpecValidator(BaseBlock):
     """Class for API Sequence Prediction Validator"""
 
     def validate_batch(self, inputs: List[Instance], **kwargs: Any) -> None:
@@ -149,7 +149,7 @@ def is_nested_match(arg_content: str, prev_components: List[Dict], api_info: Dic
     return False
 
 
-@register_validator("api_yes_no")
+@register_block("api_yes_no")
 class ApiGenSpecYesNoValidation(APIGenSpecValidator):
     """Class for API Intent Detection Validator"""
 

@@ -1,5 +1,5 @@
 name: api_yes_no_detection
-generators:
+blocks:
   llm1:
     type: genai
     decoding_method: sample
@@ -7,7 +7,6 @@ generators:
     max_new_tokens: 1024
     min_new_tokens: 1
     model_id_or_path: mistralai/mixtral-8x7b-instruct-v01
-validators:
   val1:
     type: api_yes_no
   val2:

@@ -1,5 +1,4 @@
 # Standard
-from collections import defaultdict
 from typing import Any, Dict, List
 import copy
 import os
@@ -9,10 +8,10 @@ from tqdm import tqdm
 
 # Local
 from fms_sdg.base.instance import Instance
-from fms_sdg.base.registry import get_resource, register_generator
-from fms_sdg.generators.llm import LMGenerator
+from fms_sdg.base.registry import get_resource, register_block
+from fms_sdg.blocks.generators.llm import LMGeneratorBlock
 from fms_sdg.resources.genai import GenAIKeyResource
-import fms_sdg.generators.utils as generator_utils
+import fms_sdg.blocks.generators.utils as generator_utils
 import fms_sdg.utils as utils
 
 try:
@@ -29,8 +28,8 @@ except ModuleNotFoundError:
     pass
 
 
-@register_generator("genai")
-class GenAIGenerator(LMGenerator):
+@register_block("genai")
+class GenAIGeneratorBlock(LMGeneratorBlock):
     """GenAI Generator"""
 
     def __init__(self, name: str, config: Dict, **kwargs: Any):

@@ -11,7 +11,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 """
 
 # Standard
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 import abc
 import copy
 import hashlib
@@ -19,20 +19,22 @@ import json
 import os
 
 # Third Party
+from datasets import Dataset
 from genai.schema import TextGenerationParameters
 from sqlitedict import SqliteDict
 from tqdm import tqdm
+import pandas as pd
 import transformers
 
 # Local
-from fms_sdg.base.generator import BaseGenerator
+from fms_sdg.base.block import BaseBlock
 from fms_sdg.base.instance import Instance
 from fms_sdg.utils import sdg_logger
 
 MODEL_ID_OR_PATH = "model_id_or_path"
 
 
-class LMGenerator(BaseGenerator):
+class LMGeneratorBlock(BaseBlock):
     """Class for LLM Generators"""
 
     def __init__(self, name: str, config: Dict, **kwargs: Any):
@@ -136,6 +138,19 @@ class LMGenerator(BaseGenerator):
     def set_cache_hook(self, cache_hook) -> None:
         self.cache_hook = cache_hook
 
+    def __call__(
+        self,
+        inputs: Union[List[Dict], pd.DataFrame, Dataset],
+        *args: Any,
+        arg_fields: Optional[List[str]] = None,
+        kwarg_fields: Optional[List[str]] = None,
+        result_field: Optional[str] = None,
+        method: str = None,
+    ) -> None:
+        assert method in ["generate", "loglikelihood"]
+        if method == "generate":
+            self.generate_batch(inputs)
+
 
 ### SQLite-based caching of LM responses
 def hash_args(attr, request):
@@ -159,7 +174,7 @@ class CacheHook:
 
 
 class CachingLM:
-    def __init__(self, lm: LMGenerator, cache_db) -> None:
+    def __init__(self, lm: LMGeneratorBlock, cache_db) -> None:
         """LM wrapper that returns cached results if they exist, and uses the underlying LM if not.
 
         :param lm: LM

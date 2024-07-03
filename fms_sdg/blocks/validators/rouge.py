@@ -3,9 +3,9 @@ from functools import partial
 from typing import Any, Dict, List, Union
 
 # Local
+from fms_sdg.base.block import BaseBlock
 from fms_sdg.base.instance import Instance
-from fms_sdg.base.registry import register_validator
-from fms_sdg.base.validator import BaseValidator
+from fms_sdg.base.registry import register_block
 
 try:
     # Third Party
@@ -14,8 +14,8 @@ except ModuleNotFoundError:
     pass
 
 
-@register_validator("rouge_scorer")
-class RougeValidator(BaseValidator):
+@register_block("rouge_scorer")
+class RougeValidator(BaseBlock):
     """Base Class for all Validators"""
 
     def __init__(self, name: str, config: Dict) -> None:

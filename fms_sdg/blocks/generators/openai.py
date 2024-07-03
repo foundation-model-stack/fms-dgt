@@ -11,7 +11,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 """
 
 # Standard
-from collections import defaultdict
 from importlib.util import find_spec
 from typing import Any, Dict, List
 import copy
@@ -21,10 +20,10 @@ from tqdm import tqdm
 
 # Local
 from fms_sdg.base.instance import Instance
-from fms_sdg.base.registry import get_resource, register_generator
-from fms_sdg.generators.llm import LMGenerator
+from fms_sdg.base.registry import get_resource, register_block
+from fms_sdg.blocks.generators.llm import LMGeneratorBlock
 from fms_sdg.resources.openai import OpenAIKeyResource
-import fms_sdg.generators.utils as generator_utils
+import fms_sdg.blocks.generators.utils as generator_utils
 import fms_sdg.utils as utils
 
 try:
@@ -68,8 +67,8 @@ def oa_completion(client, chat: bool = False, **kwargs):
     return completion()
 
 
-@register_generator("openai-chat", "local-chat-completions")
-class OpenaiChatCompletionsLM(LMGenerator):
+@register_block("openai-chat", "local-chat-completions")
+class OpenaiChatCompletionsLMBlock(LMGeneratorBlock):
     def __init__(self, name: str, config: Dict, **kwargs: Any) -> None:
         """
 

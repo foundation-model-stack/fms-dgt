@@ -23,11 +23,11 @@ from tqdm import tqdm
 
 # Local
 from fms_sdg.base.instance import Instance
-from fms_sdg.base.registry import register_generator
-from fms_sdg.generators.llm import LMGenerator
-from fms_sdg.generators.utils import Collator, undistribute
+from fms_sdg.base.registry import register_block
+from fms_sdg.blocks.generators.llm import LMGeneratorBlock
+from fms_sdg.blocks.generators.utils import Collator, undistribute
 from fms_sdg.utils import sdg_logger
-import fms_sdg.generators.utils as generator_utils
+import fms_sdg.blocks.generators.utils as generator_utils
 
 try:
     # Third Party
@@ -41,8 +41,8 @@ except ModuleNotFoundError:
 
 
 # TODO: this can be made more efficient for our purposes by rewriting the async code ourselves
-@register_generator("vllm")
-class vLLMGenerator(LMGenerator):
+@register_block("vllm")
+class vLLMGeneratorBlock(LMGeneratorBlock):
     """vLLM Generator"""
 
     _DEFAULT_MAX_LENGTH = 2048

@@ -5,17 +5,18 @@ import abc
 import collections
 
 # Local
-from fms_sdg.base.generator import BaseGenerator
+from fms_sdg.base.block import BaseBlock
+from fms_sdg.base.generator import BaseGeneratorBlock
 from fms_sdg.base.instance import Instance
 
 
-class BaseValidator(ABC):
+class BaseValidatorBlock(BaseBlock):
     """Base Class for all Validators"""
 
     def __init__(self, name: str, config: Dict) -> None:
         self._name = name
         self._config = config
-        self._generators: List[BaseGenerator] = []
+        self._generators: List[BaseGeneratorBlock] = []
         self._validators: List[BaseValidator] = []
 
     @property

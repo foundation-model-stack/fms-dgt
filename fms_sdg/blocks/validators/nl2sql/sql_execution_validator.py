@@ -7,16 +7,16 @@ import sqlite3
 import sqlglot
 
 # Local
+from fms_sdg.base.block import BaseBlock
 from fms_sdg.base.instance import Instance
-from fms_sdg.base.registry import register_validator
-from fms_sdg.base.validator import BaseValidator
+from fms_sdg.base.registry import register_block
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
-@register_validator("sql_execution_validator")
-class SQLExecutionValidator(BaseValidator):
+@register_block("sql_execution_validator")
+class SQLExecutionValidator(BaseBlock):
     """SQL execution validator."""
 
     def validate_batch(self, inputs: List[Instance], **kwargs: Any) -> None:

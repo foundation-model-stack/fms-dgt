@@ -3,76 +3,43 @@ from typing import Any
 import logging
 
 # Local
-from fms_sdg.base.generator import BaseGenerator
+from fms_sdg.base.block import BaseBlock
 from fms_sdg.base.resource import BaseResource
-from fms_sdg.base.validator import BaseValidator
 
 eval_logger = logging.getLogger("fms_sdg")
 
 # TODO: generator registry, validator registry, task registry
 
 
-GENERATOR_REGISTRY = {}
+BLOCK_REGISTRY = {}
 
 
-def register_generator(*names):
+def register_block(*names):
     # either pass a list or a single alias.
     # function receives them as a tuple of strings
 
     def decorate(cls):
         for name in names:
             assert issubclass(
-                cls, BaseGenerator
-            ), f"Generator '{name}' ({cls.__name__}) must extend BaseGenerator class"
+                cls, BaseBlock
+            ), f"Block '{name}' ({cls.__name__}) must extend BaseBlock class"
 
             assert (
-                name not in GENERATOR_REGISTRY
-            ), f"Generator named '{name}' conflicts with existing generator! Please register with a non-conflicting alias instead."
+                name not in BLOCK_REGISTRY
+            ), f"Block named '{name}' conflicts with existing block! Please register with a non-conflicting alias instead."
 
-            GENERATOR_REGISTRY[name] = cls
+            BLOCK_REGISTRY[name] = cls
         return cls
 
     return decorate
 
 
-def get_generator(model_name):
+def get_block(block_name):
     try:
-        return GENERATOR_REGISTRY[model_name]
+        return BLOCK_REGISTRY[block_name]
     except KeyError:
         raise ValueError(
-            f"Attempted to load generator '{model_name}', but no generator for this name found! Supported generator names: {', '.join(GENERATOR_REGISTRY.keys())}"
-        )
-
-
-VALIDATOR_REGISTRY = {}
-
-
-def register_validator(*names):
-    # either pass a list or a single alias.
-    # function receives them as a tuple of strings
-
-    def decorate(cls):
-        for name in names:
-            assert issubclass(
-                cls, BaseValidator
-            ), f"Validator '{name}' ({cls.__name__}) must extend BaseValidator class"
-
-            assert (
-                name not in VALIDATOR_REGISTRY
-            ), f"Validator named '{name}' conflicts with existing validator! Please register with a non-conflicting alias instead."
-
-            VALIDATOR_REGISTRY[name] = cls
-        return cls
-
-    return decorate
-
-
-def get_validator(model_name):
-    try:
-        return VALIDATOR_REGISTRY[model_name]
-    except KeyError:
-        raise ValueError(
-            f"Attempted to load validator '{model_name}', but no validator for this name found! Supported validator names: {', '.join(VALIDATOR_REGISTRY.keys())}"
+            f"Attempted to load block '{block_name}', but no block for this name found! Supported block names: {', '.join(BLOCK_REGISTRY.keys())}"
         )
 
 

@@ -8,6 +8,11 @@ from fms_sdg.base.databuilder import DataBuilder
 from fms_sdg.base.instance import Instance
 from fms_sdg.base.registry import register_data_builder
 from fms_sdg.base.task import SdgTask
+from fms_sdg.blocks.generators.llm import LMGeneratorBlock
+from fms_sdg.blocks.validators.nl2sql.sql_execution_validator import (
+    SQLExecutionValidator,
+)
+from fms_sdg.blocks.validators.nl2sql.sql_syntax_validator import SQLSyntaxValidator
 from fms_sdg.databuilders.nl2sql.sqlinstruct.models import (
     SQLDataGenerationSchema,
     SQLTriplet,
@@ -18,10 +23,7 @@ from fms_sdg.databuilders.nl2sql.sqlinstruct.pipeline import (
 from fms_sdg.databuilders.nl2sql.sqlinstruct.prompts import PromptFactory
 from fms_sdg.databuilders.nl2sql.task import SqlSdgData, SqlSdgTask
 from fms_sdg.databuilders.simple.task import InstructLabSdgData
-from fms_sdg.generators.llm import LMGenerator
 from fms_sdg.utils import sdg_logger
-from fms_sdg.validators.nl2sql.sql_execution_validator import SQLExecutionValidator
-from fms_sdg.validators.nl2sql.sql_syntax_validator import SQLSyntaxValidator
 
 
 @register_data_builder("nl2sql")
@@ -38,7 +40,7 @@ class Nl2SqlDataBuilder(DataBuilder):
         super().__init__(*args, **kwargs)
 
     # llm1 is a code generator for the synthetic examples
-    llm1: LMGenerator
+    llm1: LMGeneratorBlock
 
     # val1 is the validator which checks SQL syntax
     val1: SQLSyntaxValidator
