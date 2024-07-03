@@ -7,10 +7,10 @@ import time
 # Third Party
 import pytest
 
-# Local
-from fms_sdg.base.instance import Instance
-from fms_sdg.base.registry import get_generator
-from fms_sdg.generators.llm import CachingLM, LMGenerator
+# First Party
+from fms_dgt.base.instance import Instance
+from fms_dgt.base.registry import get_generator
+from fms_dgt.generators.llm import CachingLM, LMGenerator
 
 # hf cache
 
