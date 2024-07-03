@@ -24,9 +24,8 @@ from genai.schema import TextGenerationParameters
 from sqlitedict import SqliteDict
 from tqdm import tqdm
 import pandas as pd
-import transformers
 
-# First Party
+# Local
 from fms_dgt.base.block import BaseGeneratorBlock
 from fms_dgt.base.instance import Instance
 from fms_dgt.utils import sdg_logger
