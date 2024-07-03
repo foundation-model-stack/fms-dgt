@@ -5,9 +5,9 @@ import json
 # Third Party
 import pytest
 
-# Local
-from fms_sdg.base.instance import Instance
-from fms_sdg.validators.api import APIGenSpecValidator, ApiGenSpecYesNoValidation
+# First Party
+from fms_dgt.base.instance import Instance
+from fms_dgt.blocks.validators.api import APIGenSpecValidator, ApiGenSpecYesNoValidation
 
 single_intent_kwargs = {
     "intent_only": True,

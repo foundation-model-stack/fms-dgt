@@ -7,9 +7,9 @@ import time
 # Third Party
 import pytest
 
-# Local
-from fms_sdg.base.registry import get_block
-from fms_sdg.blocks.generators.llm import CachingLM, LMGeneratorBlock
+# First Party
+from fms_dgt.base.registry import get_block
+from fms_dgt.blocks.generators.llm import CachingLM, LMGeneratorBlock
 
 # hf cache
 

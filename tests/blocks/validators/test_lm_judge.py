@@ -7,9 +7,9 @@ import time
 # Third Party
 import pytest
 
-# Local
-from fms_sdg.base.instance import Instance
-from fms_sdg.validators.lm_judge import LMJudgeValidator
+# First Party
+from fms_dgt.base.instance import Instance
+from fms_dgt.blocks.validators.lm_judge import LMJudgeValidator
 
 GREEDY_CFG = {
     "lm_type": "genai",

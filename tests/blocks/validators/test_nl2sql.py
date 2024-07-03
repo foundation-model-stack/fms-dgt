@@ -1,6 +1,8 @@
-# Local
-from fms_sdg.validators.nl2sql.sql_execution_validator import SQLExecutionValidator
-from fms_sdg.validators.nl2sql.sql_syntax_validator import SQLSyntaxValidator
+# First Party
+from fms_dgt.blocks.validators.nl2sql.sql_execution_validator import (
+    SQLExecutionValidator,
+)
+from fms_dgt.blocks.validators.nl2sql.sql_syntax_validator import SQLSyntaxValidator
 
 
 def test_sql_syntax_validator():
