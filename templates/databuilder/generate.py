@@ -6,12 +6,12 @@ import copy
 from templates.databuilder.task import TemplateSdgData, TemplateSdgTask
 
 # Local
-from fms_sdg.base.databuilder import DataBuilder
-from fms_sdg.base.instance import Instance
-from fms_sdg.base.registry import register_data_builder
-from fms_sdg.base.task import SdgTask
-from fms_sdg.generators.llm import LMGenerator
-from fms_sdg.validators.rouge import RougeValidator
+from fms_dgt.base.databuilder import DataBuilder
+from fms_dgt.base.instance import Instance
+from fms_dgt.base.registry import register_data_builder
+from fms_dgt.base.task import SdgTask
+from fms_dgt.generators.llm import LMGenerator
+from fms_dgt.validators.rouge import RougeValidator
 
 
 @register_data_builder("data_builder_name")
