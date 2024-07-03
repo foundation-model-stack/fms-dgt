@@ -1,5 +1,9 @@
 # Standard
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Union
+
+# Third Party
+from datasets import Dataset
+from pandas import DataFrame
 
 # Local
 from fms_dgt.base.block import BaseGeneratorBlock
@@ -14,5 +18,13 @@ class TemplateGenerator(BaseGeneratorBlock):
     def __init__(self, name: str, config: Dict, **kwargs: Any) -> None:
         super().__init__(name, config, **kwargs)
 
-    def __call__(self, inputs: List[Instance], **kwargs: Any) -> None:
+    def __call__(
+        self,
+        inputs: Union[List[Dict], DataFrame, Dataset],
+        *args: Any,
+        arg_fields: Optional[List[str]] = None,
+        kwarg_fields: Optional[List[str]] = None,
+        result_field: Optional[List[str]] = None,
+        **kwargs: Any,
+    ) -> None:
         raise NotImplementedError
