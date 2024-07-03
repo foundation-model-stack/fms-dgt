@@ -176,8 +176,6 @@ class CachingLM:
         self.dbdict
 
     def __getattr__(self, attr):
-        print(attr)
-        input("--")
         lm_attr = getattr(self.lm, attr)
         if not callable(lm_attr):
             return lm_attr
@@ -245,16 +243,49 @@ class CachingLM:
 
         return fn
 
-    # def __call__(
-    #     self,
-    #     inputs: Union[List[Dict], pd.DataFrame, Dataset],
-    #     *args: Any,
-    #     arg_fields: Optional[List[str]] = None,
-    #     kwarg_fields: Optional[List[str]] = None,
-    #     result_field: Optional[str] = None,
-    #     method: str = "generate",
-    #     **kwargs: Any,
-    # ) -> None:
+    def __call__(
+        self,
+        inputs: Union[List[Dict], pd.DataFrame, Dataset],
+        *args: Any,
+        arg_fields: Optional[List[str]] = None,
+        kwarg_fields: Optional[List[str]] = None,
+        result_field: Optional[str] = None,
+        method: str = "generate",
+        **kwargs: Any,
+    ) -> None:
+
+        # simplify generation here
+        instances: List[Instance] = []
+        for inp in inputs:
+            inp_args, inp_kwargs = self.lm.get_args_kwargs(
+                inp, arg_fields, kwarg_fields
+            )
+            instances.append(Instance(args=inp_args, kwargs=inp_kwargs, data=inp))
+
+        if method == "generate":
+            self.generate_batch(
+                instances,
+                **kwargs,
+            )
+        elif method == "loglikelihood":
+            self.loglikelihood_batch(
+                instances,
+                **kwargs,
+            )
+        else:
+            err_str = (
+                f"Unhandled method type: {method}"
+                if method is not None
+                else "Must set 'method' kwarg to 'generate' or 'loglikelihood'"
+            )
+            raise ValueError(err_str)
+
+        outputs = []
+        for inst in instances:
+            self.lm.write_result(inst.data, inst.result, result_field)
+            outputs.append(inst.data)
+
+        return outputs
 
     def get_cache_hook(self):
         return CacheHook(self)
