@@ -83,7 +83,7 @@ class BaseBlock(ABC):
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
         **kwargs: Any,
-    ) -> None:
+    ):
         pass
 
 
@@ -104,7 +104,7 @@ class BaseValidatorBlock(BaseBlock):
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[List[str]] = None,
         **kwargs: Any,
-    ) -> None:
+    ):
         outputs = []
         for x in inputs:
             inp_args, inp_kwargs = self.get_args_kwargs(x, arg_fields, kwarg_fields)

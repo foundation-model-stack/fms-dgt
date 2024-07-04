@@ -99,7 +99,7 @@ class LMGeneratorBlock(BaseGeneratorBlock):
         result_field: Optional[str] = None,
         method: str = "generate",
         **kwargs: Any,
-    ) -> None:
+    ):
 
         # simplify generation here
         instances: List[Instance] = []

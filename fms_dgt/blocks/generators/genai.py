@@ -8,7 +8,7 @@ from datasets import Dataset
 from pandas import DataFrame
 from tqdm import tqdm
 
-# First Party
+# Local
 from fms_dgt.base.instance import Instance
 from fms_dgt.base.registry import get_resource, register_block
 from fms_dgt.blocks.generators.llm import LMGeneratorBlock
@@ -217,7 +217,7 @@ class GenAIGeneratorBlock(LMGeneratorBlock):
         result_field: Union[str, None] = None,
         method: str = "generate",
         **kwargs: Any,
-    ) -> None:
+    ):
         return super().__call__(
             inputs,
             *args,

@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 from datasets import Dataset
 from pandas import DataFrame
 
-# First Party
+# Local
 from fms_dgt.base.block import BaseValidatorBlock
 from fms_dgt.base.registry import register_block
 
@@ -52,7 +52,7 @@ class RougeValidator(BaseValidatorBlock):
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[List[str]] = None,
         **kwargs: Any,
-    ) -> None:
+    ):
         return super().__call__(
             inputs,
             *args,

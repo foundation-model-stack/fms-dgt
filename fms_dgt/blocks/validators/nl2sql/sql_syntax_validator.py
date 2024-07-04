@@ -7,7 +7,7 @@ from datasets import Dataset
 from pandas import DataFrame
 import sqlglot
 
-# First Party
+# Local
 from fms_dgt.base.block import BaseValidatorBlock
 from fms_dgt.base.registry import register_block
 
@@ -27,7 +27,7 @@ class SQLSyntaxValidator(BaseValidatorBlock):
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[List[str]] = None,
         **kwargs: Any,
-    ) -> None:
+    ):
         return super().__call__(
             inputs,
             *args,
