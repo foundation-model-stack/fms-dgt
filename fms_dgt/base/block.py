@@ -87,6 +87,10 @@ class BaseBlock(ABC):
         pass
 
 
+class BaseUtilityBlock(BaseBlock):
+    pass
+
+
 class BaseGeneratorBlock(BaseBlock):
     pass
 
