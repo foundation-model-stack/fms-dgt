@@ -11,6 +11,8 @@ Framework for scalable [synthetic data generation (SDG)](https://en.wikipedia.or
 We recommend using a Python virtual environment with Python 3.9+. Here is how to setup a virtual environment using [Python venv](https://docs.python.org/3/library/venv.html):
 
 ```
+git clone https://github.com/foundation-model-stack/fms-dgt.git
+cd fms-dgt
 python3 -m venv ssdg_venv
 source ssdg_venv/bin/activate
 pip install .

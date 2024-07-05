@@ -149,7 +149,8 @@ def load_yaml_config(yaml_path=None, yaml_config=None, yaml_dir=None, mode="full
 
     if mode == "simple":
         constructor_fn = ignore_constructor
-    elif mode == "full":
+    else:
+        assert mode == "full"
         constructor_fn = import_function
 
     # Add the import_function constructor to the YAML loader
@@ -250,14 +251,19 @@ def group_data_by_attribute(data_list: List[T], attr: str) -> List[List[T]]:
     ]
 
 
+# this recursively merges nested dicts, but just overwrites lists
 def merge_dictionaries(*args: List[dict]):
     def _update(d, u):
         for k, v in u.items():
+            if k in d:
+                assert isinstance(d[k], dict) == isinstance(v, dict) # seems like a good check
+            else:
+                sdg_logger.warn("not using key %s to override!", k)
             if k in d and isinstance(d[k], dict) and isinstance(v, dict):
-                d[k] = _update(d[k], v)
+                d[k] = _update(d[k], v) # not really needed, since modifies input
             else:
                 d[k] = v
-        return d
+        return d # not really needed, since modifies input
 
     merged_dict = copy.deepcopy(args[0])
     for new_dict in args[1:]:
@@ -267,6 +273,9 @@ def merge_dictionaries(*args: List[dict]):
 
 # pylint: disable=broad-exception-caught
 def read_data_file(file_path: str):
+    if not file_path.endswith(".yaml"):
+        sdg_logger.warn("%s is not handled since it isn't a .yaml file!", file_path)
+        return None # make this explicit
     if file_path.endswith(".yaml"):
         contents = load_yaml_config(file_path)
 
@@ -299,16 +308,24 @@ def read_data(data, include_data_path=None):
     tasks = []
     if os.path.isfile(data):  # data is file
         task = read_data_file(data)
+        if not task:
+            sdg_logger.warn("Adding null to task list!")  # presumably an error, but just in case
         tasks.append(task)
     else:
         # TODO: fix this once done testing
         for dir, subdirs, files in os.walk(data):
+            # assert not subdirs # right?
+            if subdirs:
+                sdg_logger.warn("Subdirs not handled by read_data!")  # presumably an error, but just in case
             for file_name in files:
+                # assert file_name == "qna.yaml" # until done testing
                 if file_name == "qna.yaml":
                     file_path = os.path.join(dir, file_name)
                     data = read_data_file(file_path)
                     if data:
                         tasks.append(data)
+                else:
+                    sdg_logger.warn("File %s not handled, since not equal to 'qna.yaml'!",file_name)  # presumably an error, but just in case
 
     if include_data_path is not None:
         tasks = override_data_configs(include_data_path, tasks)
@@ -318,6 +335,7 @@ def read_data(data, include_data_path=None):
 
 def override_data_configs(include_data_path, tasks):
     override_with = read_data_override_files(include_data_path)
+    # also checked below
     assert all(
         ["data_path" in ow for ow in override_with]
     ), f"Must specify data path to override in files!"
@@ -328,13 +346,14 @@ def override_data_configs(include_data_path, tasks):
             "data_path" in ow
         ), f"Must specify data path to override in file: {ow['file_path']}"
         tax_path = ow["data_path"]
+        # so: file_path and data_path are never overridden
         ow = {k: v for k, v in ow.items() if k not in ["file_path", "data_path"]}
         for i in range(len(tasks)):
             if tasks[i]["data_path"].startswith(tax_path):
                 tasks[i] = merge_dictionaries(tasks[i], ow)
     return tasks
 
-
+# "file_path" is actually ignored in the one call to this function
 def read_data_override_files(data):
     overrides = []
     assert os.path.exists(data), f"Path to override data files does not exist: {data}"
@@ -351,3 +370,18 @@ def read_data_override_files(data):
                     config["file_path"] = file_path
                     overrides.append(config)
     return overrides
+
+# this would make the code clearer:
+# for f in os_walk_files(path):
+#    ...
+def os_walk_files(data):
+    assert os.path.exists(data), f"Path to override data files does not exist: {data}"
+    if os.path.isfile(data):
+        return [data]
+    else:
+        overrides = []
+        for dir, subdirs, files in os.walk(data):
+            assert not subdirs # so far
+            for file_name in files:
+                    overrides.append(os.path.join(dir, file_name))
+        return overrides

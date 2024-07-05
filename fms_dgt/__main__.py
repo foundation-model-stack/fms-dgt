@@ -2,8 +2,14 @@
 from typing import List
 import argparse
 
-# First Party
-from fms_dgt.generate_data import generate_data
+try:
+    # First Party
+    from fms_dgt.generate_data import generate_data
+except ModuleNotFoundError as e:
+    if e.name == "genai":
+        exit("You must install genai according to the instructions in Setup/IBM Generative AI")
+    else:
+        raise e
 
 DEFAULT_CONFIG = "config.yaml"
 DEFAULT_DATA_PATH = "data"
