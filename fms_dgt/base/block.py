@@ -1,6 +1,6 @@
 # Standard
 from abc import ABC
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Type, Union
 import abc
 
 # Third Party
@@ -77,7 +77,7 @@ class BaseBlock(ABC):
     @abc.abstractmethod
     def __call__(
         self,
-        inputs: Union[List[Dict], pd.DataFrame, Dataset],
+        inputs: Union[List[Dict], Type[pd.DataFrame], Type[Dataset]],
         *args: Any,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
@@ -98,7 +98,7 @@ class BaseValidatorBlock(BaseBlock):
 
     def __call__(
         self,
-        inputs: Union[List[Dict], pd.DataFrame, Dataset],
+        inputs: Union[List[Dict], Type[pd.DataFrame], Type[Dataset]],
         *args: Any,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
