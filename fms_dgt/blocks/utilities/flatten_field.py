@@ -34,7 +34,7 @@ class FlattenFieldBlock(BaseUtilityBlock):
 
         outputs = []
         for x in inputs:
-            inp_args, inp_kwargs = self.get_args_kwargs(x, arg_fields, kwarg_fields)
+            inp_args, _ = self.get_args_kwargs(x, arg_fields, kwarg_fields)
             to_flatten = inp_args[0] if type(inp_args[0]) == list else [inp_args[0]]
 
             # remove flattened attribute
