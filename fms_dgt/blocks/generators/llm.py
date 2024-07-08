@@ -100,7 +100,6 @@ class LMGenerator(BaseGeneratorBlock):
     def __call__(
         self,
         inputs: Union[List[Dict], pd.DataFrame, Dataset],
-        *args: Any,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
