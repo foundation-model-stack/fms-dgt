@@ -18,11 +18,9 @@ class FlattenField(BaseUtilityBlock):
     def __call__(
         self,
         inputs: Union[List[Dict], DataFrame, Dataset],
-        *args: Any,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
-        result_field: Optional[List[str]] = None,
-        **kwargs: Any,
+        result_field: Optional[str] = None,
     ):
         arg_fields = arg_fields if arg_fields is not None else self._arg_fields
         if arg_fields is None:

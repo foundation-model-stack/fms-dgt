@@ -84,17 +84,14 @@ class BaseBlock(ABC):
         else:
             raise ValueError(f"Unexpected input type: {type(inp)}")
 
-    @abc.abstractmethod
     def __call__(
         self,
         inputs: Union[List[Dict], Type[pd.DataFrame], Type[Dataset]],
-        *args: Any,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
-        **kwargs: Any,
     ):
-        pass
+        raise NotImplementedError
 
 
 class BaseUtilityBlock(BaseBlock):
@@ -113,11 +110,9 @@ class BaseValidatorBlock(BaseBlock):
     def __call__(
         self,
         inputs: Union[List[Dict], Type[pd.DataFrame], Type[Dataset]],
-        *args: Any,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[List[str]] = None,
-        **kwargs: Any,
     ):
         outputs = []
         for x in inputs:

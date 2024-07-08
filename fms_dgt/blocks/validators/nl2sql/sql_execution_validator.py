@@ -20,24 +20,6 @@ logger.addHandler(logging.NullHandler())
 class SQLExecutionValidator(BaseValidatorBlock):
     """SQL execution validator."""
 
-    def __call__(
-        self,
-        inputs: Union[List[Dict], DataFrame, Dataset],
-        *args: Any,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
-        result_field: Optional[List[str]] = None,
-        **kwargs: Any,
-    ):
-        return super().__call__(
-            inputs,
-            *args,
-            arg_fields=arg_fields,
-            kwarg_fields=kwarg_fields,
-            result_field=result_field,
-            **kwargs,
-        )
-
     def _validate(self, record: Dict[str, str], **kwargs: Any) -> bool:
         """Validate a record containing information on schema, query and utterance.
 

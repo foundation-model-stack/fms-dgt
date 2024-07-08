@@ -44,24 +44,6 @@ class RougeValidator(BaseValidatorBlock):
                 self._cache[inp] = self.scorer._tokenizer.tokenize(inp)
             return self._cache[inp]
 
-    def __call__(
-        self,
-        inputs: Union[List[Dict], DataFrame, Dataset],
-        *args: Any,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
-        result_field: Optional[List[str]] = None,
-        **kwargs: Any,
-    ):
-        return super().__call__(
-            inputs,
-            *args,
-            arg_fields=arg_fields,
-            kwarg_fields=kwarg_fields,
-            result_field=result_field,
-            **kwargs,
-        )
-
     def _validate(self, new_tokens: List[int], check_tokens: List[List[int]]) -> bool:
         """Runs through all the validators if data list is None. Otherwise just runs through the validators specified for data in the List"""
 

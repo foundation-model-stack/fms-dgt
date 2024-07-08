@@ -26,24 +26,6 @@ _OUTPUT_PARAM = "output_parameters"
 class APIGenSpecValidator(BaseValidatorBlock):
     """Class for API Sequence Prediction Validator"""
 
-    def __call__(
-        self,
-        inputs: Union[List[Dict], DataFrame, Dataset],
-        *args: Any,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
-        result_field: Optional[List[str]] = None,
-        **kwargs: Any,
-    ):
-        return super().__call__(
-            inputs,
-            *args,
-            arg_fields=arg_fields,
-            kwarg_fields=kwarg_fields,
-            result_field=result_field,
-            **kwargs,
-        )
-
     def _validate(
         self,
         api_info: dict,

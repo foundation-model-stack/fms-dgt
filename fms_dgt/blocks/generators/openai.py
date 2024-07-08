@@ -172,23 +172,3 @@ class OpenaiChatCompletionsLM(LMGenerator):
 
     def loglikelihood_batch(self, requests, disable_tqdm: bool = False):
         raise NotImplementedError("No support for logits.")
-
-    def __call__(
-        self,
-        inputs: Union[List[Dict], DataFrame, Dataset],
-        *args: Any,
-        arg_fields: Union[List[str], None] = None,
-        kwarg_fields: Union[List[str], None] = None,
-        result_field: Union[str, None] = None,
-        method: str = "generate",
-        **kwargs: Any,
-    ):
-        return super().__call__(
-            inputs,
-            *args,
-            arg_fields=arg_fields,
-            kwarg_fields=kwarg_fields,
-            result_field=result_field,
-            method=method,
-            **kwargs,
-        )
