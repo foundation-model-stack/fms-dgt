@@ -1,11 +1,11 @@
 # Standard
 from typing import Any, Dict, List
 
-# First Party
+# Local
 from fms_dgt.base.block import BaseValidatorBlock
 from fms_dgt.base.instance import Instance
 from fms_dgt.base.registry import get_block, register_block
-from fms_dgt.blocks.generators.llm import LMGeneratorBlock
+from fms_dgt.blocks.generators.llm import LMGenerator
 
 TYPE_KEY = "lm_type"
 
@@ -16,9 +16,7 @@ class LMJudgeValidator(BaseValidatorBlock):
 
     def __init__(self, name: str, config: Dict, **kwargs: Any):
         super().__init__(name, config, **kwargs)
-        self._llm_generator: LMGeneratorBlock = get_block(config[TYPE_KEY])(
-            name, config
-        )
+        self._llm_generator: LMGenerator = get_block(config[TYPE_KEY])(name, config)
         self._blocks.append(self._llm_generator)
 
     def validate_batch(self, inputs: List[Instance], **kwargs: Any) -> None:

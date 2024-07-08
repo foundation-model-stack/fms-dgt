@@ -2,11 +2,11 @@
 from dataclasses import asdict
 from typing import Any, Iterable, List, Set, Tuple
 
-# First Party
+# Local
 from fms_dgt.base.databuilder import DataBuilder
 from fms_dgt.base.registry import register_data_builder
 from fms_dgt.base.task import SdgTask
-from fms_dgt.blocks.generators.llm import LMGeneratorBlock
+from fms_dgt.blocks.generators.llm import LMGenerator
 from fms_dgt.blocks.validators.nl2sql.sql_execution_validator import (
     SQLExecutionValidator,
 )
@@ -38,7 +38,7 @@ class Nl2SqlDataBuilder(DataBuilder):
         super().__init__(*args, **kwargs)
 
     # llm1 is a code generator for the synthetic examples
-    llm1: LMGeneratorBlock
+    llm1: LMGenerator
 
     # val1 is the validator which checks SQL syntax
     val1: SQLSyntaxValidator

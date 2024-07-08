@@ -9,11 +9,11 @@ import time
 # Third Party
 from tqdm import tqdm
 
-# First Party
+# Local
 from fms_dgt.base.block import BaseBlock
 from fms_dgt.base.registry import get_block
 from fms_dgt.base.task import SdgData, SdgTask
-from fms_dgt.blocks.generators.llm import CachingLM, LMGeneratorBlock
+from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
 from fms_dgt.utils import all_annotations, sdg_logger
 
 
@@ -99,7 +99,7 @@ class DataBuilder(ABC):
             )
             obj = get_block(obj_config[TYPE_KEY])(obj_name, obj_config)
 
-            if lm_cache is not None and isinstance(obj, LMGeneratorBlock):
+            if lm_cache is not None and isinstance(obj, LMGenerator):
                 sdg_logger.info(
                     "Using cache at %s",
                     lm_cache + "_rank" + str(obj.rank) + ".db",

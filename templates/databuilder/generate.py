@@ -9,7 +9,7 @@ from templates.databuilder.task import TemplateSdgData, TemplateSdgTask
 from fms_dgt.base.databuilder import DataBuilder
 from fms_dgt.base.registry import register_data_builder
 from fms_dgt.base.task import SdgTask
-from fms_dgt.blocks.generators.llm import LMGeneratorBlock
+from fms_dgt.blocks.generators.llm import LMGenerator
 from fms_dgt.blocks.validators.rouge import RougeValidator
 
 
@@ -20,7 +20,7 @@ class TemplateDataBuilder(DataBuilder):
     TASK_TYPE: SdgTask = TemplateSdgTask
 
     # llm1 is the main generator that will produce the synthetic examples
-    llm1: LMGeneratorBlock
+    llm1: LMGenerator
 
     # val1 is the validator which checks rouge score
     val1: RougeValidator

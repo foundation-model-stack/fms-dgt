@@ -3,11 +3,11 @@ from typing import Any, Dict, List, Optional
 import random
 import time
 
-# First Party
+# Local
 from fms_dgt.base.databuilder import DataBuilder
 from fms_dgt.base.registry import register_data_builder
 from fms_dgt.base.task import group_data_by_task
-from fms_dgt.blocks.generators.llm import LMGeneratorBlock
+from fms_dgt.blocks.generators.llm import LMGenerator
 from fms_dgt.blocks.validators.api import APIGenSpecValidator, ApiGenSpecYesNoValidation
 from fms_dgt.blocks.validators.rouge import RougeValidator
 from fms_dgt.databuilders.api.task import ApiSdgData, ApiSdgTask
@@ -36,7 +36,7 @@ class ApiDataBuilder(DataBuilder):
         ), "Number of prompt examples must be at least 1"
 
     # llm1 is the main generator that will produce the synthetic examples
-    llm1: LMGeneratorBlock
+    llm1: LMGenerator
     val1: APIGenSpecValidator
     val2: RougeValidator
 
@@ -246,7 +246,7 @@ class ApiYesNoDataBuilder(ApiDataBuilder):
     """Class for API Sequence task"""
 
     # llm1 is the main generator that will produce the synthetic examples
-    llm1: LMGeneratorBlock
+    llm1: LMGenerator
     val1: ApiGenSpecYesNoValidation
 
 
@@ -255,5 +255,5 @@ class ApiDetectionDataBuilder(ApiDataBuilder):
     """Class for API Sequence task"""
 
     # llm1 is the main generator that will produce the synthetic examples
-    llm1: LMGeneratorBlock
+    llm1: LMGenerator
     val1: APIGenSpecValidator

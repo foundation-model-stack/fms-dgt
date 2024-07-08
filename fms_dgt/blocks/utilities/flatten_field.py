@@ -12,7 +12,7 @@ from fms_dgt.base.registry import register_block
 
 
 @register_block("flatten_field")
-class FlattenFieldBlock(BaseUtilityBlock):
+class FlattenField(BaseUtilityBlock):
     """Flatten specified args"""
 
     def __call__(

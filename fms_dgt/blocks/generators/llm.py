@@ -33,7 +33,7 @@ from fms_dgt.utils import sdg_logger
 MODEL_ID_OR_PATH = "model_id_or_path"
 
 
-class LMGeneratorBlock(BaseGeneratorBlock):
+class LMGenerator(BaseGeneratorBlock):
     """Class for LLM Generators"""
 
     def __init__(self, name: str, config: Dict, **kwargs: Any):
@@ -155,7 +155,7 @@ class CacheHook:
 
 
 class CachingLM:
-    def __init__(self, lm: LMGeneratorBlock, cache_db) -> None:
+    def __init__(self, lm: LMGenerator, cache_db) -> None:
         """LM wrapper that returns cached results if they exist, and uses the underlying LM if not.
 
         :param lm: LM

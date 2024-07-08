@@ -11,7 +11,7 @@ from tqdm import tqdm
 # Local
 from fms_dgt.base.instance import Instance
 from fms_dgt.base.registry import get_resource, register_block
-from fms_dgt.blocks.generators.llm import LMGeneratorBlock
+from fms_dgt.blocks.generators.llm import LMGenerator
 from fms_dgt.resources.genai import GenAIKeyResource
 import fms_dgt.blocks.generators.utils as generator_utils
 import fms_dgt.utils as utils
@@ -31,7 +31,7 @@ except ModuleNotFoundError:
 
 
 @register_block("genai")
-class GenAIGeneratorBlock(LMGeneratorBlock):
+class GenAIGenerator(LMGenerator):
     """GenAI Generator"""
 
     def __init__(self, name: str, config: Dict, **kwargs: Any):

@@ -23,7 +23,7 @@ from tqdm import tqdm
 # Local
 from fms_dgt.base.instance import Instance
 from fms_dgt.base.registry import get_resource, register_block
-from fms_dgt.blocks.generators.llm import LMGeneratorBlock
+from fms_dgt.blocks.generators.llm import LMGenerator
 from fms_dgt.resources.openai import OpenAIKeyResource
 import fms_dgt.blocks.generators.utils as generator_utils
 import fms_dgt.utils as utils
@@ -70,7 +70,7 @@ def oa_completion(client, chat: bool = False, **kwargs):
 
 
 @register_block("openai-chat", "local-chat-completions")
-class OpenaiChatCompletionsLMBlock(LMGeneratorBlock):
+class OpenaiChatCompletionsLM(LMGenerator):
     def __init__(self, name: str, config: Dict, **kwargs: Any) -> None:
         """
 

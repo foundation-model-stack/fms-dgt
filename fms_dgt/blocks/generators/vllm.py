@@ -26,7 +26,7 @@ from tqdm import tqdm
 # Local
 from fms_dgt.base.instance import Instance
 from fms_dgt.base.registry import register_block
-from fms_dgt.blocks.generators.llm import LMGeneratorBlock
+from fms_dgt.blocks.generators.llm import LMGenerator
 from fms_dgt.blocks.generators.utils import Collator, undistribute
 from fms_dgt.utils import sdg_logger
 import fms_dgt.blocks.generators.utils as generator_utils
@@ -45,7 +45,7 @@ except ModuleNotFoundError:
 
 # TODO: this can be made more efficient for our purposes by rewriting the async code ourselves
 @register_block("vllm")
-class vLLMGeneratorBlock(LMGeneratorBlock):
+class vLLMGenerator(LMGenerator):
     """vLLM Generator"""
 
     _DEFAULT_MAX_LENGTH = 2048
