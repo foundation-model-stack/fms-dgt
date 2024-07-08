@@ -24,6 +24,17 @@ class BaseBlock(ABC):
         self._name = name
         self._blocks: List[BaseBlock] = []
 
+        # minor type checking
+        if type(arg_fields) == str:
+            arg_fields = [arg_fields]
+        if type(kwarg_fields) == str:
+            kwarg_fields = [kwarg_fields]
+        if type(result_field) == list:
+            assert (
+                len(result_field) == 1
+            ), "Cannot have multiple 'result' fields for {name}"
+            result_field = result_field[0]
+
         self._arg_fields = arg_fields
         self._kwarg_fields = kwarg_fields
         self._result_field = result_field

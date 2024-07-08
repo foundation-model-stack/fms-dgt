@@ -75,12 +75,7 @@ class SimpleInstructDataBuilder(DataBuilder):
 
         request_start = time.time()
 
-        llm_outputs = self.llm1(
-            inputs,
-            arg_fields=["prompt"],
-            kwarg_fields=["stop_sequences"],
-            result_field="output",
-        )
+        llm_outputs = self.llm1(inputs)
         request_duration = time.time() - request_start
 
         post_process_start = time.time()
@@ -129,12 +124,7 @@ class SimpleInstructDataBuilder(DataBuilder):
             val1_inputs.append(inp)
 
         # filter rouge failed data
-        outputs = [
-            output["data"]
-            for output in self.val1(
-                val1_inputs, arg_fields=["new_toks", "all_toks"], result_field="output"
-            )
-        ]
+        outputs = [output["data"] for output in self.val1(val1_inputs)]
 
         discarded += len(val1_inputs) - len(outputs)
 
