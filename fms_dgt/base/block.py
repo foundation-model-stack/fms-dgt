@@ -1,11 +1,14 @@
 # Standard
 from abc import ABC
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, Iterable, List, Optional, Type, Union
 import abc
 
 # Third Party
 from datasets import Dataset
 import pandas as pd
+
+BLOCK_ROW_TYPE = Union[Dict, Type[pd.Series]]
+BLOCK_INPUT_TYPE = Union[Iterable[BLOCK_ROW_TYPE], pd.DataFrame, Dataset]
 
 
 class BaseBlock(ABC):
@@ -20,7 +23,6 @@ class BaseBlock(ABC):
     ) -> None:
 
         self._name = name
-        self._blocks: List[BaseBlock] = []
 
         # minor type checking
         if type(arg_fields) == str:
@@ -40,11 +42,6 @@ class BaseBlock(ABC):
     @property
     def name(self):
         return self._name
-
-    @property
-    def blocks(self) -> List:
-        """Returns the constituent blocks associated with this class."""
-        return self._blocks
 
     def get_args_kwargs(
         self,
@@ -86,7 +83,7 @@ class BaseBlock(ABC):
 
     def __call__(
         self,
-        inputs: Union[List[Dict], Type[pd.DataFrame], Type[Dataset]],
+        inputs: BLOCK_INPUT_TYPE,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
@@ -109,7 +106,7 @@ class BaseValidatorBlock(BaseBlock):
 
     def __call__(
         self,
-        inputs: Union[List[Dict], Type[pd.DataFrame], Type[Dataset]],
+        inputs: BLOCK_INPUT_TYPE,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[List[str]] = None,

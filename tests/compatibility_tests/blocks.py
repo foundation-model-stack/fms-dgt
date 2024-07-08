@@ -8,8 +8,8 @@ from datasets import Dataset
 from sdg.src.instructlab.sdg.filterblock import FilterByValueBlock
 import pandas as pd
 
-# First Party
-from fms_dgt.base.block import BaseBlock
+# Local
+from fms_dgt.base.block import BLOCK_INPUT_TYPE, BaseBlock
 
 
 class TestFilterBlock(BaseBlock):
@@ -30,7 +30,7 @@ class TestFilterBlock(BaseBlock):
 
     def __call__(
         self,
-        inputs: Union[List[Dict], pd.DataFrame, Dataset],
+        inputs: BLOCK_INPUT_TYPE,
         **kwargs: Any,
     ) -> Any:
         return self._filter_block.generate(inputs)

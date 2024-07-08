@@ -26,7 +26,7 @@ from tqdm import tqdm
 import pandas as pd
 
 # Local
-from fms_dgt.base.block import BaseGeneratorBlock
+from fms_dgt.base.block import BLOCK_INPUT_TYPE, BaseGeneratorBlock
 from fms_dgt.base.instance import Instance
 from fms_dgt.utils import sdg_logger
 
@@ -99,7 +99,7 @@ class LMGenerator(BaseGeneratorBlock):
 
     def __call__(
         self,
-        inputs: Union[List[Dict], pd.DataFrame, Dataset],
+        inputs: BLOCK_INPUT_TYPE,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
@@ -250,8 +250,7 @@ class CachingLM:
 
     def __call__(
         self,
-        inputs: Union[List[Dict], pd.DataFrame, Dataset],
-        *args: Any,
+        inputs: BLOCK_INPUT_TYPE,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,

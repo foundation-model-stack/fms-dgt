@@ -6,7 +6,7 @@ from datasets import Dataset
 from pandas import DataFrame
 
 # Local
-from fms_dgt.base.block import BaseGeneratorBlock
+from fms_dgt.base.block import BLOCK_INPUT_TYPE, BaseGeneratorBlock
 from fms_dgt.base.registry import register_block
 
 
@@ -19,7 +19,7 @@ class TemplateGenerator(BaseGeneratorBlock):
 
     def __call__(
         self,
-        inputs: Union[List[Dict], DataFrame, Dataset],
+        inputs: BLOCK_INPUT_TYPE,
         *args: Any,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,

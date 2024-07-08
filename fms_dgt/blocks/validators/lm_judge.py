@@ -17,7 +17,7 @@ class LMJudgeValidator(BaseValidatorBlock):
     def __init__(self, lm_type: str = None, **kwargs: Any):
         super().__init__(**kwargs)
         self._llm_generator: LMGenerator = get_block(lm_type)(self.name, **kwargs)
-        self._blocks.append(self._llm_generator)
+        self.blocks = [self._llm_generator]
 
     def validate_batch(self, inputs: List[Instance], **kwargs: Any) -> None:
         generator_inputs = [Instance([x.args[0]], x.kwargs) for x in inputs]
