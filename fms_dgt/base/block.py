@@ -19,8 +19,6 @@ class BaseBlock(ABC):
         result_field: str = None,
     ) -> None:
 
-        assert name is not None, f"'name' field cannot be empty in block definition"
-
         self._name = name
         self._blocks: List[BaseBlock] = []
 
