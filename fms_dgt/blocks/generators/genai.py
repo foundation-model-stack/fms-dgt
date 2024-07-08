@@ -34,8 +34,8 @@ except ModuleNotFoundError:
 class GenAIGenerator(LMGenerator):
     """GenAI Generator"""
 
-    def __init__(self, name: str, config: Dict, **kwargs: Any):
-        super().__init__(name, config, **kwargs)
+    def __init__(self, **kwargs: Any):
+        super().__init__(**kwargs)
 
         try:
             # Third Party
@@ -77,7 +77,7 @@ class GenAIGenerator(LMGenerator):
 
                 until = None
                 if isinstance(kwargs := copy.deepcopy(gen_kwargs), dict):
-                    # start with default params in self.config then overwrite with kwargs
+                    # start with default params then overwrite with kwargs
                     kwargs = {**self._base_kwargs, **kwargs}
                     until = kwargs.get("stop_sequences", None)
                     model_id = kwargs.pop("model_id", self.model_id_or_path)

@@ -5,14 +5,14 @@ import json
 # Third Party
 import pytest
 
-# First Party
+# Local
 from fms_dgt.base.instance import Instance
 from fms_dgt.blocks.validators.rouge import RougeValidator
 
 
 class TestRougeValidator:
     def test_matches(self):
-        validator = RougeValidator("test_rouge_validator", {"threshold": 0.0})
+        validator = RougeValidator(name="test_rouge_validator", threshold=0.0)
 
         all_data = [
             "I went to the store",

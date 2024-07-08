@@ -14,9 +14,9 @@ TYPE_KEY = "lm_type"
 class LMJudgeValidator(BaseValidatorBlock):
     """LLM-based Validator"""
 
-    def __init__(self, name: str, config: Dict, **kwargs: Any):
-        super().__init__(name, config, **kwargs)
-        self._llm_generator: LMGenerator = get_block(config[TYPE_KEY])(name, config)
+    def __init__(self, lm_type: str = None, **kwargs: Any):
+        super().__init__(**kwargs)
+        self._llm_generator: LMGenerator = get_block(lm_type)(self.name, **kwargs)
         self._blocks.append(self._llm_generator)
 
     def validate_batch(self, inputs: List[Instance], **kwargs: Any) -> None:

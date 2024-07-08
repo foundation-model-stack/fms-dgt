@@ -21,9 +21,9 @@ except ModuleNotFoundError:
 class RougeValidator(BaseValidatorBlock):
     """Base Class for all Validators"""
 
-    def __init__(self, name: str, config: Dict) -> None:
-        super().__init__(name, config)
-        self._threshold = config.get("threshold", None)
+    def __init__(self, threshold: float = -1, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._threshold = threshold
         if self._threshold <= 0:
             self._threshold = None
 

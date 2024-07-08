@@ -36,22 +36,29 @@ MODEL_ID_OR_PATH = "model_id_or_path"
 class LMGenerator(BaseGeneratorBlock):
     """Class for LLM Generators"""
 
-    def __init__(self, name: str, config: Dict, **kwargs: Any):
-        super().__init__(name, config, **kwargs)
+    def __init__(
+        self,
+        model_id_or_path: str = None,
+        **kwargs: Any,
+    ):
+        # TODO: define exact kwargs that are supported
+        default_kwargs = {"decoding_method": "sample"}
+        cfg_kwargs = {
+            k: kwargs.pop(k)
+            for k in copy.copy(kwargs)
+            if k in TextGenerationParameters.model_fields
+        }
+
+        super().__init__(**kwargs)
+
         self._rank = 0
         self.cache_hook = CacheHook(None)
 
-        self.model_id_or_path: str = config.get(MODEL_ID_OR_PATH, None)
+        self.model_id_or_path: str = model_id_or_path
         assert (
             self.model_id_or_path is not None
-        ), f"Must specify model for Generator {name}"
+        ), f"Must specify model for Generator {self.name}"
 
-        default_kwargs = {"decoding_method": "sample"}
-        cfg_kwargs = {
-            k: v
-            for k, v in copy.deepcopy(self.config).items()
-            if k in TextGenerationParameters.model_fields
-        }
         self._base_kwargs = {**default_kwargs, **cfg_kwargs}
 
     @property

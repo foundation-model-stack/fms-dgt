@@ -94,10 +94,15 @@ class DataBuilder(ABC):
 
         # TODO: need to handle nested blocks
         for obj_name, obj_config in self.config.blocks.items():
+            obj_kwargs = {**obj_config, "name": obj_name}
             sdg_logger.debug(
                 "Initializing object %s with config %s", obj_name, obj_config
             )
-            obj = get_block(obj_config[TYPE_KEY])(obj_name, obj_config)
+
+            assert (
+                TYPE_KEY in obj_kwargs
+            ), f"'type' field missing from {obj_name} in data builder config"
+            obj = get_block(obj_kwargs.pop(TYPE_KEY))(**obj_kwargs)
 
             if lm_cache is not None and isinstance(obj, LMGenerator):
                 sdg_logger.info(

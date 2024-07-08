@@ -5,7 +5,7 @@ import json
 # Third Party
 import pytest
 
-# First Party
+# Local
 from fms_dgt.base.instance import Instance
 from fms_dgt.blocks.validators.api import APIGenSpecValidator, ApiGenSpecYesNoValidation
 
@@ -45,7 +45,7 @@ def get_args(func_calls):
 
 class TestApiValidator:
     def test_single_intent(self):
-        validator = APIGenSpecValidator("test_single_intent", dict())
+        validator = APIGenSpecValidator(name="test_single_intent")
 
         # single intent
         func_calls = [{"name": "add"}]
@@ -54,11 +54,11 @@ class TestApiValidator:
         args = [api_info, question, json.dumps(func_calls)]
 
         test_instance = [Instance(args, single_intent_kwargs)]
-        validator.validate_batch(test_instance)
+        validator(test_instance)
         assert test_instance[0].result
 
     def test_multi_intent(self):
-        validator = APIGenSpecValidator("test_multi_intent", dict())
+        validator = APIGenSpecValidator(name="test_multi_intent")
         # multiple intent
         func_calls = [
             {"name": "add"},
@@ -69,11 +69,11 @@ class TestApiValidator:
         args = [api_info, question, json.dumps(func_calls)]
 
         test_instance = [Instance(args, multi_intent_kwargs)]
-        validator.validate_batch(test_instance)
+        validator(test_instance)
         assert test_instance[0].result
 
     def test_parallel_single(self):
-        validator = APIGenSpecValidator("test_parallel_single", dict())
+        validator = APIGenSpecValidator(name="test_parallel_single")
 
         # parallel single
         func_calls = [
@@ -85,7 +85,7 @@ class TestApiValidator:
         args = [api_info, question, json.dumps(func_calls)]
 
         test_instance = [Instance(args, parallel_kwargs)]
-        validator.validate_batch(test_instance)
+        validator(test_instance)
         assert test_instance[0].result
 
         func_calls = [
@@ -97,13 +97,13 @@ class TestApiValidator:
         args = [api_info, question, json.dumps(func_calls)]
 
         test_instance = [Instance(args, parallel_kwargs)]
-        validator.validate_batch(test_instance)
+        validator(test_instance)
         assert not test_instance[
             0
         ].result, "Validator should have failed due to required args!"
 
     def test_parallel_multiple(self):
-        validator = APIGenSpecValidator("test_parallel_multiple", dict())
+        validator = APIGenSpecValidator(name="test_parallel_multiple")
 
         # parallel multiple
         func_calls = [
@@ -115,7 +115,7 @@ class TestApiValidator:
         args = [api_info, question, json.dumps(func_calls)]
 
         test_instance = [Instance(args, parallel_kwargs)]
-        validator.validate_batch(test_instance)
+        validator(test_instance)
         assert test_instance[0].result
 
         func_calls = [
@@ -127,7 +127,7 @@ class TestApiValidator:
         args = [api_info, question, json.dumps(func_calls)]
 
         test_instance = [Instance(args, parallel_kwargs)]
-        validator.validate_batch(test_instance)
+        validator(test_instance)
         assert not test_instance[
             0
         ].result, (
@@ -135,7 +135,7 @@ class TestApiValidator:
         )
 
     def test_parallel_nested(self):
-        validator = APIGenSpecValidator("test_parallel_nested", dict())
+        validator = APIGenSpecValidator(name="test_parallel_nested")
 
         # parallel multiple
         func_calls = [
@@ -147,7 +147,7 @@ class TestApiValidator:
         args = [api_info, question, json.dumps(func_calls)]
 
         test_instance = [Instance(args, parallel_nested_kwargs)]
-        validator.validate_batch(test_instance)
+        validator(test_instance)
         assert test_instance[0].result
 
         func_calls = [
@@ -159,7 +159,7 @@ class TestApiValidator:
         args = [api_info, question, json.dumps(func_calls)]
 
         test_instance = [Instance(args, parallel_nested_kwargs)]
-        validator.validate_batch(test_instance)
+        validator(test_instance)
         assert not test_instance[
             0
         ].result, (
@@ -167,12 +167,12 @@ class TestApiValidator:
         )
 
     def test_yes_no(self):
-        validator = ApiGenSpecYesNoValidation("test_yes_no", dict())
+        validator = ApiGenSpecYesNoValidation(name="test_yes_no")
 
         for arg_inp in ["YES", "NO", "MAYBE"]:
             args = [TEST_APIS, "this is a test question", arg_inp]
             test_instance = [Instance(args)]
-            validator.validate_batch(test_instance)
+            validator(test_instance)
             assert test_instance[0].result == (arg_inp in ["YES", "NO"])
 
 

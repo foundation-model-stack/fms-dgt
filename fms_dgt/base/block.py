@@ -11,25 +11,26 @@ import pandas as pd
 class BaseBlock(ABC):
     """Base Class for all Blocks"""
 
-    def __init__(self, name: str, config: Dict, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        name: str = None,
+        arg_fields: List[str] = None,
+        kwarg_fields: List[str] = None,
+        result_field: str = None,
+    ) -> None:
+
+        assert name is not None, f"'name' field cannot be empty in block definition"
+
         self._name = name
-        self._config: Dict = config
         self._blocks: List[BaseBlock] = []
 
-        # overwrite config fields with kwargs (usually these will be command line args)
-        self._config.update(kwargs)
-
-        self._arg_fields = self._config.get("arg_fields", None)
-        self._kwarg_fields = self._config.get("kwarg_fields", None)
-        self._result_field = self._config.get("result_field", None)
+        self._arg_fields = arg_fields
+        self._kwarg_fields = kwarg_fields
+        self._result_field = result_field
 
     @property
     def name(self):
         return self._name
-
-    @property
-    def config(self):
-        return self._config
 
     @property
     def blocks(self) -> List:
@@ -96,9 +97,9 @@ class BaseGeneratorBlock(BaseBlock):
 
 
 class BaseValidatorBlock(BaseBlock):
-    def __init__(self, name: str, config: Dict, **kwargs: Any) -> None:
-        super().__init__(name, config, **kwargs)
-        self._filter_invalids = config.get("filter", False)
+    def __init__(self, filter: bool = False, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._filter_invalids = filter
 
     def __call__(
         self,

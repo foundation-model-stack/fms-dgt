@@ -50,9 +50,9 @@ class TestLlmGenerators:
         "model_cfg", [GREEDY_GENAI_CFG, GREEDY_OPENAI_CFG]
     )  # GREEDY_VLLM_CFG]
     def test_generate_batch(self, model_cfg):
-        lm: LMGenerator = get_block(model_cfg["type"])(
-            name=f"test_{model_cfg['type']}", config=model_cfg
-        )
+        model_cfg = dict(model_cfg)
+        model_type = model_cfg.pop("type")
+        lm: LMGenerator = get_block(model_type)(name=f"test_{model_type}", **model_cfg)
 
         inputs: List[Dict] = []
         for prompt in PROMPTS:
@@ -71,9 +71,9 @@ class TestLlmGenerators:
 
     @pytest.mark.parametrize("model_cfg", [GREEDY_GENAI_CFG])  # , GREEDY_VLLM_CFG])
     def test_loglikelihood_batch(self, model_cfg):
-        lm: LMGenerator = get_block(model_cfg["type"])(
-            name=f"test_{model_cfg['type']}", config=model_cfg
-        )
+        model_cfg = dict(model_cfg)
+        model_type = model_cfg.pop("type")
+        lm: LMGenerator = get_block(model_type)(name=f"test_{model_type}", **model_cfg)
 
         inputs: List[Dict] = []
         for prompt in PROMPTS:
@@ -130,9 +130,9 @@ class TestLlmGenerators:
         if os.path.exists(cache_path):
             os.remove(cache_path)
 
-        lm: LMGenerator = get_block(GREEDY_GENAI_CFG["type"])(
-            name=f"test_{GREEDY_GENAI_CFG['type']}", config=GREEDY_GENAI_CFG
-        )
+        model_cfg = dict(GREEDY_GENAI_CFG)
+        model_type = model_cfg.pop("type")
+        lm: LMGenerator = get_block(model_type)(name=f"test_{model_type}", **model_cfg)
 
         non_cache_inputs: List[Dict] = []
         for prompt in PROMPTS:

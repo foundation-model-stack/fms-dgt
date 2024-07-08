@@ -12,7 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 # Standard
 from importlib.util import find_spec
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 import copy
 
 # Third Party
@@ -71,19 +71,13 @@ def oa_completion(client, chat: bool = False, **kwargs):
 
 @register_block("openai-chat", "local-chat-completions")
 class OpenaiChatCompletionsLM(LMGenerator):
-    def __init__(self, name: str, config: Dict, **kwargs: Any) -> None:
-        """
-
-        :param model: str
-            Implements an OpenAI-style chat completion API for
-            accessing both OpenAI OR locally-hosted models using
-            HuggingFace Tokenizer
-            OpenAI API model (e.g. gpt-3.5-turbo)
-            using the **gen_kwargs passed on init
-        :param truncate: bool
-            Truncate input if too long (if False and input is too long, throw error)
-        """
-        super().__init__(name, config, **kwargs)
+    def __init__(
+        self,
+        base_url: str = None,
+        truncate: bool = False,
+        **kwargs: Any,
+    ):
+        super().__init__(**kwargs)
         try:
             # Third Party
             import openai  # noqa: E401
@@ -93,11 +87,8 @@ class OpenaiChatCompletionsLM(LMGenerator):
     please install these via `pip install .[openai]`",
             )
 
-        self.model_id_or_path: str = config.get(
-            "model_id", "gpt-3.5-turbo"
-        )  # GPT model or Local model using HuggingFace model paths
-        self.base_url: str = config.get("base_url", None)
-        self.truncate: bool = config.get("truncate", False)
+        self.base_url: str = base_url
+        self.truncate: bool = truncate
 
         # Read from environment variable OPENAI_API_KEY
         # Set to EMPTY for local
@@ -139,7 +130,7 @@ class OpenaiChatCompletionsLM(LMGenerator):
 
                 until = None
                 if isinstance(kwargs := copy.deepcopy(gen_kwargs), dict):
-                    # start with default params in self.config then overwrite with kwargs
+                    # start with default params then overwrite with kwargs
                     kwargs = {**self._base_kwargs, **kwargs}
                     model_id = kwargs.pop("model_id_or_path", self.model_id_or_path)
                     kwargs["stop"] = until
