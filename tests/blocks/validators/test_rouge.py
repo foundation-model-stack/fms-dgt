@@ -6,7 +6,6 @@ import json
 import pytest
 
 # Local
-from fms_dgt.base.instance import Instance
 from fms_dgt.blocks.validators.rouge import RougeValidator
 
 
