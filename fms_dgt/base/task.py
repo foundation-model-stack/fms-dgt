@@ -6,13 +6,13 @@ import json
 import os
 
 # Local
+from fms_dgt.base.dataloader import DATALOADER_TYPE_KEY
 from fms_dgt.base.registry import get_dataloader
 from fms_dgt.dataloaders.default import DefaultDataloader
 from fms_dgt.utils import group_data_by_attribute
 import fms_dgt.dataloaders
 
 DEFAULT_OUTPUT_DIR = "output"
-DATALOADER_TYPE_KEY = "type"
 
 
 @dataclass

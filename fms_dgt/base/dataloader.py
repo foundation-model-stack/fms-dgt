@@ -3,6 +3,7 @@ from typing import Any
 import abc
 
 DATA_PATH_KEY = "data_path"
+DATALOADER_TYPE_KEY = "type"
 
 
 class BaseDataloader(abc.ABC):
