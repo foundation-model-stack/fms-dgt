@@ -1,5 +1,5 @@
 # Standard
-from typing import Any, Dict
+from typing import Any
 import abc
 
 DATA_PATH_KEY = "data_path"
@@ -8,9 +8,9 @@ DATA_PATH_KEY = "data_path"
 class BaseDataloader(abc.ABC):
     """Base Class for all dataloaders"""
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self) -> None:
         super().__init__()
 
     @abc.abstractmethod
-    def __iter__(self) -> Any:
+    def __next__(self) -> Any:
         raise NotImplementedError

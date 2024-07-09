@@ -281,7 +281,7 @@ def read_data_file(file_path: str):
         task_name = "->".join(os.path.dirname(file_path).split(os.sep))
         data_builder = contents.get("data_builder", "simple")
         created_by = contents.get("created_by", "")
-        seed_data = contents.get("seed_examples", [dict()])
+        seed_data = contents.pop("seed_examples", [dict()])
         task = {
             **{
                 "name": task_name,

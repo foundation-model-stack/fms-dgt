@@ -1,15 +1,18 @@
 # Standard
 from dataclasses import asdict, dataclass
-from typing import Any, List, Optional, TypeVar, Union
+from typing import Any, Dict, List, Optional, TypeVar, Union
 import abc
 import json
 import os
 
-# Third Party
-from fms_sdg.base.registry import get_dataloader
-from fms_sdg.utils import group_data_by_attribute
+# Local
+from fms_dgt.base.registry import get_dataloader
+from fms_dgt.dataloaders.default import DefaultDataloader
+from fms_dgt.utils import group_data_by_attribute
+import fms_dgt.dataloaders
 
 DEFAULT_OUTPUT_DIR = "output"
+DATALOADER_TYPE_KEY = "type"
 
 
 @dataclass
@@ -22,14 +25,7 @@ class SdgData(abc.ABC):
         return asdict(self)
 
 
-class PostProcessingType(type):
-    def __call__(cls, *args, **kwargs):
-        obj = type.__call__(cls, *args, **kwargs)
-        obj.__post_init__()
-        return obj
-
-
-class SdgTask(metaclass=PostProcessingType):
+class SdgTask:
     """This class is intended to hold general task information"""
 
     INPUT_DATA_TYPE = SdgData
@@ -43,20 +39,16 @@ class SdgTask(metaclass=PostProcessingType):
         task_description: str,
         created_by: str,
         data_builder: str,
-        dataloader: Optional[str] = None,
         output_dir: Optional[str] = None,
+        dataloader: Optional[Dict] = None,
         seed_data: Optional[List[Any]] = None,
         num_outputs_to_generate: Optional[int] = None,
-        **kwargs: Any,
     ):
         self._name = name
         self._task_description = task_description
         self._created_by = created_by
         self._data_builder = data_builder
-
-        self._dataloader = get_dataloader(
-            dataloader if dataloader is not None else "default"
-        )(seed_data=seed_data, proc_fn=self.instantiate_input_example)
+        self._seed_data = seed_data
 
         self._num_outputs_to_generate = num_outputs_to_generate
         self.machine_data = []
@@ -64,11 +56,15 @@ class SdgTask(metaclass=PostProcessingType):
         self._output_dir = output_dir if output_dir is not None else DEFAULT_OUTPUT_DIR
         self._output_path = self._get_default_output_path()
 
-    def __post_init__(self):
-        # we use post_init for cases when examples are instantiated with elements from subclass __init__
-        self._seed_data = [
-            self.instantiate_input_example(**s) for s in self._dataloader
-        ]
+        if dataloader is None:
+            self._dataloader = DefaultDataloader(data=seed_data)
+        else:
+            assert (
+                DATALOADER_TYPE_KEY in dataloader
+            ), f"Must specify data loader type with '{DATALOADER_TYPE_KEY}' key"
+            self._dataloader = get_dataloader(dataloader.pop(DATALOADER_TYPE_KEY))(
+                **dataloader
+            )
 
     def instantiate_input_example(self, **kwargs: Any):
         return self.INPUT_DATA_TYPE(
@@ -77,6 +73,20 @@ class SdgTask(metaclass=PostProcessingType):
 
     def instantiate_output_example(self, **kwargs: Any):
         return self.OUTPUT_DATA_TYPE(**kwargs)
+
+    def get_example(self) -> SdgData:
+        try:
+            return self.instantiate_input_example(**next(self._dataloader))
+        except StopIteration:
+            return None
+
+    def get_all_examples(self) -> List[SdgData]:
+        outputs = []
+        next_output = self.get_example()
+        while next_output is not None:
+            outputs.append(next_output)
+            next_output = self.get_example()
+        return outputs
 
     @property
     def name(self):
