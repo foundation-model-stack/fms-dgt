@@ -26,7 +26,12 @@ from tqdm import tqdm
 import pandas as pd
 
 # Local
-from fms_dgt.base.block import BLOCK_INPUT_TYPE, BaseGeneratorBlock
+from fms_dgt.base.block import (
+    BLOCK_INPUT_TYPE,
+    BaseGeneratorBlock,
+    get_args_kwargs,
+    write_result,
+)
 from fms_dgt.base.instance import Instance
 from fms_dgt.utils import sdg_logger
 
@@ -110,7 +115,9 @@ class LMGenerator(BaseGeneratorBlock):
         # simplify generation here
         instances: List[Instance] = []
         for inp in inputs:
-            inp_args, inp_kwargs = self.get_args_kwargs(inp, arg_fields, kwarg_fields)
+            inp_args, inp_kwargs = get_args_kwargs(
+                inp, arg_fields or self.arg_fields, kwarg_fields or self.kwarg_fields
+            )
             instances.append(Instance(args=inp_args, kwargs=inp_kwargs, data=inp))
 
         if method == "generate":
@@ -133,7 +140,7 @@ class LMGenerator(BaseGeneratorBlock):
 
         outputs = []
         for inst in instances:
-            self.write_result(inst.data, inst.result, result_field)
+            write_result(inst.data, inst.result, result_field or self.result_field)
             outputs.append(inst.data)
 
         return outputs
@@ -261,8 +268,10 @@ class CachingLM:
         # simplify generation here
         instances: List[Instance] = []
         for inp in inputs:
-            inp_args, inp_kwargs = self.lm.get_args_kwargs(
-                inp, arg_fields, kwarg_fields
+            inp_args, inp_kwargs = get_args_kwargs(
+                inp,
+                arg_fields or self.lm.arg_fields,
+                kwarg_fields or self.lm.kwarg_fields,
             )
             instances.append(Instance(args=inp_args, kwargs=inp_kwargs, data=inp))
 
@@ -286,7 +295,7 @@ class CachingLM:
 
         outputs = []
         for inst in instances:
-            self.lm.write_result(inst.data, inst.result, result_field)
+            write_result(inst.data, inst.result, result_field or self.lm.result_field)
             outputs.append(inst.data)
 
         return outputs

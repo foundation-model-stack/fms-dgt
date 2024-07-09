@@ -1,13 +1,12 @@
 # Standard
 from abc import ABC
-from typing import Any, Dict, Iterable, List, Optional, Type, Union
-import abc
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 # Third Party
 from datasets import Dataset
 import pandas as pd
 
-BLOCK_ROW_TYPE = Union[Dict, Type[pd.Series]]
+BLOCK_ROW_TYPE = Union[Dict, pd.Series]
 BLOCK_INPUT_TYPE = Union[Iterable[BLOCK_ROW_TYPE], pd.DataFrame, Dataset]
 
 
@@ -43,43 +42,17 @@ class BaseBlock(ABC):
     def name(self):
         return self._name
 
-    def get_args_kwargs(
-        self,
-        inp: Union[Dict, pd.DataFrame, Dataset],
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
-    ):
-        arg_fields = arg_fields if arg_fields is not None else self._arg_fields
-        kwarg_fields = kwarg_fields if kwarg_fields is not None else self._kwarg_fields
+    @property
+    def arg_fields(self):
+        return self._arg_fields
 
-        if arg_fields is None:
-            arg_fields = []
-        if kwarg_fields is None:
-            kwarg_fields = []
+    @property
+    def kwarg_fields(self):
+        return self._kwarg_fields
 
-        if type(inp) == dict:
-            args = [inp.get(arg) for arg in arg_fields]
-            kwargs = {kwarg: inp.get(kwarg) for kwarg in kwarg_fields}
-        elif type(inp) in [pd.DataFrame, Dataset]:
-            args = [inp.get(arg) for arg in arg_fields]
-            kwargs = {kwarg: inp.get(kwarg) for kwarg in kwarg_fields}
-        else:
-            raise ValueError(f"Unexpected input type: {type(inp)}")
-
-        return args, kwargs
-
-    def write_result(
-        self, inp: Union[Dict, pd.DataFrame, Dataset], res: Any, result_field: str
-    ):
-        result_field = result_field if result_field is not None else self._result_field
-        assert result_field is not None, "Result field cannot be None!"
-
-        if type(inp) == dict:
-            inp[result_field] = res
-        elif type(inp) in [pd.DataFrame, Dataset]:
-            inp[result_field] = res
-        else:
-            raise ValueError(f"Unexpected input type: {type(inp)}")
+    @property
+    def result_field(self):
+        return self._result_field
 
     def generate(
         self,
@@ -113,12 +86,51 @@ class BaseValidatorBlock(BaseBlock):
     ):
         outputs = []
         for x in inputs:
-            inp_args, inp_kwargs = self.get_args_kwargs(x, arg_fields, kwarg_fields)
+            inp_args, inp_kwargs = get_args_kwargs(
+                x, arg_fields or self.arg_fields, kwarg_fields or self.kwarg_fields
+            )
             res = self._validate(*inp_args, **inp_kwargs)
             if res or not self._filter_invalids:
-                self.write_result(x, res, result_field)
+                write_result(x, res, result_field or self.result_field)
                 outputs.append(x)
         return outputs
 
     def _validate(self, *args: Any, **kwargs: Any) -> bool:
         raise NotImplementedError
+
+
+def get_args_kwargs(
+    inp: BLOCK_ROW_TYPE,
+    arg_fields: Optional[List[str]] = None,
+    kwarg_fields: Optional[List[str]] = None,
+):
+    if arg_fields is None:
+        arg_fields = []
+    if kwarg_fields is None:
+        kwarg_fields = []
+
+    if type(inp) == dict:
+        args = [inp.get(arg) for arg in arg_fields]
+        kwargs = {kwarg: inp.get(kwarg) for kwarg in kwarg_fields}
+    elif type(inp) in [pd.DataFrame, Dataset]:
+        args = [inp.get(arg) for arg in arg_fields]
+        kwargs = {kwarg: inp.get(kwarg) for kwarg in kwarg_fields}
+    else:
+        raise ValueError(f"Unexpected input type: {type(inp)}")
+
+    return args, kwargs
+
+
+def write_result(
+    inp: BLOCK_ROW_TYPE,
+    res: Any,
+    result_field: str,
+):
+    assert result_field is not None, "Result field cannot be None!"
+
+    if type(inp) == dict:
+        inp[result_field] = res
+    elif type(inp) in [pd.DataFrame, Dataset]:
+        inp[result_field] = res
+    else:
+        raise ValueError(f"Unexpected input type: {type(inp)}")
