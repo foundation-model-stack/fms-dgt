@@ -63,20 +63,13 @@ class SqlSdgTask(SdgTask):
             context=kwargs.get("context", None),
         )
 
-    def get_example() -> None:
-        raise NotImplementedError(
-            f"Cannot call 'get_example' in SqlTask, must call 'get_all_examples'"
-        )
-
-    def get_all_examples(self) -> List[SqlSdgData]:
-        return [
-            self.instantiate_input_example(
-                **dict(
-                    ddl_schema=self._ddl_schema,
-                    database_information=self._db_info,
-                    ground_truth=self._ground_truth,
-                    query_logs=self._query_logs,
-                    context=self._context,
-                )
+    def get_example(self) -> None:
+        return self.instantiate_input_example(
+            **dict(
+                ddl_schema=self._ddl_schema,
+                database_information=self._db_info,
+                ground_truth=self._ground_truth,
+                query_logs=self._query_logs,
+                context=self._context,
             )
-        ]
+        )

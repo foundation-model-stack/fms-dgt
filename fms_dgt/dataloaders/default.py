@@ -24,4 +24,6 @@ class DefaultDataloader(BaseDataloader):
             self._i += 1
             return value
         except IndexError:
+            # reset cycle
+            self._i = 0
             raise StopIteration

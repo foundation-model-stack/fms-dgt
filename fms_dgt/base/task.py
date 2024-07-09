@@ -41,14 +41,14 @@ class SdgTask:
         data_builder: str,
         output_dir: Optional[str] = None,
         dataloader: Optional[Dict] = None,
-        seed_data: Optional[List[Any]] = None,
+        dataloader_batch_size: Optional[int] = None,
+        seed_examples: Optional[List[Any]] = None,
         num_outputs_to_generate: Optional[int] = None,
     ):
         self._name = name
         self._task_description = task_description
         self._created_by = created_by
         self._data_builder = data_builder
-        self._seed_data = seed_data
 
         self._num_outputs_to_generate = num_outputs_to_generate
         self.machine_data = []
@@ -56,8 +56,12 @@ class SdgTask:
         self._output_dir = output_dir if output_dir is not None else DEFAULT_OUTPUT_DIR
         self._output_path = self._get_default_output_path()
 
+        self._dataloader_batch_size = (
+            dataloader_batch_size if dataloader_batch_size is not None else 10000000
+        )
+
         if dataloader is None:
-            self._dataloader = DefaultDataloader(data=seed_data)
+            self._dataloader = DefaultDataloader(data=seed_examples)
         else:
             assert (
                 DATALOADER_TYPE_KEY in dataloader
@@ -66,35 +70,9 @@ class SdgTask:
                 **dataloader
             )
 
-    def instantiate_input_example(self, **kwargs: Any):
-        return self.INPUT_DATA_TYPE(
-            task_name=kwargs.pop("task_name", self._name), **kwargs
-        )
-
-    def instantiate_output_example(self, **kwargs: Any):
-        return self.OUTPUT_DATA_TYPE(**kwargs)
-
-    def get_example(self) -> SdgData:
-        try:
-            return self.instantiate_input_example(**next(self._dataloader))
-        except StopIteration:
-            return None
-
-    def get_all_examples(self) -> List[SdgData]:
-        outputs = []
-        next_output = self.get_example()
-        while next_output is not None:
-            outputs.append(next_output)
-            next_output = self.get_example()
-        return outputs
-
     @property
     def name(self):
         return self._name
-
-    @property
-    def seed_data(self):
-        return self._seed_data
 
     @property
     def task_description(self):
@@ -111,6 +89,29 @@ class SdgTask:
     @property
     def num_outputs_to_generate(self):
         return self._num_outputs_to_generate
+
+    def instantiate_input_example(self, **kwargs: Any):
+        return self.INPUT_DATA_TYPE(
+            task_name=kwargs.pop("task_name", self._name), **kwargs
+        )
+
+    def instantiate_output_example(self, **kwargs: Any):
+        return self.OUTPUT_DATA_TYPE(**kwargs)
+
+    def get_example(self) -> SdgData:
+        try:
+            return self.instantiate_input_example(**next(self._dataloader))
+        except StopIteration:
+            return None
+
+    def get_batch_examples(self) -> List[SdgData]:
+        outputs = []
+        for _ in range(self._dataloader_batch_size):
+            example = self.get_example()
+            if example is None:
+                return outputs
+            outputs.append(example)
+        return outputs
 
     def is_complete(self):
         return len(self.machine_data) > self.num_outputs_to_generate

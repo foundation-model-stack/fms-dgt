@@ -137,5 +137,5 @@ class Nl2SqlDataBuilder(DataBuilder):
     def call_with_task_list(self, request_idx: int, tasks: List[SdgTask]) -> Iterable:
         # this data builder outputs data in a different format than the input, so only the original seed data should be used
         _ = request_idx
-        data_pool = [e for task in tasks for e in task.get_all_examples()]
+        data_pool = [task.get_example() for task in tasks]
         return self(data_pool)

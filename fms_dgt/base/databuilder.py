@@ -215,7 +215,7 @@ class DataBuilder(ABC):
     ) -> Iterable[SdgData]:
         # default behavior is to simply extract the seed / machine generated data and pass to data builder
         data_pool = [
-            e for task in tasks for e in (task.get_all_examples() + task.machine_data)
+            e for task in tasks for e in (task.get_batch_examples() + task.machine_data)
         ]
         args = [request_idx, data_pool]
         kwargs = dict()
