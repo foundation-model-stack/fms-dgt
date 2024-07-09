@@ -17,7 +17,7 @@ class TemplateGenerator(BaseGeneratorBlock):
     def __init__(self, name: str, config: Dict, **kwargs: Any) -> None:
         super().__init__(name, config, **kwargs)
 
-    def __call__(
+    def generate(
         self,
         inputs: BLOCK_INPUT_TYPE,
         *args: Any,

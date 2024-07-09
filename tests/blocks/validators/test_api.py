@@ -51,11 +51,22 @@ class TestApiValidator:
         func_calls = [{"name": "add"}]
         question = "add 3 with 4"
         api_info = get_args(func_calls)
-        args = [api_info, question, json.dumps(func_calls)]
 
-        test_instance = [Instance(args, single_intent_kwargs)]
-        validator(test_instance)
-        assert test_instance[0].result
+        test_instance = [
+            {
+                "a": api_info,
+                "b": question,
+                "c": json.dumps(func_calls),
+                **single_intent_kwargs,
+            }
+        ]
+        validator.generate(
+            test_instance,
+            arg_fields=["a", "b", "c"],
+            kwarg_fields=list(single_intent_kwargs.keys()),
+            result_field="result",
+        )
+        assert test_instance[0]["result"]
 
     def test_multi_intent(self):
         validator = APIGenSpecValidator(name="test_multi_intent")
@@ -66,11 +77,22 @@ class TestApiValidator:
         ]
         question = "add 3 with 4"
         api_info = get_args(func_calls)
-        args = [api_info, question, json.dumps(func_calls)]
 
-        test_instance = [Instance(args, multi_intent_kwargs)]
-        validator(test_instance)
-        assert test_instance[0].result
+        test_instance = [
+            {
+                "a": api_info,
+                "b": question,
+                "c": json.dumps(func_calls),
+                **multi_intent_kwargs,
+            }
+        ]
+        validator.generate(
+            test_instance,
+            arg_fields=["a", "b", "c"],
+            kwarg_fields=list(multi_intent_kwargs.keys()),
+            result_field="result",
+        )
+        assert test_instance[0]["result"]
 
     def test_parallel_single(self):
         validator = APIGenSpecValidator(name="test_parallel_single")
@@ -82,11 +104,22 @@ class TestApiValidator:
         ]
         question = "add 3 with 4 then add 4 with 5"
         api_info = get_args(func_calls)
-        args = [api_info, question, json.dumps(func_calls)]
 
-        test_instance = [Instance(args, parallel_kwargs)]
-        validator(test_instance)
-        assert test_instance[0].result
+        test_instance = [
+            {
+                "a": api_info,
+                "b": question,
+                "c": json.dumps(func_calls),
+                **parallel_kwargs,
+            }
+        ]
+        validator.generate(
+            test_instance,
+            arg_fields=["a", "b", "c"],
+            kwarg_fields=list(parallel_kwargs.keys()),
+            result_field="result",
+        )
+        assert test_instance[0]["result"]
 
         func_calls = [
             {"name": "add", "arguments": {"n1": 3}},
@@ -94,13 +127,24 @@ class TestApiValidator:
         ]
         question = "add 3 with 4"
         api_info = get_args(func_calls)
-        args = [api_info, question, json.dumps(func_calls)]
 
-        test_instance = [Instance(args, parallel_kwargs)]
-        validator(test_instance)
-        assert not test_instance[
-            0
-        ].result, "Validator should have failed due to required args!"
+        test_instance = [
+            {
+                "a": api_info,
+                "b": question,
+                "c": json.dumps(func_calls),
+                **parallel_kwargs,
+            }
+        ]
+        validator.generate(
+            test_instance,
+            arg_fields=["a", "b", "c"],
+            kwarg_fields=list(parallel_kwargs.keys()),
+            result_field="result",
+        )
+        assert not test_instance[0][
+            "result"
+        ], "Validator should have failed due to required args!"
 
     def test_parallel_multiple(self):
         validator = APIGenSpecValidator(name="test_parallel_multiple")
@@ -112,11 +156,22 @@ class TestApiValidator:
         ]
         question = "add 3 with 4 and add an event store to my calendar"
         api_info = get_args(func_calls)
-        args = [api_info, question, json.dumps(func_calls)]
 
-        test_instance = [Instance(args, parallel_kwargs)]
-        validator(test_instance)
-        assert test_instance[0].result
+        test_instance = [
+            {
+                "a": api_info,
+                "b": question,
+                "c": json.dumps(func_calls),
+                **parallel_kwargs,
+            }
+        ]
+        validator.generate(
+            test_instance,
+            arg_fields=["a", "b", "c"],
+            kwarg_fields=list(parallel_kwargs.keys()),
+            result_field="result",
+        )
+        assert test_instance[0]["result"]
 
         func_calls = [
             {"name": "add", "arguments": {"n1": 3, "n2": 4}},
@@ -124,15 +179,24 @@ class TestApiValidator:
         ]
         question = "add 3 with 4 and add an event store to my calendar"
         api_info = get_args(func_calls)
-        args = [api_info, question, json.dumps(func_calls)]
 
-        test_instance = [Instance(args, parallel_kwargs)]
-        validator(test_instance)
-        assert not test_instance[
-            0
-        ].result, (
-            "Validator should have failed due to arg content not being in question!"
+        test_instance = [
+            {
+                "a": api_info,
+                "b": question,
+                "c": json.dumps(func_calls),
+                **parallel_kwargs,
+            }
+        ]
+        validator.generate(
+            test_instance,
+            arg_fields=["a", "b", "c"],
+            kwarg_fields=list(parallel_kwargs.keys()),
+            result_field="result",
         )
+        assert not test_instance[0][
+            "result"
+        ], "Validator should have failed due to arg content not being in question!"
 
     def test_parallel_nested(self):
         validator = APIGenSpecValidator(name="test_parallel_nested")
@@ -144,11 +208,22 @@ class TestApiValidator:
         ]
         question = "add 3 with 4 and add an event with the result of the earlier addition to my calendar"
         api_info = get_args(func_calls)
-        args = [api_info, question, json.dumps(func_calls)]
 
-        test_instance = [Instance(args, parallel_nested_kwargs)]
-        validator(test_instance)
-        assert test_instance[0].result
+        test_instance = [
+            {
+                "a": api_info,
+                "b": question,
+                "c": json.dumps(func_calls),
+                **parallel_nested_kwargs,
+            }
+        ]
+        validator.generate(
+            test_instance,
+            arg_fields=["a", "b", "c"],
+            kwarg_fields=list(parallel_nested_kwargs.keys()),
+            result_field="result",
+        )
+        assert test_instance[0]["result"]
 
         func_calls = [
             {"name": "add", "arguments": {"n1": 3, "n2": 4}},
@@ -156,24 +231,43 @@ class TestApiValidator:
         ]
         question = "add 3 with 4 and add an event store to my calendar"
         api_info = get_args(func_calls)
-        args = [api_info, question, json.dumps(func_calls)]
 
-        test_instance = [Instance(args, parallel_nested_kwargs)]
-        validator(test_instance)
-        assert not test_instance[
-            0
-        ].result, (
-            "Validator should have failed due to arg content not being in question!"
+        test_instance = [
+            {
+                "a": api_info,
+                "b": question,
+                "c": json.dumps(func_calls),
+                **parallel_nested_kwargs,
+            }
+        ]
+        validator.generate(
+            test_instance,
+            arg_fields=["a", "b", "c"],
+            kwarg_fields=list(parallel_nested_kwargs.keys()),
+            result_field="result",
         )
+        assert not test_instance[0][
+            "result"
+        ], "Validator should have failed due to arg content not being in question!"
 
     def test_yes_no(self):
         validator = ApiGenSpecYesNoValidation(name="test_yes_no")
 
         for arg_inp in ["YES", "NO", "MAYBE"]:
-            args = [TEST_APIS, "this is a test question", arg_inp]
-            test_instance = [Instance(args)]
-            validator(test_instance)
-            assert test_instance[0].result == (arg_inp in ["YES", "NO"])
+
+            test_instance = [
+                {
+                    "a": TEST_APIS,
+                    "b": "this is a test question",
+                    "c": arg_inp,
+                }
+            ]
+            validator.generate(
+                test_instance,
+                arg_fields=["a", "b", "c"],
+                result_field="result",
+            )
+            assert test_instance[0]["result"] == (arg_inp in ["YES", "NO"])
 
 
 TEST_APIS = {

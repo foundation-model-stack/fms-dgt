@@ -28,7 +28,7 @@ class TestFilterBlock(BaseBlock):
             operation=self.config.get("operation"),
         )
 
-    def __call__(
+    def generate(
         self,
         inputs: BLOCK_INPUT_TYPE,
         **kwargs: Any,
@@ -48,7 +48,7 @@ def main():
             "operation": operator.ne,
         },
     )
-    ret_dataset: Dataset = test_block(dataset)
+    ret_dataset: Dataset = test_block.generate(dataset)
 
     print(json.dumps(dataset.to_dict(), indent=4))
     print("\n=====\n")

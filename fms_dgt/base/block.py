@@ -81,7 +81,7 @@ class BaseBlock(ABC):
         else:
             raise ValueError(f"Unexpected input type: {type(inp)}")
 
-    def __call__(
+    def generate(
         self,
         inputs: BLOCK_INPUT_TYPE,
         arg_fields: Optional[List[str]] = None,
@@ -104,7 +104,7 @@ class BaseValidatorBlock(BaseBlock):
         super().__init__(**kwargs)
         self._filter_invalids = filter
 
-    def __call__(
+    def generate(
         self,
         inputs: BLOCK_INPUT_TYPE,
         arg_fields: Optional[List[str]] = None,

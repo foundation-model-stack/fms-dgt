@@ -97,7 +97,7 @@ class LMGenerator(BaseGeneratorBlock):
     def set_cache_hook(self, cache_hook) -> None:
         self.cache_hook = cache_hook
 
-    def __call__(
+    def generate(
         self,
         inputs: BLOCK_INPUT_TYPE,
         arg_fields: Optional[List[str]] = None,
@@ -248,7 +248,7 @@ class CachingLM:
 
         return fn
 
-    def __call__(
+    def generate(
         self,
         inputs: BLOCK_INPUT_TYPE,
         arg_fields: Optional[List[str]] = None,

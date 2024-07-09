@@ -42,6 +42,7 @@ class Nl2SqlDataBuilder(DataBuilder):
 
     # val1 is the validator which checks SQL syntax
     val1: SQLSyntaxValidator
+
     # val2 is the validator which checks SQL execution
     val2: SQLExecutionValidator
 
@@ -72,7 +73,7 @@ class Nl2SqlDataBuilder(DataBuilder):
             instances = prompting_pipeline.run(
                 data_generation_schema=data_generation_schema
             )
-            llm_outputs = self.llm1(
+            llm_outputs = self.llm1.generate(
                 instances, arg_fields=["prompt"], result_field="output"
             )
 
@@ -110,12 +111,12 @@ class Nl2SqlDataBuilder(DataBuilder):
                 }
                 for sql_schema, utterance, sql_query in processed_outputs
             ]
-            filtered_output = self.val1(
+            filtered_output = self.val1.generate(
                 instances_for_validation,
                 kwarg_fields=["record", "sql_dialect"],
                 result_field="output",
             )
-            filtered_output = self.val2(
+            filtered_output = self.val2.generate(
                 filtered_output,
                 kwarg_fields=["record", "sql_dialect"],
                 result_field="output",
