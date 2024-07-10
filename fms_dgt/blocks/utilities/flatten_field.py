@@ -7,7 +7,7 @@ from datasets import Dataset
 from pandas import DataFrame
 
 # Local
-from fms_dgt.base.block import BLOCK_INPUT_TYPE, BaseUtilityBlock
+from fms_dgt.base.block import DATASET_TYPE, BaseUtilityBlock
 from fms_dgt.base.registry import register_block
 
 
@@ -17,7 +17,8 @@ class FlattenField(BaseUtilityBlock):
 
     def generate(
         self,
-        inputs: BLOCK_INPUT_TYPE,
+        inputs: DATASET_TYPE,
+        *,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,

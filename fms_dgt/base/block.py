@@ -6,7 +6,7 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 from datasets import Dataset
 import pandas as pd
 
-DATASET_ROW_TYPE = Union[Dict, pd.Series]
+DATASET_ROW_TYPE = Union[Dict[str, Any], pd.Series]
 DATASET_TYPE = Union[Iterable[DATASET_ROW_TYPE], pd.DataFrame, Dataset]
 
 
@@ -22,11 +22,11 @@ class BaseBlock(ABC):
     ) -> None:
 
         if not (isinstance(arg_fields, list) or arg_fields is None):
-            raise TypeError(f"arg_fields must be of type 'list'")
+            raise TypeError("arg_fields must be of type 'list'")
         if not (isinstance(kwarg_fields, list) or kwarg_fields is None):
-            raise TypeError(f"kwarg_fields must be of type 'list'")
+            raise TypeError("kwarg_fields must be of type 'list'")
         if not (isinstance(result_field, str) or result_field is None):
-            raise TypeError(f"result_field must be of type 'str'")
+            raise TypeError("result_field must be of type 'str'")
 
         self._name = name
 
@@ -63,10 +63,9 @@ class BaseBlock(ABC):
         if isinstance(inp, (dict, pd.DataFrame, Dataset)):
             return (
                 [inp.get(arg) for arg in arg_fields],
-                {kwarg: inp.get(kwarg) for kwarg in kwarg_fields}
+                {kwarg: inp.get(kwarg) for kwarg in kwarg_fields},
             )
         raise TypeError(f"Unexpected input type: {type(inp)}")
-
 
     def write_result(
         self,
@@ -80,6 +79,8 @@ class BaseBlock(ABC):
 
         if isinstance(inp, (dict, pd.DataFrame, Dataset)):
             inp[result_field] = res
+            return
+
         raise TypeError(f"Unexpected input type: {type(inp)}")
 
     @abstractmethod
@@ -126,6 +127,7 @@ class BaseValidatorBlock(BaseBlock):
     def generate(
         self,
         inputs: DATASET_TYPE,
+        *,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[List[str]] = None,

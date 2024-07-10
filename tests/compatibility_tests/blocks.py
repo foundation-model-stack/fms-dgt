@@ -9,7 +9,7 @@ from sdg.src.instructlab.sdg.filterblock import FilterByValueBlock
 import pandas as pd
 
 # Local
-from fms_dgt.base.block import BLOCK_INPUT_TYPE, BaseBlock
+from fms_dgt.base.block import DATASET_TYPE, BaseBlock
 
 
 class TestFilterBlock(BaseBlock):
@@ -30,7 +30,7 @@ class TestFilterBlock(BaseBlock):
 
     def generate(
         self,
-        inputs: BLOCK_INPUT_TYPE,
+        inputs: DATASET_TYPE,
         **kwargs: Any,
     ) -> Any:
         return self._filter_block.generate(inputs)

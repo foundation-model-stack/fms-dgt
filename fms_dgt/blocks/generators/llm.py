@@ -106,6 +106,7 @@ class LMGenerator(BaseGeneratorBlock):
     def generate(
         self,
         inputs: DATASET_TYPE,
+        *,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
