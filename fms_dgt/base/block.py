@@ -52,7 +52,7 @@ class BaseBlock(ABC):
 
     def get_args_kwargs(
         self,
-        inp: BLOCK_ROW_TYPE,
+        inp: DATASET_ROW_TYPE,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
     ):
@@ -70,7 +70,7 @@ class BaseBlock(ABC):
 
     def write_result(
         self,
-        inp: BLOCK_ROW_TYPE,
+        inp: DATASET_ROW_TYPE,
         res: Any,
         result_field: str = None,
     ):
@@ -86,7 +86,7 @@ class BaseBlock(ABC):
     @abstractmethod
     def generate(
         self,
-        inputs: BLOCK_INPUT_TYPE,
+        inputs: DATASET_TYPE,
         *,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
@@ -126,7 +126,7 @@ class BaseValidatorBlock(BaseBlock):
 
     def generate(
         self,
-        inputs: BLOCK_INPUT_TYPE,
+        inputs: DATASET_TYPE,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[List[str]] = None,
