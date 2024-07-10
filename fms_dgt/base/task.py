@@ -58,9 +58,21 @@ class SdgTask(metaclass=PostProcessingType):
         self._output_path = self._get_default_output_path()
         self._seed_data = seed_data
 
+        # DMF / Lakehouse support
+        self.lh_data_instance = None
+        if "lakehouse_namespace" in kwargs and kwargs["lakehouse_namespace"] is not None:
+            from fms_dgt import lh_data
+            self.lh_data_instance = lh_data.lh_data_instance
+            self.file_path = kwargs["file_path"]
+            self.builder_cfg = kwargs["builder_cfg"]
+            kwargs.pop("lakehouse_namespace", None) #remove the property
+        kwargs.pop("file_path", None) #remove the property
+        kwargs.pop("builder_cfg", None) #remove the property
+        
+
     def __post_init__(self):
         # we use post_init for cases when examples are instantiated with elements from subclass __init__
-        self._seed_data = [self.instantiate_input_example(**s) for s in self._seed_data]
+        self._seed_data = [self.instantiate_input_example(**s) for s in self._seed_data]        
 
     def instantiate_input_example(self, **kwargs: Any):
         return self.INPUT_DATA_TYPE(
@@ -115,6 +127,9 @@ class SdgTask(metaclass=PostProcessingType):
         with open(output_path, "a") as f:
             for d in new_data:
                 f.write(json.dumps(d.to_output_dict()) + "\n")
+                 # Check for non-existent attribute
+                if self.lh_data_instance is not None:
+                    self.lh_data_instance.save_task_data(self, d.to_output_dict())
 
     def load_data(self, output_path: str = None) -> List[SdgData]:
         output_path = self._output_path if output_path is None else output_path
@@ -128,6 +143,11 @@ class SdgTask(metaclass=PostProcessingType):
                 machine_data = []
 
         self.machine_data = machine_data
+
+    def save_task_and_config(self):
+        # Check for non-existent attribute
+        if self.lh_data_instance is not None:
+            self.lh_data_instance.save_task_details(self)
 
     def clear_data(self, output_path: str = None) -> List[SdgData]:
         output_path = self._output_path if output_path is None else output_path

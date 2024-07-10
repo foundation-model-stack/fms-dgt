@@ -166,7 +166,8 @@ class DataBuilder(ABC):
                 task.load_data()
                 sdg_logger.debug(
                     "Loaded %s machine-generated data", len(task.machine_data)
-                )
+                )    
+            task.save_task_and_config()
 
         completed_tasks = [task for task in tasks if task.is_complete()]
         tasks = [task for task in tasks if task not in completed_tasks]

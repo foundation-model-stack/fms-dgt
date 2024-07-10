@@ -265,6 +265,8 @@ def merge_dictionaries(*args: List[dict]):
     return merged_dict
 
 
+DATA_FILE_ADDITIONAL_ATTRIBUTES=["name","data_builder","created_by","seed_data","file_path"]
+
 # pylint: disable=broad-exception-caught
 def read_data_file(file_path: str):
     if file_path.endswith(".yaml"):
@@ -288,6 +290,7 @@ def read_data_file(file_path: str):
                 "data_builder": data_builder,
                 "created_by": created_by,
                 "seed_data": seed_data,
+                "file_path": file_path
             },
             **contents,
         }

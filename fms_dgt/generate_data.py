@@ -30,6 +30,11 @@ def generate_data(
     )
     output_dir = os.path.join(output_dir, name)
 
+    if task_kwargs.get("lakehouse_namespace") is not None:
+        print('import lh_data')
+        from fms_dgt import lh_data
+        lh_data.lh_data_instance = lh_data.Lakehouse(task_kwargs.get("lakehouse_namespace"))
+
     # check data_path first then seed_tasks_path
     # throw an error if both not found
     # pylint: disable=broad-exception-caught,raise-missing-from
@@ -82,6 +87,10 @@ def generate_data(
         utils.import_builder(
             original_builder_info["builder_dir"], include_path=include_builder_path
         )
+
+        for task_init in task_inits:
+                if task_init["data_builder"] == builder_name:
+                   task_init["builder_cfg"] = builder_cfg
 
         data_builder: DataBuilder = get_data_builder(builder_name)(
             config=builder_cfg,
