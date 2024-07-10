@@ -1,5 +1,5 @@
 # Standard
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Any, Dict, Iterable, List, Optional, Union
 
 # Third Party
@@ -50,14 +50,32 @@ class BaseBlock(ABC):
     def result_field(self):
         return self._result_field
 
+    @abstractmethod
     def generate(
         self,
         inputs: BLOCK_INPUT_TYPE,
+        *,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
+        **kwargs,
     ):
-        raise NotImplementedError
+        """The generate function is the primary interface to a Block
+        
+        args:
+            inputs (BLOCK_INPUT_TYPE): A block operates over a logical iterable
+                of rows with named columns (see BLOCK_INPUT_TYPE)
+
+        kwargs:
+            arg_fields (Optional[List[str]]): Names of fields within the rows of
+                the inputs that should be extracted and passed as positional
+                args to the underlying implementation methods.
+            kwarg_fields (Optional[List[str]]): Names of fields within the rows
+                of the inputs that should be extracted and passed as keyword
+                args to the underlying implementation methods.
+            **kwargs: Additional keyword args that may be passed to the derived
+                block's generate function
+        """
 
 
 class BaseUtilityBlock(BaseBlock):
@@ -100,10 +118,8 @@ def get_args_kwargs(
     arg_fields: Optional[List[str]] = None,
     kwarg_fields: Optional[List[str]] = None,
 ):
-    if arg_fields is None:
-        arg_fields = []
-    if kwarg_fields is None:
-        kwarg_fields = []
+    arg_fields = arg_fields or []
+    kwarg_fields = or kwarg_fields or []
 
     if type(inp) == dict:
         args = [inp.get(arg) for arg in arg_fields]
@@ -124,9 +140,7 @@ def write_result(
 ):
     assert result_field is not None, "Result field cannot be None!"
 
-    if type(inp) == dict:
-        inp[result_field] = res
-    elif type(inp) in [pd.DataFrame, Dataset]:
+    if isinstance(inp, (dict, pd.DataFrame, Dataset):
         inp[result_field] = res
     else:
         raise ValueError(f"Unexpected input type: {type(inp)}")
