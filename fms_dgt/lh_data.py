@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 from uuid import uuid4
 import json
+from typing import List
 
 from pyiceberg import catalog
 from pyiceberg.schema import Schema
@@ -156,7 +157,7 @@ class Lakehouse():
             NestedField(field_id=3, name="name", field_type=StringType(), required=False),
             NestedField(field_id=4, name="data_builder", field_type=StringType(), required=False),
             NestedField(field_id=5, name="created_by", field_type=StringType(), required=False),
-            NestedField(field_id=6, name="seed_examples", field_type=StringType(), required=False),
+            NestedField(field_id=6, name="seed_examples", field_type=StringType(), required=False), #TODO: check if makes sense
             NestedField(field_id=12, name="taxonomy_path", field_type=StringType(), required=False),
             NestedField(field_id=13, name="task_yaml", field_type=StringType(), required=False),
             NestedField(field_id=14, name="builder_config", field_type=StringType(), required=False),
@@ -165,10 +166,18 @@ class Lakehouse():
         )
         # Sort on the generated_at
         sort_order = SortOrder(SortField(source_id=15, transform=IdentityTransform(), direction=SortDirection.DESC))
+        #maintenance properties
+        properties = {
+                    'lh.maintenance-required' : 'true',
+                    'lh.expire-snapshots-older-than-days' : '5',
+                    'lh.rewrite-min-data-files' : '3',
+                }
+
         self._catalog.create_table(
             identifier=table_identifier,
             schema=schema,
             location=f"{self.namespace_location}/{table_name}",
+            properties=properties,
             sort_order=sort_order,
         )  
 
@@ -208,6 +217,12 @@ class Lakehouse():
             fields=fields,
             identifier_field_ids=[1]
         )
+        #maintenance properties
+        properties = {
+                    'lh.maintenance-required' : 'true',
+                    'lh.expire-snapshots-older-than-days' : '5',
+                    'lh.rewrite-min-data-files' : '3',
+                }
         
         # Sort on the generated_at
         sort_order = SortOrder(SortField(source_id=3, transform=IdentityTransform(), direction=SortDirection.DESC))
@@ -215,6 +230,7 @@ class Lakehouse():
             identifier=table_identifier,
             schema=schema,
             location=f"{self.namespace_location}/{table_name}",
+            properties=properties,
             sort_order=sort_order,
         )  
 
@@ -249,20 +265,24 @@ class Lakehouse():
         df = daft.from_pylist(ret)
         return df.write_iceberg(table)
 
-    def save_task_data(self, task: SdgTask, output: dict):
+    def save_task_data(self, task: SdgTask, new_data: List[SdgData]):
+        example = new_data[0].to_output_dict()
+        ret = []
+        for d in new_data:
+            output = d.to_output_dict()
+            #generate the record to save
+            for key, value in output.items():
+                if not isinstance(value, str):
+                    output[key] = json.dumps(value)
+            
+            ##add extra fields
+            output["run_id"] = self.run_id
+            output["user_id"] = self.user_id
+            output["created_at"] = datetime.now(timezone.utc)
+            ret.append(output)
+
         #get the table
-        table = self._get_output_table(data_builder=task.data_builder, output=output)
-
-        #generate the record to save
-        for key, value in output.items():
-            if not isinstance(value, str):
-                output[key] = json.dumps(value)
-        
-        output["run_id"] = self.run_id
-        output["user_id"] = self.user_id
-        output["created_at"] = datetime.now(timezone.utc)
-
-        ret = [output]
+        table = self._get_output_table(data_builder=task.data_builder, output=example)
         
         #save the record in lakehouse
         df = daft.from_pylist(ret)

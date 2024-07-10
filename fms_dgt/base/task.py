@@ -127,9 +127,10 @@ class SdgTask(metaclass=PostProcessingType):
         with open(output_path, "a") as f:
             for d in new_data:
                 f.write(json.dumps(d.to_output_dict()) + "\n")
-                 # Check for non-existent attribute
-                if self.lh_data_instance is not None:
-                    self.lh_data_instance.save_task_data(self, d.to_output_dict())
+        
+        # Check for non-existent attribute
+        if self.lh_data_instance is not None:
+            self.lh_data_instance.save_task_data(self, new_data)
 
     def load_data(self, output_path: str = None) -> List[SdgData]:
         output_path = self._output_path if output_path is None else output_path
