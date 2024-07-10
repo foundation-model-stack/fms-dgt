@@ -22,7 +22,7 @@ from sqlitedict import SqliteDict
 from tqdm import tqdm
 
 # Local
-from fms_dgt.base.block import BLOCK_INPUT_TYPE, BaseGeneratorBlock
+from fms_dgt.base.block import DATASET_TYPE, BaseGeneratorBlock
 from fms_dgt.base.instance import Instance
 from fms_dgt.utils import sdg_logger
 
@@ -105,7 +105,7 @@ class LMGenerator(BaseGeneratorBlock):
 
     def generate(
         self,
-        inputs: BLOCK_INPUT_TYPE,
+        inputs: DATASET_TYPE,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
@@ -256,7 +256,7 @@ class CachingLM:
 
     def generate(
         self,
-        inputs: BLOCK_INPUT_TYPE,
+        inputs: DATASET_TYPE,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
