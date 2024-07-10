@@ -7,12 +7,12 @@ from datasets import Dataset
 from pandas import DataFrame
 
 # Local
-from fms_dgt.base.block import DATASET_TYPE, BaseUtilityBlock
+from fms_dgt.base.block import DATASET_TYPE, BaseBlock
 from fms_dgt.base.registry import register_block
 
 
 @register_block("flatten_field")
-class FlattenField(BaseUtilityBlock):
+class FlattenField(BaseBlock):
     """Flatten specified args"""
 
     def generate(

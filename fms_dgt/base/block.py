@@ -16,9 +16,9 @@ class BaseBlock(ABC):
     def __init__(
         self,
         name: str = None,
-        arg_fields: List[str] = None,
-        kwarg_fields: List[str] = None,
-        result_field: str = None,
+        arg_fields: Optional[List[str]] = None,
+        kwarg_fields: Optional[List[str]] = None,
+        result_field: Optional[str] = None,
     ) -> None:
 
         if not (isinstance(arg_fields, list) or arg_fields is None):
@@ -109,14 +109,6 @@ class BaseBlock(ABC):
             **kwargs: Additional keyword args that may be passed to the derived
                 block's generate function
         """
-
-
-class BaseUtilityBlock(BaseBlock):
-    pass
-
-
-class BaseGeneratorBlock(BaseBlock):
-    pass
 
 
 class BaseValidatorBlock(BaseBlock):

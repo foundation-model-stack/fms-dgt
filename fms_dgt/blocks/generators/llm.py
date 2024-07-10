@@ -22,14 +22,14 @@ from sqlitedict import SqliteDict
 from tqdm import tqdm
 
 # Local
-from fms_dgt.base.block import DATASET_TYPE, BaseGeneratorBlock
+from fms_dgt.base.block import DATASET_TYPE, BaseBlock
 from fms_dgt.base.instance import Instance
 from fms_dgt.utils import sdg_logger
 
 MODEL_ID_OR_PATH = "model_id_or_path"
 
 
-class LMGenerator(BaseGeneratorBlock):
+class LMGenerator(BaseBlock):
     """Class for LLM Generators"""
 
     def __init__(
