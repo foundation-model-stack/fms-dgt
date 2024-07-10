@@ -9,7 +9,7 @@ import time
 # Third Party
 from tqdm import tqdm
 
-# First Party
+# Local
 from fms_dgt.base.generator import BaseGenerator
 from fms_dgt.base.registry import get_generator, get_validator
 from fms_dgt.base.task import SdgData, SdgTask
@@ -214,7 +214,9 @@ class DataBuilder(ABC):
         self, request_idx: int, tasks: List[SdgTask]
     ) -> Iterable[SdgData]:
         # default behavior is to simply extract the seed / machine generated data and pass to data builder
-        data_pool = [e for task in tasks for e in (task.seed_data + task.machine_data)]
+        data_pool = [
+            e for task in tasks for e in (task.get_batch_examples() + task.machine_data)
+        ]
         args = [request_idx, data_pool]
         kwargs = dict()
         return self(*args, **kwargs)
