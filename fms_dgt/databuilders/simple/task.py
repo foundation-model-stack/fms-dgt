@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from typing import Any, Optional
 
-# First Party
+# Local
 from fms_dgt.base.task import SdgData, SdgTask
 
 
@@ -23,13 +23,6 @@ class InstructLabSdgTask(SdgTask):
 
     INPUT_DATA_TYPE = InstructLabSdgData
     OUTPUT_DATA_TYPE = InstructLabSdgData
-
-    def __init__(
-        self,
-        *args: Any,
-        **kwargs: Any,
-    ):
-        super().__init__(*args, **kwargs)
 
     def instantiate_input_example(self, **kwargs: Any):
         return self.INPUT_DATA_TYPE(

@@ -2,15 +2,11 @@
 from typing import Any
 import logging
 
-# First Party
+# Local
+from fms_dgt.base.dataloader import BaseDataloader
 from fms_dgt.base.generator import BaseGenerator
 from fms_dgt.base.resource import BaseResource
 from fms_dgt.base.validator import BaseValidator
-
-eval_logger = logging.getLogger("fms_dgt")
-
-# TODO: generator registry, validator registry, task registry
-
 
 GENERATOR_REGISTRY = {}
 
@@ -135,6 +131,38 @@ def get_data_builder(name):
     except KeyError:
         raise ValueError(
             f"Attempted to load data builder '{name}', but no data builder for this name found! Supported data builder names: {', '.join(DATABUILDER_REGISTRY.keys())}"
+        )
+
+
+DATALOADER_REGISTRY = {}
+
+
+def register_dataloader(*names):
+    # either pass a list or a single alias.
+    # function receives them as a tuple of strings
+
+    def decorate(cls):
+        for name in names:
+            assert issubclass(
+                cls, BaseDataloader
+            ), f"Dataloader '{name}' ({cls.__name__}) must extend BaseDataloader class"
+
+            assert (
+                name not in DATALOADER_REGISTRY
+            ), f"Dataloader named '{name}' conflicts with existing dataloader! Please register with a non-conflicting alias instead."
+
+            DATALOADER_REGISTRY[name] = cls
+        return cls
+
+    return decorate
+
+
+def get_dataloader(dataloader_name):
+    try:
+        return DATALOADER_REGISTRY[dataloader_name]
+    except KeyError:
+        raise ValueError(
+            f"Attempted to load dataloader '{dataloader_name}', but no dataloader for this name found! Supported dataloader names: {', '.join(DATALOADER_REGISTRY.keys())}"
         )
 
 
