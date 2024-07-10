@@ -21,18 +21,14 @@ class BaseBlock(ABC):
         result_field: str = None,
     ) -> None:
 
-        self._name = name
+        if not (isinstance(arg_fields, list) or arg_fields is None):
+            raise TypeError(f"arg_fields must be of type 'list'")
+        if not (isinstance(kwarg_fields, list) or kwarg_fields is None):
+            raise TypeError(f"kwarg_fields must be of type 'list'")
+        if not (isinstance(result_field, str) or result_field is None):
+            raise TypeError(f"result_field must be of type 'str'")
 
-        # minor type checking
-        if type(arg_fields) == str:
-            arg_fields = [arg_fields]
-        if type(kwarg_fields) == str:
-            kwarg_fields = [kwarg_fields]
-        if type(result_field) == list:
-            assert (
-                len(result_field) == 1
-            ), "Cannot have multiple 'result' fields for {name}"
-            result_field = result_field[0]
+        self._name = name
 
         self._arg_fields = arg_fields
         self._kwarg_fields = kwarg_fields
