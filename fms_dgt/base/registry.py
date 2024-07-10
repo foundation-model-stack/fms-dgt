@@ -1,16 +1,10 @@
 # Standard
 from typing import Any
-import logging
 
 # Local
 from fms_dgt.base.block import BaseBlock
 from fms_dgt.base.dataloader import BaseDataloader
 from fms_dgt.base.resource import BaseResource
-
-eval_logger = logging.getLogger("fms_dgt")
-
-# TODO: generator registry, validator registry, task registry
-
 
 BLOCK_REGISTRY = {}
 
