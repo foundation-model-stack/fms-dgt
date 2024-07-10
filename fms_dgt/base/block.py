@@ -1,5 +1,5 @@
 # Standard
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Any, Dict, Iterable, List, Optional, Union
 
 # Third Party
