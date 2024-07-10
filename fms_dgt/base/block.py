@@ -140,5 +140,6 @@ class BaseValidatorBlock(BaseBlock):
                 outputs.append(x)
         return outputs
 
+    @abstractmethod
     def _validate(self, *args: Any, **kwargs: Any) -> bool:
-        raise NotImplementedError
+        """Derived validators must implement _validate with their core logic"""
