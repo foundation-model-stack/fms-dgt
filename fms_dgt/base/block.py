@@ -144,9 +144,7 @@ def write_result(
 ):
     assert result_field is not None, "Result field cannot be None!"
 
-    if type(inp) == dict:
-        inp[result_field] = res
-    elif type(inp) in [pd.DataFrame, Dataset]:
+    if isinstance(inp, (dict, pd.DataFrame, Dataset):
         inp[result_field] = res
     else:
         raise ValueError(f"Unexpected input type: {type(inp)}")
