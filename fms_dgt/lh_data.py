@@ -205,9 +205,10 @@ class Lakehouse():
 
 
         schema = Schema(
-            fields=fields
+            fields=fields,
+            identifier_field_ids=[1]
         )
-        schema.identifier_field_ids = [1]
+        
         # Sort on the generated_at
         sort_order = SortOrder(SortField(source_id=3, transform=IdentityTransform(), direction=SortDirection.DESC))
         self._catalog.create_table(
