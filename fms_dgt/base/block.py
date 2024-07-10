@@ -72,7 +72,7 @@ class BaseBlock(ABC):
         self,
         inp: DATASET_ROW_TYPE,
         res: Any,
-        result_field: str = None,
+        result_field: Optional[str] = None,
     ):
         result_field = result_field or self.result_field
 
