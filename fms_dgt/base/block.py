@@ -122,10 +122,8 @@ def get_args_kwargs(
     arg_fields: Optional[List[str]] = None,
     kwarg_fields: Optional[List[str]] = None,
 ):
-    if arg_fields is None:
-        arg_fields = []
-    if kwarg_fields is None:
-        kwarg_fields = []
+    arg_fields = arg_fields or []
+    kwarg_fields = or kwarg_fields or []
 
     if type(inp) == dict:
         args = [inp.get(arg) for arg in arg_fields]
