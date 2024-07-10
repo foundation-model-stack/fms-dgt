@@ -54,14 +54,32 @@ class BaseBlock(ABC):
     def result_field(self):
         return self._result_field
 
+    @abstractmethod
     def generate(
         self,
         inputs: BLOCK_INPUT_TYPE,
+        *,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
+        **kwargs,
     ):
-        raise NotImplementedError
+        """The generate function is the primary interface to a Block
+        
+        args:
+            inputs (BLOCK_INPUT_TYPE): A block operates over a logical iterable
+                of rows with named columns (see BLOCK_INPUT_TYPE)
+
+        kwargs:
+            arg_fields (Optional[List[str]]): Names of fields within the rows of
+                the inputs that should be extracted and passed as positional
+                args to the underlying implementation methods.
+            kwarg_fields (Optional[List[str]]): Names of fields within the rows
+                of the inputs that should be extracted and passed as keyword
+                args to the underlying implementation methods.
+            **kwargs: Additional keyword args that may be passed to the derived
+                block's generate function
+        """
 
 
 class BaseUtilityBlock(BaseBlock):
