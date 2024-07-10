@@ -23,9 +23,7 @@ class FlattenField(BaseUtilityBlock):
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
     ):
-        arg_fields = arg_fields if arg_fields is not None else self._arg_fields
-        if arg_fields is None:
-            arg_fields = []
+        arg_fields = arg_fields or self._arg_fields or []
 
         assert (
             len(arg_fields) == 1
