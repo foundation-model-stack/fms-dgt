@@ -13,17 +13,13 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 # Standard
 from typing import Any, Dict, List, Optional, Union
 import abc
-import copy
 import hashlib
 import json
 import os
 
 # Third Party
-from datasets import Dataset
-from genai.schema import TextGenerationParameters
 from sqlitedict import SqliteDict
 from tqdm import tqdm
-import pandas as pd
 
 # Local
 from fms_dgt.base.block import (
@@ -44,16 +40,14 @@ class LMGenerator(BaseGeneratorBlock):
     def __init__(
         self,
         model_id_or_path: str = None,
+        decoding_method: str = "sample",
+        max_new_tokens: int = None,
+        min_new_tokens: int = None,
+        random_seed: int = None,
+        stop_sequences: List[str] = None,
+        temperature: float = None,
         **kwargs: Any,
     ):
-        # TODO: define exact kwargs that are supported
-        default_kwargs = {"decoding_method": "sample"}
-        cfg_kwargs = {
-            k: kwargs.pop(k)
-            for k in copy.copy(kwargs)
-            if k in TextGenerationParameters.model_fields
-        }
-
         super().__init__(**kwargs)
 
         self._rank = 0
@@ -64,7 +58,19 @@ class LMGenerator(BaseGeneratorBlock):
             self.model_id_or_path is not None
         ), f"Must specify model for Generator {self.name}"
 
-        self._base_kwargs = {**default_kwargs, **cfg_kwargs}
+        cfg_kwargs = dict()
+        for k, v in {
+            "decoding_method": decoding_method,
+            "max_new_tokens": max_new_tokens,
+            "min_new_tokens": min_new_tokens,
+            "random_seed": random_seed,
+            "stop_sequences": stop_sequences,
+            "temperature": temperature,
+        }.items():
+            if v is not None:
+                cfg_kwargs[k] = v
+
+        self._base_kwargs = cfg_kwargs
 
     @property
     def rank(self):
