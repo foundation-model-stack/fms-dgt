@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass
 from typing import Any, Dict, List
 import copy
 
-# First Party
+# Local
 from fms_dgt.base.task import SdgData, SdgTask
 
 
@@ -50,7 +50,6 @@ class ApiSdgTask(SdgTask):
 
     def __init__(
         self,
-        *args: Any,
         task_instruction: str = None,
         api_specifications: Dict = None,
         exclude_api_groups: List[str] = None,
@@ -62,6 +61,8 @@ class ApiSdgTask(SdgTask):
         require_nested: bool = False,
         **kwargs: Any,
     ):
+        super().__init__(**kwargs)
+
         self._api_specifications = {
             k: v
             for k, v in api_specifications.items()
@@ -74,7 +75,6 @@ class ApiSdgTask(SdgTask):
         self._single_function = single_function
         self._require_nested = require_nested
         self._task_instruction = task_instruction
-        super().__init__(*args, **kwargs)
 
     def instantiate_input_example(self, **kwargs: Any):
         return self.INPUT_DATA_TYPE(
