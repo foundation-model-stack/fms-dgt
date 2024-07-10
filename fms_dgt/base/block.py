@@ -6,8 +6,8 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 from datasets import Dataset
 import pandas as pd
 
-BLOCK_ROW_TYPE = Union[Dict, pd.Series]
-BLOCK_INPUT_TYPE = Union[Iterable[BLOCK_ROW_TYPE], pd.DataFrame, Dataset]
+DATASET_ROW_TYPE = Union[Dict, pd.Series]
+DATASET_TYPE = Union[Iterable[DATASET_ROW_TYPE], pd.DataFrame, Dataset]
 
 
 class BaseBlock(ABC):
