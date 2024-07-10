@@ -80,8 +80,7 @@ class BaseBlock(ABC):
 
         if isinstance(inp, (dict, pd.DataFrame, Dataset)):
             inp[result_field] = res
-        else:
-            raise TypeError(f"Unexpected input type: {type(inp)}")
+        raise TypeError(f"Unexpected input type: {type(inp)}")
 
     @abstractmethod
     def generate(
