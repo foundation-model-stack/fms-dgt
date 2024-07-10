@@ -1,6 +1,18 @@
 # Standard
+import logging
 from typing import List
 import argparse
+
+# We don't actually use these modules here, but it is a good place to test that they are installed.
+try:
+    import genai,genai.schema
+except ModuleNotFoundError as e:
+    if e.name == "genai" or e.name == "genai.schema":
+        exit("You must install genai according to the instructions in Setup/IBM Generative AI;\n"+
+             "  if you already have installed it,\n" +
+             "  then you must run 'source ssdg_venv/bin/activate' to activate the required python venv")
+    else:
+        raise e
 
 # First Party
 from fms_dgt.generate_data import generate_data
