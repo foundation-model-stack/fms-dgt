@@ -50,6 +50,39 @@ class BaseBlock(ABC):
     def result_field(self):
         return self._result_field
 
+    def get_args_kwargs(
+        self,
+        inp: BLOCK_ROW_TYPE,
+        arg_fields: Optional[List[str]] = None,
+        kwarg_fields: Optional[List[str]] = None,
+    ):
+
+        arg_fields = arg_fields or self.arg_fields or []
+        kwarg_fields = kwarg_fields or self.kwarg_fields or []
+
+        if isinstance(inp, (dict, pd.DataFrame, Dataset)):
+            args = [inp.get(arg) for arg in arg_fields]
+            kwargs = {kwarg: inp.get(kwarg) for kwarg in kwarg_fields}
+        else:
+            raise TypeError(f"Unexpected input type: {type(inp)}")
+
+        return args, kwargs
+
+    def write_result(
+        self,
+        inp: BLOCK_ROW_TYPE,
+        res: Any,
+        result_field: str = None,
+    ):
+        result_field = result_field or self.result_field
+
+        assert result_field is not None, "Result field cannot be None!"
+
+        if isinstance(inp, (dict, pd.DataFrame, Dataset)):
+            inp[result_field] = res
+        else:
+            raise TypeError(f"Unexpected input type: {type(inp)}")
+
     @abstractmethod
     def generate(
         self,
@@ -61,7 +94,7 @@ class BaseBlock(ABC):
         **kwargs,
     ):
         """The generate function is the primary interface to a Block
-        
+
         args:
             inputs (BLOCK_INPUT_TYPE): A block operates over a logical iterable
                 of rows with named columns (see BLOCK_INPUT_TYPE)
@@ -100,47 +133,12 @@ class BaseValidatorBlock(BaseBlock):
     ):
         outputs = []
         for x in inputs:
-            inp_args, inp_kwargs = get_args_kwargs(
-                x, arg_fields or self.arg_fields, kwarg_fields or self.kwarg_fields
-            )
+            inp_args, inp_kwargs = self.get_args_kwargs(x, arg_fields, kwarg_fields)
             res = self._validate(*inp_args, **inp_kwargs)
             if res or not self._filter_invalids:
-                write_result(x, res, result_field or self.result_field)
+                self.write_result(x, res, result_field)
                 outputs.append(x)
         return outputs
 
     def _validate(self, *args: Any, **kwargs: Any) -> bool:
         raise NotImplementedError
-
-
-def get_args_kwargs(
-    inp: BLOCK_ROW_TYPE,
-    arg_fields: Optional[List[str]] = None,
-    kwarg_fields: Optional[List[str]] = None,
-):
-    arg_fields = arg_fields or []
-    kwarg_fields = or kwarg_fields or []
-
-    if type(inp) == dict:
-        args = [inp.get(arg) for arg in arg_fields]
-        kwargs = {kwarg: inp.get(kwarg) for kwarg in kwarg_fields}
-    elif type(inp) in [pd.DataFrame, Dataset]:
-        args = [inp.get(arg) for arg in arg_fields]
-        kwargs = {kwarg: inp.get(kwarg) for kwarg in kwarg_fields}
-    else:
-        raise ValueError(f"Unexpected input type: {type(inp)}")
-
-    return args, kwargs
-
-
-def write_result(
-    inp: BLOCK_ROW_TYPE,
-    res: Any,
-    result_field: str,
-):
-    assert result_field is not None, "Result field cannot be None!"
-
-    if isinstance(inp, (dict, pd.DataFrame, Dataset):
-        inp[result_field] = res
-    else:
-        raise ValueError(f"Unexpected input type: {type(inp)}")
