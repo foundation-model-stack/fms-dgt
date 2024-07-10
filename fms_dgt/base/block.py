@@ -61,12 +61,12 @@ class BaseBlock(ABC):
         kwarg_fields = kwarg_fields or self.kwarg_fields or []
 
         if isinstance(inp, (dict, pd.DataFrame, Dataset)):
-            args = [inp.get(arg) for arg in arg_fields]
-            kwargs = {kwarg: inp.get(kwarg) for kwarg in kwarg_fields}
-        else:
-            raise TypeError(f"Unexpected input type: {type(inp)}")
+            return (
+                [inp.get(arg) for arg in arg_fields],
+                {kwarg: inp.get(kwarg) for kwarg in kwarg_fields}
+            )
+        raise TypeError(f"Unexpected input type: {type(inp)}")
 
-        return args, kwargs
 
     def write_result(
         self,
