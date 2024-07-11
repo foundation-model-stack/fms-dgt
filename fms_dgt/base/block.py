@@ -83,6 +83,20 @@ class BaseBlock(ABC):
 
         raise TypeError(f"Unexpected input type: {type(inp)}")
 
+    def get_result(
+        self,
+        inp: DATASET_ROW_TYPE,
+        result_field: Optional[str] = None,
+    ):
+        result_field = result_field or self.result_field
+
+        assert result_field is not None, "Result field cannot be None!"
+
+        if isinstance(inp, (dict, pd.DataFrame, Dataset)):
+            return inp[result_field]
+
+        raise TypeError(f"Unexpected input type: {type(inp)}")
+
     @abstractmethod
     def generate(
         self,
