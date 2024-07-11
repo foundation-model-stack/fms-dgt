@@ -1,16 +1,16 @@
 name: api_yes_no_detection
 blocks:
-  llm1:
+  - name: llm1
     type: genai
     decoding_method: sample
     temperature: 0.5
     max_new_tokens: 1024
     min_new_tokens: 1
     model_id_or_path: mistralai/mixtral-8x7b-instruct-v01
-  val1:
+  - name: val1
     type: api_yes_no
     filter: true
-  val2:
+  - name: val2
     type: rouge_scorer
     filter: true
     threshold: 0.35

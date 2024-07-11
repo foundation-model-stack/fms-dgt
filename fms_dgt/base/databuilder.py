@@ -3,6 +3,7 @@ from abc import ABC
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Iterable, List, Mapping, Optional, Union
+import json
 import os
 import time
 
@@ -31,6 +32,7 @@ class DataBuilderConfig(dict):
         pass
 
 
+NAME_KEY = "name"
 TYPE_KEY = "type"
 
 
@@ -80,6 +82,10 @@ class DataBuilder(ABC):
         )
 
     @property
+    def name(self) -> str:
+        return self._name
+
+    @property
     def config(self) -> DataBuilderConfig:
         """Returns the DataBuilderConfig associated with this class."""
         return self._config
@@ -93,15 +99,23 @@ class DataBuilder(ABC):
         self._blocks: List[BaseBlock] = []
 
         # TODO: need to handle nested blocks
-        for obj_name, obj_config in self.config.blocks.items():
-            obj_kwargs = {**obj_config, "name": obj_name}
+        for obj_kwargs in self.config.blocks:
+
+            for req_key in (NAME_KEY, TYPE_KEY):
+                assert (
+                    req_key in obj_kwargs
+                ), f"'{req_key}' field missing in data builder config from block with args:\n{json.dumps(obj_kwargs, indent=4)} "
+
+            obj_name = obj_kwargs["name"]
+
+            assert not any(
+                block.name == obj_name for block in self._blocks
+            ), f"Duplicate '{obj_name}' block in '{self.name}' data builder"
+
             sdg_logger.debug(
-                "Initializing object %s with config %s", obj_name, obj_config
+                "Initializing object %s with config %s", obj_name, obj_kwargs
             )
 
-            assert (
-                TYPE_KEY in obj_kwargs
-            ), f"'type' field missing from {obj_name} in data builder config"
             obj = get_block(obj_kwargs.pop(TYPE_KEY))(**obj_kwargs)
 
             if lm_cache is not None and isinstance(obj, LMGenerator):

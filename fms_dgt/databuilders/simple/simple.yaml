@@ -1,6 +1,6 @@
 name: simple
 blocks:
-  llm1:
+  - name: llm1
     type: genai
     arg_fields:
       - prompt
@@ -11,7 +11,7 @@ blocks:
     max_new_tokens: 512
     min_new_tokens: 1
     model_id_or_path: mistralai/mixtral-8x7b-instruct-v01
-  val1:
+  - name: val1
     type: rouge_scorer
     arg_fields:
       - new_toks
