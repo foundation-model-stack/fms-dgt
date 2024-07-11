@@ -1,30 +1,22 @@
 # Standard
-import logging
 from typing import List
 import argparse
+import sys
 
-# We don't actually use these modules here, but it is a good place to test that they are installed.
-try:
-    import genai,genai.schema
-except ModuleNotFoundError as e:
-    if e.name == "genai" or e.name == "genai.schema":
-        exit("You must install genai according to the instructions in Setup/IBM Generative AI;\n"+
-             "  if you already have installed it,\n" +
-             "  then you must run 'source ssdg_venv/bin/activate' to activate the required python venv")
-    else:
-        raise e
+if sys.prefix == sys.base_prefix:
+    exit("You must run 'source ssdg_venv/bin/activate' to activate the required python venv")
 
 # First Party
 from fms_dgt.generate_data import generate_data
 
 DEFAULT_CONFIG = "config.yaml"
 DEFAULT_DATA_PATH = "data"
-MAX_CONTEXT_SIZE = 4096
+# MAX_CONTEXT_SIZE = 4096  unused
 DEFAULT_NUM_OUTPUTS = 2
 DEFAULT_MAX_GEN_ATTEMPTS = 2
 DEFAULT_NUM_PROMPT_INSTRUCTIONS = 2
 DEFAULT_GENERATED_FILES_OUTPUT_DIR = "output"
-DEFAULT_CHUNK_WORD_COUNT = 1000
+# DEFAULT_CHUNK_WORD_COUNT = 1000 unused
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -37,37 +29,35 @@ def get_parser() -> argparse.ArgumentParser:
 
     return parser
 
+# recall that the default type for add_argument is str
+# Also, the default value is None if it is not specified.
 
 def add_base_args(parser: argparse.ArgumentParser):
     group = parser.add_argument_group("base", "General command-line arguments")
     group.add_argument(
         "--include-builder-path",
         "--include-bp",
-        type=str,
         metavar="DIR",
         help="Additional path to include if there are new data builders.",
     )
     group.add_argument(
         "--include-config-path",
-        type=str,
         metavar="DIR",
         help="Additional path to include if there are overrides for data builder config files.",
     )
     group.add_argument(
         "--data-path",
-        type=str,
         default=DEFAULT_DATA_PATH,
         help=f"Path to local data.",
     )
     group.add_argument(
         "--output-dir",
-        type=str,
         default=DEFAULT_GENERATED_FILES_OUTPUT_DIR,
         help="Path to output generated files.",
     )
     group.add_argument(
         "--restart-generation",
-        action="store_true",
+        action="store_true", # so default is False
         help="Entirely restart instruction generation.",
     )
     return group
@@ -83,14 +73,13 @@ def add_builder_args(parser: argparse.ArgumentParser):
     )
     group.add_argument(
         "--prompt-file-path",
-        type=str,
+        default="prompt.txt",
         metavar="FILE",
         help="Path to prompt file.",
     )
     group.add_argument(
         "--lm-cache",
         "-c",
-        type=str,
         default=None,
         metavar="DIR",
         help="A path to a sqlite db file for caching model responses. `None` if not caching.",
@@ -116,17 +105,17 @@ def add_task_args(parser: argparse.ArgumentParser):
     return group
 
 
-def gather_grouped_args(
-    args: argparse.Namespace, parser: argparse.ArgumentParser, group_name: str
-):
-    for g in parser._action_groups:
-        if g.title == group_name:
-            kwargs = dict()
-            for act in g._group_actions:
-                if hasattr(args, act.dest) and getattr(args, act.dest) is not None:
-                    kwargs[act.dest] = getattr(args, act.dest)
-            return kwargs
-    raise ValueError(f"Unrecognized group name: {group_name}")
+# def gather_grouped_args(
+#     args: argparse.Namespace, parser: argparse.ArgumentParser, group_name: str
+# ):
+#     for g in parser._action_groups:
+#         if g.title == group_name:
+#             kwargs = dict()
+#             for act in g._group_actions:
+#                 if hasattr(args, act.dest) and getattr(args, act.dest) is not None:
+#                     kwargs[act.dest] = getattr(args, act.dest)
+#             return kwargs
+#     raise ValueError(f"Unrecognized group name: {group_name}")
 
 
 def main():
@@ -134,14 +123,30 @@ def main():
 
     args = parser.parse_args()
 
-    base_args = gather_grouped_args(args, parser, "base")
-    builder_kwargs = gather_grouped_args(args, parser, "builder")
-    task_kwargs = gather_grouped_args(args, parser, "task")
+    # base_args = gather_grouped_args(args, parser, "base")
+    # builder_kwargs = gather_grouped_args(args, parser, "builder")
+    # task_kwargs = gather_grouped_args(args, parser, "task")
 
     generate_data(
-        task_kwargs=task_kwargs,
-        builder_kwargs=builder_kwargs,
-        **base_args,
+        args.data_path,
+        args.output_dir,
+        # task_kwargs,
+        {
+            "num_outputs_to_generate": args.num_outputs_to_generate,
+        },
+
+        # builder_kwargs,
+        {
+            "num_prompt_instructions": args.num_prompt_instructions,
+            "prompt_file_path": args.prompt_file_path,
+            "lm_cache": args.lm_cache,
+            "max_gen_requests": args.max_gen_requests,
+        },
+        None, # there is no include_data_path option
+
+        args.include_builder_path,
+        args.include_config_path,
+        args.restart_generation,
     )
 
 
