@@ -28,23 +28,34 @@ class LMJudgeValidator(BaseValidatorBlock):
         self,
         inputs: DATASET_TYPE,
         *,
-        success_func: Callable = None,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
         **kwargs,
     ):
 
+        arg_fields = arg_fields or self._arg_fields
+        assert (
+            len(arg_fields) == 2
+        ), "Expected arguments are list containing [prompt, success_func]"
+
+        llm_arg_fields, judge_arg_fields = arg_fields[:1], arg_fields[1:]
+
         # simplify generation here
         llm_outputs = self._llm_generator.generate(
             inputs,
-            arg_fields=arg_fields,
+            arg_fields=llm_arg_fields,
             kwarg_fields=kwarg_fields,
             result_field=result_field,
             **kwargs,
         )
 
         for llm_output in llm_outputs:
+            args, kwargs = self.get_args_kwargs(
+                llm_output, arg_fields=judge_arg_fields, kwarg_fields=kwarg_fields
+            )
+            success_func = args[0]
+
             lm_res = self.get_result(llm_output, result_field)
             new_result = success_func(lm_res)
             self.write_result(llm_output, new_result, result_field=result_field)
