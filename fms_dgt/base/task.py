@@ -43,7 +43,7 @@ class SdgTask:
         created_by: str,
         data_builder: str,
         output_dir: Optional[str] = "output",
-        output_format: Optional[str] = "parquet",
+        output_format: Optional[str] = "jsonl",
         dataloader: Optional[Dict] = None,
         dataloader_batch_size: Optional[int] = None,
         seed_examples: Optional[List[Any]] = None,
