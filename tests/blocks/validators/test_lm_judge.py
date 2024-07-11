@@ -31,25 +31,25 @@ class TestLlmJudgeValidator:
         inputs = [
             {
                 "lm_input": "Question: 1 + 1 = ?\nAnswer: ",
+                "success_func": lambda x: any([num in x for num in ["2"]]),
             }
         ]
         lm_judge.generate(
             inputs,
-            arg_fields=["lm_input"],
+            arg_fields=["lm_input", "success_func"],
             result_field="result",
-            success_func=lambda x: any([num in x for num in ["2"]]),
         )
         assert inputs[0]["result"], "Result should be true!"
 
         inputs = [
             {
                 "lm_input": "Repeat the following exactly: 'this is true'\n",
+                "success_func": lambda x: "false" in x,
             }
         ]
         lm_judge.generate(
             inputs,
-            arg_fields=["lm_input"],
+            arg_fields=["lm_input", "success_func"],
             result_field="result",
-            success_func=lambda x: "false" in x,
         )
         assert not inputs[0]["result"], "Result should be false!"
