@@ -66,6 +66,7 @@ class SdgTask:
             assert (
                 DATALOADER_TYPE_KEY in dataloader
             ), f"Must specify data loader type with '{DATALOADER_TYPE_KEY}' key"
+            dataloader["seed_examples"] = seed_examples
             self._dataloader = get_dataloader(dataloader.pop(DATALOADER_TYPE_KEY))(
                 **dataloader
             )
