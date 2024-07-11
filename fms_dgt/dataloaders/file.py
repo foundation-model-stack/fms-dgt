@@ -16,7 +16,10 @@ from fms_dgt.dataloaders.default import DefaultDataloader
 class FileDataloader(DefaultDataloader):
     """Class for all json/yaml datasets"""
 
-    def __init__(self, data_path: str = None, seed_examples: List[Any] = None) -> None:
+    def __init__(
+        self,
+        data_path: str = None,
+    ) -> None:
 
         assert f"{DATA_PATH_KEY} must be set in dataloader specification"
         if data_path.endswith(".json"):
@@ -27,9 +30,6 @@ class FileDataloader(DefaultDataloader):
                 data = list(yaml.safe_load(f))
 
         assert type(data) == list, f"Data used for FileDataloader must be a list!"
-
-        if seed_examples is not None:
-            data = data + seed_examples
 
         super().__init__(data=data)
 

@@ -6,7 +6,7 @@ import json
 import os
 
 # Local
-from fms_dgt.base.dataloader import DATALOADER_TYPE_KEY
+from fms_dgt.base.dataloader import DATALOADER_TYPE_KEY, DATA_PATH_KEY
 from fms_dgt.base.registry import get_dataloader
 from fms_dgt.dataloaders.default import DefaultDataloader
 from fms_dgt.utils import group_data_by_attribute
@@ -63,10 +63,21 @@ class SdgTask:
         if dataloader is None:
             self._dataloader = DefaultDataloader(data=seed_examples)
         else:
-            assert (
-                DATALOADER_TYPE_KEY in dataloader
-            ), f"Must specify data loader type with '{DATALOADER_TYPE_KEY}' key"
-            dataloader["seed_examples"] = seed_examples
+            assert DATALOADER_TYPE_KEY in dataloader, (
+                "Must specify dataloader type with %s key",
+                DATALOADER_TYPE_KEY,
+            )
+            assert DATA_PATH_KEY in dataloader, (
+                "Must specify dataloader data path with %s key",
+                DATA_PATH_KEY,
+            )
+            assert seed_examples == [
+                {}
+            ], "Please specify either seed_examples or dataloader, not both"
+            dir_name = "/".join(name.split("->"))
+            dataloader[DATA_PATH_KEY] = os.path.join(
+                dir_name, dataloader[DATA_PATH_KEY]
+            )
             self._dataloader = get_dataloader(dataloader.pop(DATALOADER_TYPE_KEY))(
                 **dataloader
             )
