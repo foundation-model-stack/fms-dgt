@@ -1,17 +1,20 @@
 # Standard
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 import copy
 import os
 
 # Third Party
+from datasets import Dataset
+from pandas import DataFrame
 from tqdm import tqdm
 
-# First Party
+# Local
 from fms_dgt.base.instance import Instance
-from fms_dgt.base.registry import get_resource, register_generator
-from fms_dgt.generators.llm import LMGenerator
+from fms_dgt.base.registry import get_resource, register_block
+from fms_dgt.blocks.generators.llm import LMGenerator
 from fms_dgt.resources.genai import GenAIKeyResource
-import fms_dgt.generators.utils as generator_utils
+import fms_dgt.blocks.generators.utils as generator_utils
+import fms_dgt.utils as utils
 
 try:
     # Third Party
@@ -27,12 +30,12 @@ except ModuleNotFoundError:
     pass
 
 
-@register_generator("genai")
+@register_block("genai")
 class GenAIGenerator(LMGenerator):
     """GenAI Generator"""
 
-    def __init__(self, name: str, config: Dict, **kwargs: Any):
-        super().__init__(name, config, **kwargs)
+    def __init__(self, **kwargs: Any):
+        super().__init__(**kwargs)
 
         try:
             # Third Party
@@ -74,7 +77,7 @@ class GenAIGenerator(LMGenerator):
 
                 until = None
                 if isinstance(kwargs := copy.deepcopy(gen_kwargs), dict):
-                    # start with default params in self.config then overwrite with kwargs
+                    # start with default params then overwrite with kwargs
                     kwargs = {**self._base_kwargs, **kwargs}
                     until = kwargs.get("stop_sequences", None)
                     model_id = kwargs.pop("model_id", self.model_id_or_path)

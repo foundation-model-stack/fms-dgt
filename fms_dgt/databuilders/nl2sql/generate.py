@@ -1,13 +1,16 @@
 # Standard
 from dataclasses import asdict
 from typing import Any, Iterable, List, Set, Tuple
-import time
 
 # Local
 from fms_dgt.base.databuilder import DataBuilder
-from fms_dgt.base.instance import Instance
 from fms_dgt.base.registry import register_data_builder
 from fms_dgt.base.task import SdgTask
+from fms_dgt.blocks.generators.llm import LMGenerator
+from fms_dgt.blocks.validators.nl2sql.sql_execution_validator import (
+    SQLExecutionValidator,
+)
+from fms_dgt.blocks.validators.nl2sql.sql_syntax_validator import SQLSyntaxValidator
 from fms_dgt.databuilders.nl2sql.sqlinstruct.models import (
     SQLDataGenerationSchema,
     SQLTriplet,
@@ -18,10 +21,7 @@ from fms_dgt.databuilders.nl2sql.sqlinstruct.pipeline import (
 from fms_dgt.databuilders.nl2sql.sqlinstruct.prompts import PromptFactory
 from fms_dgt.databuilders.nl2sql.task import SqlSdgData, SqlSdgTask
 from fms_dgt.databuilders.simple.task import InstructLabSdgData
-from fms_dgt.generators.llm import LMGenerator
 from fms_dgt.utils import sdg_logger
-from fms_dgt.validators.nl2sql.sql_execution_validator import SQLExecutionValidator
-from fms_dgt.validators.nl2sql.sql_syntax_validator import SQLSyntaxValidator
 
 
 @register_data_builder("nl2sql")
@@ -42,6 +42,7 @@ class Nl2SqlDataBuilder(DataBuilder):
 
     # val1 is the validator which checks SQL syntax
     val1: SQLSyntaxValidator
+
     # val2 is the validator which checks SQL execution
     val2: SQLExecutionValidator
 
@@ -72,20 +73,22 @@ class Nl2SqlDataBuilder(DataBuilder):
             instances = prompting_pipeline.run(
                 data_generation_schema=data_generation_schema
             )
-            self.llm1.generate_batch(instances)
+            llm_outputs = self.llm1.generate(
+                instances, arg_fields=["prompt"], result_field="output"
+            )
 
             sdg_logger.info("Post-processing generated data...")
             # NOTE: we process outputs in form of a tuple: schema, utterance, query to easily drop duplicates
             processed_outputs: Set[Tuple[str, str, str]] = set()
-            for instance in instances:
-                text = instance.args[0] + instance.result
+            for instance in llm_outputs:
+                text = instance["prompt"] + instance["output"]
                 for prompt_class in PromptFactory.prompts.values():
                     if prompt_class.is_compatible(text):
                         entries = prompt_class.get_utterances_and_queries(text)
                         for entry in entries:
                             processed_outputs.add(
                                 (
-                                    instance.data["schema"],
+                                    instance["data"]["schema"],
                                     entry["utterance"],
                                     entry["query"],
                                 )
@@ -93,44 +96,51 @@ class Nl2SqlDataBuilder(DataBuilder):
 
             sdg_logger.info("Validating generated data...")
             instances_for_validation = [
-                Instance(
-                    kwargs={
-                        "record": {
-                            "sql_schema": sql_schema,
-                            "utterance": utterance,
-                            "sql_query": sql_query,
-                        },
-                        "sql_dialect": str(data_generation_schema.database_type.name),
+                {
+                    "record": {
+                        "sql_schema": sql_schema,
+                        "utterance": utterance,
+                        "sql_query": sql_query,
                     },
-                    data=SQLTriplet(
-                        schema=sql_schema, utterances=[utterance], queries=[sql_query]
+                    "sql_dialect": str(data_generation_schema.database_type.name),
+                    "data": SQLTriplet(
+                        schema=sql_schema,
+                        utterances=[utterance],
+                        queries=[sql_query],
                     ).to_instruction(),
-                )
+                }
                 for sql_schema, utterance, sql_query in processed_outputs
             ]
-            self.val1.validate_batch(inputs=instances_for_validation)
-            self.val2.validate_batch(inputs=instances_for_validation)
+            filtered_output = self.val1.generate(
+                instances_for_validation,
+                kwarg_fields=["record", "sql_dialect"],
+                result_field="output",
+            )
+            filtered_output = self.val2.generate(
+                filtered_output,
+                kwarg_fields=["record", "sql_dialect"],
+                result_field="output",
+            )
 
             sdg_logger.info("Converting to instructions...")
-            for instance in instances_for_validation:
-                # NOTE: we keep only valid ones
-                if instance.result:
-                    # NOTE: convert the generated instructions to a format compatible with fms_dgt.
-                    converted_instruction = InstructLabSdgData(
-                        # NOTE: coming from the package configuration
-                        task_name=instruction_data_item.taxonomy_path,
-                        # NOTE: info coming from taxonomy
-                        taxonomy_path=instruction_data_item.taxonomy_path,
-                        task_description=instruction_data_item.task_description,
-                        # NOTE: info coming from generated entries
-                        instruction=instance.data["user"],
-                        input="",
-                        document=None,
-                        output=instance.data["assistant"],
-                    )
-                    outputs.append(converted_instruction)
-                else:
-                    discarded += 1
+            for instance in filtered_output:
+                # NOTE: convert the generated instructions to a format compatible with fms_dgt.
+                converted_instruction = InstructLabSdgData(
+                    # NOTE: coming from the package configuration
+                    task_name=instruction_data_item.taxonomy_path,
+                    # NOTE: info coming from taxonomy
+                    taxonomy_path=instruction_data_item.taxonomy_path,
+                    task_description=instruction_data_item.task_description,
+                    # NOTE: info coming from generated entries
+                    instruction=instance["data"]["user"],
+                    input="",
+                    document=None,
+                    output=instance["data"]["assistant"],
+                )
+                outputs.append(converted_instruction)
+
+            discarded += len(instances_for_validation) - len(filtered_output)
+
         sdg_logger.info("Data generation completed.")
         return outputs
 

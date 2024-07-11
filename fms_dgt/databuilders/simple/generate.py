@@ -1,18 +1,20 @@
 # Standard
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 import copy
 import random
 import time
 
-# First Party
+# Third Party
+import pandas as pd
+
+# Local
 from fms_dgt.base.databuilder import DataBuilder
-from fms_dgt.base.instance import Instance
 from fms_dgt.base.registry import register_data_builder
 from fms_dgt.base.task import SdgTask, group_data_by_task
+from fms_dgt.blocks.generators.llm import LMGenerator
+from fms_dgt.blocks.validators.rouge import RougeValidator
 from fms_dgt.databuilders.simple.task import InstructLabSdgData, InstructLabSdgTask
-from fms_dgt.generators.llm import LMGenerator
 from fms_dgt.utils import sdg_logger
-from fms_dgt.validators.rouge import RougeValidator
 import fms_dgt.databuilders.simple.utils as utils
 
 
@@ -55,7 +57,7 @@ class SimpleInstructDataBuilder(DataBuilder):
         instruction_data: List[InstructLabSdgData],
     ) -> List[InstructLabSdgData]:
 
-        inputs: List[Instance] = []
+        inputs: List[Dict] = []
         instruction_data = instruction_data + []
         random.shuffle(instruction_data)
         for grouped_data in group_data_by_task(instruction_data):
@@ -64,21 +66,25 @@ class SimpleInstructDataBuilder(DataBuilder):
                     i : i + self._num_prompt_instructions
                 ]
                 prompt = self._encode_prompt(prompt_instructions)
-                args = [prompt]
-                kwargs = {"stop_sequences": [f"* Task {len(prompt_instructions)+2}"]}
-                inputs.append(Instance(args, kwargs, data=prompt_instructions))
+                inp = {
+                    "prompt": prompt,
+                    "stop_sequences": [f"* Task {len(prompt_instructions)+2}"],
+                    "data": prompt_instructions,
+                }
+                inputs.append(inp)
 
         request_start = time.time()
-        self.llm1.generate_batch(inputs)
+
+        llm_outputs = self.llm1.generate(inputs)
         request_duration = time.time() - request_start
 
         post_process_start = time.time()
         instruction_data = []
-        for gen_inp in inputs:
-            prompt_instructions: List[InstructLabSdgData] = gen_inp.data
+        for gen_inp in llm_outputs:
+            prompt_instructions: List[InstructLabSdgData] = gen_inp["data"]
             new_instruction_dicts, discarded = utils.post_process_gpt3_response(
                 len(prompt_instructions),
-                gen_inp.result,
+                gen_inp["output"],
             )
             # make sure the generated instruction carried over extra fields
             for new_ins_dict, orig_ins in zip(
@@ -104,18 +110,22 @@ class SimpleInstructDataBuilder(DataBuilder):
             [instr.instruction for instr in instruction_data]
         )
 
-        val1_inputs: List[Instance] = []
+        val1_inputs: List[Dict] = []
         for instruction_data_entry in instruction_data:
             # computing similarity with the pre-tokenized instructions
             new_instruction_tokens = self.val1.tokenize(
                 instruction_data_entry.instruction
             )
-            args = [new_instruction_tokens, all_instruction_tokens]
-            val1_inputs.append(Instance(args, data=instruction_data_entry))
-        self.val1.validate_batch(val1_inputs)
+            inp = {
+                "new_toks": new_instruction_tokens,
+                "all_toks": all_instruction_tokens,
+                "data": instruction_data_entry,
+            }
+            val1_inputs.append(inp)
 
         # filter rouge failed data
-        outputs = [val1_input.data for val1_input in val1_inputs if val1_input.result]
+        outputs = [output["data"] for output in self.val1.generate(val1_inputs)]
+
         discarded += len(val1_inputs) - len(outputs)
 
         assess_duration = time.time() - assess_start

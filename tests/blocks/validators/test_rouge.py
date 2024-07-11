@@ -5,14 +5,13 @@ import json
 # Third Party
 import pytest
 
-# First Party
-from fms_dgt.base.instance import Instance
-from fms_dgt.validators.rouge import RougeValidator
+# Local
+from fms_dgt.blocks.validators.rouge import RougeValidator
 
 
 class TestRougeValidator:
     def test_matches(self):
-        validator = RougeValidator("test_rouge_validator", {"threshold": 0.0})
+        validator = RougeValidator(name="test_rouge_validator", threshold=0.0)
 
         all_data = [
             "I went to the store",
@@ -23,16 +22,14 @@ class TestRougeValidator:
 
         data_entry = "I went to the store"
         new_tokens = validator.tokenize(data_entry)
-        args = [new_tokens, all_tokens]
-        inputs = [Instance(args)]
+        inputs = [{"a": new_tokens, "b": all_tokens}]
         validator._threshold = 0.91
-        validator.validate_batch(inputs)
-        assert inputs[0].result
+        validator.generate(inputs, arg_fields=["a", "b"], result_field="result")
+        assert inputs[0]["result"]
 
         data_entry = "one two three"
         new_tokens = validator.tokenize(data_entry)
-        args = [new_tokens, all_tokens]
-        inputs = [Instance(args)]
+        inputs = [{"a": new_tokens, "b": all_tokens}]
         validator._threshold = 0.0
-        validator.validate_batch(inputs)
-        assert not inputs[0].result
+        validator.generate(inputs, arg_fields=["a", "b"], result_field="result")
+        assert not inputs[0]["result"]

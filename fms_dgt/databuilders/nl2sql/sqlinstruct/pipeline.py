@@ -2,10 +2,7 @@
 
 # Standard
 from copy import deepcopy
-from typing import List
-
-# First Party
-from fms_dgt.base.instance import Instance
+from typing import Dict, List
 
 # Local
 from .models import SQLDataGenerationSchema, SQLTriplet
@@ -21,7 +18,7 @@ class SQLDataGenerationPromptingPipeline:
         """Initialize SQLDataGenerationPromptingPipeline."""
         self.prompt_factory = PromptFactory()
 
-    def run(self, data_generation_schema: SQLDataGenerationSchema) -> List[Instance]:
+    def run(self, data_generation_schema: SQLDataGenerationSchema) -> List[Dict]:
         """Run the data generation pipeline.
 
         Args:
@@ -57,7 +54,7 @@ class SQLDataGenerationPromptingPipeline:
                 )
             )
 
-        instances: List[Instance] = []
+        instances: List[Dict] = []
         # NOTE: this is trivially parallel
         for prompt_method_name in self.prompt_factory.prompts.keys():
             prompt_object = self.prompt_factory.build(
@@ -89,10 +86,12 @@ class SQLDataGenerationPromptingPipeline:
                             )
                 instances.extend(
                     [
-                        Instance(
-                            args=[prompt_object.encode_prompt(sql_triplet=sql_triplet)],
-                            data=sql_triplet.model_dump(by_alias=True),
-                        )
+                        {
+                            "prompt": prompt_object.encode_prompt(
+                                sql_triplet=sql_triplet
+                            ),
+                            "data": sql_triplet.model_dump(by_alias=True),
+                        }
                         for sql_triplet in sql_triplets
                     ]
                 )

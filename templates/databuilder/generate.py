@@ -1,5 +1,5 @@
 # Standard
-from typing import Any, List, Tuple
+from typing import Any, Dict, List, Tuple
 import copy
 
 # First Party
@@ -7,11 +7,10 @@ from templates.databuilder.task import TemplateSdgData, TemplateSdgTask
 
 # Local
 from fms_dgt.base.databuilder import DataBuilder
-from fms_dgt.base.instance import Instance
 from fms_dgt.base.registry import register_data_builder
 from fms_dgt.base.task import SdgTask
-from fms_dgt.generators.llm import LMGenerator
-from fms_dgt.validators.rouge import RougeValidator
+from fms_dgt.blocks.generators.llm import LMGenerator
+from fms_dgt.blocks.validators.rouge import RougeValidator
 
 
 @register_data_builder("data_builder_name")
@@ -41,38 +40,41 @@ class TemplateDataBuilder(DataBuilder):
 
         # None of this code should work, you should replace it with your own SDG flow. However, it will illustrate the general process
 
-        generator_inputs: List[Instance] = []
+        generator_inputs: List[Dict] = []
         for idata in instruction_data:
             # example of how to form an argument to the LLM generator
             prompt = idata.instruction + "\n\n" + idata.input
-            args = [prompt]
-            kwargs = {"seed": request_idx}
-            generator_inputs.append(Instance(args, kwargs, data=idata))
+            inp = {"prompt": prompt, "seed": request_idx, "data": idata}
+            generator_inputs.append(inp)
 
-        self.llm1.generate_batch(generator_inputs)
+        llm_outputs = self.llm1(
+            generator_inputs,
+            arg_fields=["prompt"],
+            kwarg_fields=["seed"],
+            result_field="output",
+        )
 
         validator_inputs = []
-        for generator_input in generator_inputs:
+        for output in llm_outputs:
             # original input example
-            orig_input: TemplateSdgData = generator_input.data
+            orig_input: TemplateSdgData = output["data"]
 
             # getting output
-            generator_output = generator_input.result
+            generator_output = output["output"]
 
             # assign output to instruction
             new_instruction = copy.copy(orig_input)
             new_instruction.instruction = generator_output
 
-            args = [generator_output]
-            validator_inputs.append(Instance(args, data=new_instruction))
-
-        self.val1.validate_batch(validator_inputs)
+            inp = {"to_val": generator_output, "data": new_instruction}
+            validator_inputs.append(inp)
 
         # filter rouge failed data
         outputs = [
-            validator_input.data
-            for validator_input in validator_inputs
-            if validator_input.result
+            output["data"]
+            for output in self.val1(
+                validator_inputs, arg_fields=["to_val"], result_field="output"
+            )
         ]
 
         discarded = len(validator_inputs) - len(outputs)

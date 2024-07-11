@@ -1,6 +1,5 @@
 # Standard
-from functools import partial
-from typing import Dict, List, Mapping, Optional, Union
+from typing import List, Mapping, Optional, Union
 import collections
 import os
 
