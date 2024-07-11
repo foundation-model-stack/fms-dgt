@@ -36,8 +36,10 @@ class TestLlmJudgeValidator:
         ]
         lm_judge.generate(
             inputs,
-            arg_fields=["lm_input", "success_func"],
+            arg_fields=["success_func"],
+            lm_arg_fields=["lm_input"],
             result_field="result",
+            lm_result_field="result",
         )
         assert inputs[0]["result"], "Result should be true!"
 
@@ -49,7 +51,9 @@ class TestLlmJudgeValidator:
         ]
         lm_judge.generate(
             inputs,
-            arg_fields=["lm_input", "success_func"],
+            arg_fields=["success_func"],
+            lm_arg_fields=["lm_input"],
             result_field="result",
+            lm_result_field="result",
         )
         assert not inputs[0]["result"], "Result should be false!"
