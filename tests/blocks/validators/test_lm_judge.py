@@ -12,12 +12,14 @@ from fms_dgt.base.instance import Instance
 from fms_dgt.blocks.validators.lm_judge import LMJudgeValidator
 
 GREEDY_CFG = {
-    "lm_type": "genai",
-    "decoding_method": "greedy",
-    "temperature": 1.0,
-    "max_new_tokens": 25,
-    "min_new_tokens": 1,
-    "model_id_or_path": "ibm/granite-8b-code-instruct",
+    "lm_config": {
+        "type": "genai",
+        "decoding_method": "greedy",
+        "temperature": 1.0,
+        "max_new_tokens": 25,
+        "min_new_tokens": 1,
+        "model_id_or_path": "ibm/granite-8b-code-instruct",
+    }
 }
 
 
@@ -27,23 +29,27 @@ class TestLlmJudgeValidator:
         lm_judge = LMJudgeValidator(name=f"test_{model_backend}", **GREEDY_CFG)
 
         inputs = [
-            Instance(
-                [
-                    "Question: 1 + 1 = ?\nAnswer: ",
-                    lambda x: any([num in x for num in ["2"]]),
-                ]
-            )
+            {
+                "lm_input": "Question: 1 + 1 = ?\nAnswer: ",
+            }
         ]
-        lm_judge.validate_batch(inputs)
-        assert inputs[0].result, "Result should be true!"
+        lm_judge.generate(
+            inputs,
+            arg_fields=["lm_input"],
+            result_field="result",
+            success_func=lambda x: any([num in x for num in ["2"]]),
+        )
+        assert inputs[0]["result"], "Result should be true!"
 
         inputs = [
-            Instance(
-                [
-                    "Repeat the following exactly: 'this is true'\n",
-                    lambda x: "false" in x,
-                ]
-            )
+            {
+                "lm_input": "Repeat the following exactly: 'this is true'\n",
+            }
         ]
-        lm_judge.validate_batch(inputs)
-        assert not inputs[0].result, "Result should be false!"
+        lm_judge.generate(
+            inputs,
+            arg_fields=["lm_input"],
+            result_field="result",
+            success_func=lambda x: "false" in x,
+        )
+        assert not inputs[0]["result"], "Result should be false!"
