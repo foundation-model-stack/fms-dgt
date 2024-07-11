@@ -13,13 +13,15 @@ TYPE_KEY = "type"
 class LMJudgeValidator(BaseValidatorBlock):
     """LLM-based Validator"""
 
-    def __init__(self, lm: Dict = None, **kwargs: Any):
+    def __init__(self, lm_config: Dict = None, **kwargs: Any):
         super().__init__(**kwargs)
         assert (
-            TYPE_KEY in lm
+            TYPE_KEY in lm_config
         ), f"Must specify {TYPE_KEY} in 'lm' field of {self.name} block"
 
-        self._llm_generator: LMGenerator = get_block(lm.pop(TYPE_KEY))(**lm)
+        self._llm_generator: LMGenerator = get_block(lm_config.pop(TYPE_KEY))(
+            **lm_config
+        )
         self.blocks = [self._llm_generator]
 
     def generate(

@@ -12,7 +12,7 @@ from fms_dgt.base.instance import Instance
 from fms_dgt.blocks.validators.lm_judge import LMJudgeValidator
 
 GREEDY_CFG = {
-    "lm": {
+    "lm_config": {
         "type": "genai",
         "decoding_method": "greedy",
         "temperature": 1.0,
