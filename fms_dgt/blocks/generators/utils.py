@@ -26,7 +26,6 @@ from typing import (
     Union,
 )
 import collections
-import fnmatch
 import gc
 import itertools
 import time

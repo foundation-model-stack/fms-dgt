@@ -1,32 +1,24 @@
 # Standard
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Union
 import logging
 import sqlite3
 
 # Third Party
+from datasets import Dataset
+from pandas import DataFrame
 import sqlglot
 
-# First Party
-from fms_dgt.base.instance import Instance
-from fms_dgt.base.registry import register_validator
-from fms_dgt.base.validator import BaseValidator
+# Local
+from fms_dgt.base.block import BaseValidatorBlock
+from fms_dgt.base.registry import register_block
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
-@register_validator("sql_execution_validator")
-class SQLExecutionValidator(BaseValidator):
+@register_block("sql_execution_validator")
+class SQLExecutionValidator(BaseValidatorBlock):
     """SQL execution validator."""
-
-    def validate_batch(self, inputs: List[Instance], **kwargs: Any) -> None:
-        """Validate a batch.
-
-        Args:
-            inputs: list of instances.
-        """
-        for x in inputs:
-            x.result = self._validate(*x.args, **x.kwargs)
 
     def _validate(self, record: Dict[str, str], **kwargs: Any) -> bool:
         """Validate a record containing information on schema, query and utterance.
