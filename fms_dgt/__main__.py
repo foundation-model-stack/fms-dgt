@@ -11,12 +11,12 @@ from fms_dgt.generate_data import generate_data
 
 DEFAULT_CONFIG = "config.yaml"
 DEFAULT_DATA_PATH = "data"
-# MAX_CONTEXT_SIZE = 4096  unused
+# MAX_CONTEXT_SIZE = 4096
 DEFAULT_NUM_OUTPUTS = 2
 DEFAULT_MAX_GEN_ATTEMPTS = 2
 DEFAULT_NUM_PROMPT_INSTRUCTIONS = 2
 DEFAULT_GENERATED_FILES_OUTPUT_DIR = "output"
-# DEFAULT_CHUNK_WORD_COUNT = 1000 unused
+# DEFAULT_CHUNK_WORD_COUNT = 1000
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -105,17 +105,17 @@ def add_task_args(parser: argparse.ArgumentParser):
     return group
 
 
-# def gather_grouped_args(
-#     args: argparse.Namespace, parser: argparse.ArgumentParser, group_name: str
-# ):
-#     for g in parser._action_groups:
-#         if g.title == group_name:
-#             kwargs = dict()
-#             for act in g._group_actions:
-#                 if hasattr(args, act.dest) and getattr(args, act.dest) is not None:
-#                     kwargs[act.dest] = getattr(args, act.dest)
-#             return kwargs
-#     raise ValueError(f"Unrecognized group name: {group_name}")
+def gather_grouped_args(
+    args: argparse.Namespace, parser: argparse.ArgumentParser, group_name: str
+):
+    for g in parser._action_groups:
+        if g.title == group_name:
+            kwargs = dict()
+            for act in g._group_actions:
+                if hasattr(args, act.dest) and getattr(args, act.dest) is not None:
+                    kwargs[act.dest] = getattr(args, act.dest)
+            return kwargs
+    raise ValueError(f"Unrecognized group name: {group_name}")
 
 
 def main():
@@ -123,30 +123,15 @@ def main():
 
     args = parser.parse_args()
 
-    # base_args = gather_grouped_args(args, parser, "base")
-    # builder_kwargs = gather_grouped_args(args, parser, "builder")
-    # task_kwargs = gather_grouped_args(args, parser, "task")
+    base_args = gather_grouped_args(args, parser, "base")
+    builder_kwargs = gather_grouped_args(args, parser, "builder")
+    task_kwargs = gather_grouped_args(args, parser, "task")
 
     generate_data(
-        args.data_path,
-        args.output_dir,
-        # task_kwargs,
-        {
-            "num_outputs_to_generate": args.num_outputs_to_generate,
-        },
-
-        # builder_kwargs,
-        {
-            "num_prompt_instructions": args.num_prompt_instructions,
-            "prompt_file_path": args.prompt_file_path,
-            "lm_cache": args.lm_cache,
-            "max_gen_requests": args.max_gen_requests,
-        },
-        None, # there is no include_data_path option
-
-        args.include_builder_path,
-        args.include_config_path,
-        args.restart_generation,
+        # there is no include_data_path option, so this is not set
+        task_kwargs=task_kwargs,
+        builder_kwargs=builder_kwargs,
+        **base_args,
     )
 
 
