@@ -17,17 +17,19 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 import copy
 
 # Third Party
+from datasets import Dataset
 from more_itertools import distribute
 from packaging.version import parse as parse_version
+from pandas import DataFrame
 from tqdm import tqdm
 
-# First Party
+# Local
 from fms_dgt.base.instance import Instance
-from fms_dgt.base.registry import register_generator
-from fms_dgt.generators.llm import LMGenerator
-from fms_dgt.generators.utils import Collator, undistribute
+from fms_dgt.base.registry import register_block
+from fms_dgt.blocks.generators.llm import LMGenerator
+from fms_dgt.blocks.generators.utils import Collator, undistribute
 from fms_dgt.utils import sdg_logger
-import fms_dgt.generators.utils as generator_utils
+import fms_dgt.blocks.generators.utils as generator_utils
 
 try:
     # Third Party
@@ -42,49 +44,44 @@ except ModuleNotFoundError:
 
 
 # TODO: this can be made more efficient for our purposes by rewriting the async code ourselves
-@register_generator("vllm")
+@register_block("vllm")
 class vLLMGenerator(LMGenerator):
     """vLLM Generator"""
 
     _DEFAULT_MAX_LENGTH = 2048
 
-    def __init__(self, name: str, config: Dict, **kwargs: Any):
-        super().__init__(name, config, **kwargs)
+    def __init__(
+        self,
+        dtype: Literal["float16", "bfloat16", "float32", "auto"] = "auto",
+        revision: Optional[str] = None,
+        trust_remote_code: Optional[bool] = False,
+        tokenizer: Optional[str] = None,
+        tokenizer_mode: Literal["auto", "slow"] = "auto",
+        tokenizer_revision: Optional[str] = None,
+        add_bos_token: Optional[bool] = False,
+        prefix_token_id: Optional[int] = None,
+        tensor_parallel_size: int = 1,
+        quantization: Optional[str] = None,
+        max_gen_toks: int = 256,
+        swap_space: int = 4,
+        batch_size: Union[str, int] = 1,
+        max_batch_size=None,
+        max_length: int = None,
+        max_model_len: int = None,
+        seed: int = 1234,
+        gpu_memory_utilization: float = 0.9,
+        device: str = "cuda",
+        data_parallel_size: int = 1,
+        lora_local_path: str = None,
+        **kwargs: Any,
+    ):
+        super().__init__(**kwargs)
 
         if not find_spec("vllm"):
             raise Exception(
                 "attempted to use 'vllm' LM type, but package `vllm` is not installed. "
                 "Please install vllm via `pip install fms_dgt[vllm]`"
             )
-
-        pretrained = self._config.get(
-            "model_id_or_path",
-            None,
-        )
-        dtype: Literal["float16", "bfloat16", "float32", "auto"] = self._config.get(
-            "dtype", "auto"
-        )
-        revision: Optional[str] = self._config.get("revision", None)
-        trust_remote_code: Optional[bool] = self._config.get("trust_remote_code", False)
-        tokenizer: Optional[str] = self._config.get("tokenizer", None)
-        tokenizer_mode: Literal["auto", "slow"] = self._config.get(
-            "tokenizer_mode", "auto"
-        )
-        tokenizer_revision: Optional[str] = self._config.get("tokenizer_revision", None)
-        add_bos_token: Optional[bool] = self._config.get("add_bos_token", False)
-        prefix_token_id: Optional[int] = self._config.get("prefix_token_id", None)
-        tensor_parallel_size: int = self._config.get("tensor_parallel_size", 1)
-        quantization: Optional[str] = self._config.get("quantization", None)
-        max_gen_toks: int = self._config.get("max_gen_toks", 256)
-        swap_space: int = self._config.get("swap_space", 4)
-        batch_size: Union[str, int] = self._config.get("batch_size", "auto")
-        max_batch_size = self._config.get("max_batch_size", None)
-        max_length: int = self._config.get("max_length", None)
-        max_model_len: int = self._config.get("max_model_len", None)
-        seed: int = self._config.get("seed", 1234)
-        gpu_memory_utilization: float = self._config.get("gpu_memory_utilization", 0.9)
-        device: str = self._config.get("device", "cuda")
-        data_parallel_size: int = self._config.get("data_parallel_size", 1)
 
         assert "cuda" in device or device is None, "vLLM only supports CUDA"
         assert (
@@ -95,7 +92,7 @@ class vLLMGenerator(LMGenerator):
         self.tensor_parallel_size = int(tensor_parallel_size)
         self.data_parallel_size = int(data_parallel_size)
         self.model_args = {
-            "model": pretrained,
+            "model": self.model_id_or_path,
             "gpu_memory_utilization": float(gpu_memory_utilization),
             "revision": revision,
             "dtype": dtype,
@@ -134,10 +131,12 @@ class vLLMGenerator(LMGenerator):
             from transformers import AutoConfig
 
             self._config = AutoConfig.from_pretrained(
-                pretrained, trust_remote_code=trust_remote_code, revision=revision
+                self.model_id_or_path,
+                trust_remote_code=trust_remote_code,
+                revision=revision,
             )
         self.tokenizer = get_tokenizer(
-            tokenizer if tokenizer else pretrained,
+            tokenizer if tokenizer else self.model_id_or_path,
             tokenizer_mode=tokenizer_mode,
             trust_remote_code=trust_remote_code,
             tokenizer_revision=tokenizer_revision,
@@ -258,7 +257,7 @@ class vLLMGenerator(LMGenerator):
                 # unpack our keyword arguments.
                 until = None
                 if isinstance(kwargs := copy.deepcopy(gen_kwargs), dict):
-                    # start with default params in self.config then overwrite with kwargs
+                    # start with default params then overwrite with kwargs
                     kwargs = {**self._base_kwargs, **kwargs}
                     if "stop_sequences" in kwargs:
                         until = kwargs.pop("stop_sequences")

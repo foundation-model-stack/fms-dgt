@@ -1,11 +1,14 @@
 # Standard
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Union
 import json
 
-# First Party
-from fms_dgt.base.instance import Instance
-from fms_dgt.base.registry import register_validator
-from fms_dgt.base.validator import BaseValidator
+# Third Party
+from datasets import Dataset
+from pandas import DataFrame
+
+# Local
+from fms_dgt.base.block import BaseValidatorBlock
+from fms_dgt.base.registry import register_block
 
 # Constants
 
@@ -19,14 +22,9 @@ _OUTPUT_PARAM = "output_parameters"
 # Classes
 
 
-@register_validator("api_function_checking")
-class APIGenSpecValidator(BaseValidator):
+@register_block("api_function_checking")
+class APIGenSpecValidator(BaseValidatorBlock):
     """Class for API Sequence Prediction Validator"""
-
-    def validate_batch(self, inputs: List[Instance], **kwargs: Any) -> None:
-        """Takes in a list of Instance objects (each containing their own arg / kwargs) and sets their result flag to true or false"""
-        for x in inputs:
-            x.result = self._validate(*x.args, **x.kwargs)
 
     def _validate(
         self,
@@ -149,7 +147,7 @@ def is_nested_match(arg_content: str, prev_components: List[Dict], api_info: Dic
     return False
 
 
-@register_validator("api_yes_no")
+@register_block("api_yes_no")
 class ApiGenSpecYesNoValidation(APIGenSpecValidator):
     """Class for API Intent Detection Validator"""
 

@@ -7,9 +7,9 @@ import time
 # Third Party
 import pytest
 
-# First Party
+# Local
 from fms_dgt.base.instance import Instance
-from fms_dgt.validators.lm_judge import LMJudgeValidator
+from fms_dgt.blocks.validators.lm_judge import LMJudgeValidator
 
 GREEDY_CFG = {
     "lm_type": "genai",
@@ -24,7 +24,7 @@ GREEDY_CFG = {
 class TestLlmJudgeValidator:
     @pytest.mark.parametrize("model_backend", ["genai"])
     def test_generate_batch(self, model_backend):
-        lm_judge = LMJudgeValidator(name=f"test_{model_backend}", config=GREEDY_CFG)
+        lm_judge = LMJudgeValidator(name=f"test_{model_backend}", **GREEDY_CFG)
 
         inputs = [
             Instance(

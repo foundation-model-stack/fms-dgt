@@ -13,45 +13,59 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 # Standard
 from typing import Any, Dict, List, Optional, Union
 import abc
-import copy
 import hashlib
 import json
 import os
 
 # Third Party
-from genai.schema import TextGenerationParameters
 from sqlitedict import SqliteDict
 from tqdm import tqdm
-import transformers
 
-# First Party
-from fms_dgt.base.generator import BaseGenerator
+# Local
+from fms_dgt.base.block import DATASET_TYPE, BaseBlock
 from fms_dgt.base.instance import Instance
 from fms_dgt.utils import sdg_logger
 
 MODEL_ID_OR_PATH = "model_id_or_path"
 
 
-class LMGenerator(BaseGenerator):
+class LMGenerator(BaseBlock):
     """Class for LLM Generators"""
 
-    def __init__(self, name: str, config: Dict, **kwargs: Any):
-        super().__init__(name, config, **kwargs)
+    def __init__(
+        self,
+        model_id_or_path: str = None,
+        decoding_method: str = "sample",
+        max_new_tokens: int = None,
+        min_new_tokens: int = None,
+        random_seed: int = None,
+        stop_sequences: List[str] = None,
+        temperature: float = None,
+        **kwargs: Any,
+    ):
+        super().__init__(**kwargs)
+
         self._rank = 0
         self.cache_hook = CacheHook(None)
 
-        self.model_id_or_path: str = config.get(MODEL_ID_OR_PATH, None)
+        self.model_id_or_path: str = model_id_or_path
         assert (
             self.model_id_or_path is not None
-        ), f"Must specify model for Generator {name}"
+        ), f"Must specify model for Generator {self.name}"
 
-        default_kwargs = {"decoding_method": "sample"}
-        cfg_kwargs = {
-            k: v
-            for k, v in copy.deepcopy(self.config).items()
-            if k in TextGenerationParameters.model_fields
-        }
-        self._base_kwargs = {**default_kwargs, **cfg_kwargs}
+        cfg_kwargs = dict()
+        for k, v in {
+            "decoding_method": decoding_method,
+            "max_new_tokens": max_new_tokens,
+            "min_new_tokens": min_new_tokens,
+            "random_seed": random_seed,
+            "stop_sequences": stop_sequences,
+            "temperature": temperature,
+        }.items():
+            if v is not None:
+                cfg_kwargs[k] = v
+
+        self._base_kwargs = cfg_kwargs
 
     @property
     def rank(self):
@@ -88,6 +102,48 @@ class LMGenerator(BaseGenerator):
 
     def set_cache_hook(self, cache_hook) -> None:
         self.cache_hook = cache_hook
+
+    def generate(
+        self,
+        inputs: DATASET_TYPE,
+        *,
+        arg_fields: Optional[List[str]] = None,
+        kwarg_fields: Optional[List[str]] = None,
+        result_field: Optional[str] = None,
+        method: str = "generate",
+        **kwargs: Any,
+    ):
+
+        # simplify generation here
+        instances: List[Instance] = []
+        for inp in inputs:
+            inp_args, inp_kwargs = self.get_args_kwargs(inp, arg_fields, kwarg_fields)
+            instances.append(Instance(args=inp_args, kwargs=inp_kwargs, data=inp))
+
+        if method == "generate":
+            self.generate_batch(
+                instances,
+                **kwargs,
+            )
+        elif method == "loglikelihood":
+            self.loglikelihood_batch(
+                instances,
+                **kwargs,
+            )
+        else:
+            err_str = (
+                f"Unhandled method type: {method}"
+                if method is not None
+                else "Must set 'method' kwarg to 'generate' or 'loglikelihood'"
+            )
+            raise ValueError(err_str)
+
+        outputs = []
+        for inst in instances:
+            self.write_result(inst.data, inst.result, result_field)
+            outputs.append(inst.data)
+
+        return outputs
 
 
 ### SQLite-based caching of LM responses
@@ -198,6 +254,51 @@ class CachingLM:
                 req.result = req_res
 
         return fn
+
+    def generate(
+        self,
+        inputs: DATASET_TYPE,
+        arg_fields: Optional[List[str]] = None,
+        kwarg_fields: Optional[List[str]] = None,
+        result_field: Optional[str] = None,
+        method: str = "generate",
+        **kwargs: Any,
+    ) -> None:
+
+        # simplify generation here
+        instances: List[Instance] = []
+        for inp in inputs:
+            inp_args, inp_kwargs = self.lm.get_args_kwargs(
+                inp,
+                arg_fields,
+                kwarg_fields,
+            )
+            instances.append(Instance(args=inp_args, kwargs=inp_kwargs, data=inp))
+
+        if method == "generate":
+            self.generate_batch(
+                instances,
+                **kwargs,
+            )
+        elif method == "loglikelihood":
+            self.loglikelihood_batch(
+                instances,
+                **kwargs,
+            )
+        else:
+            err_str = (
+                f"Unhandled method type: {method}"
+                if method is not None
+                else "Must set 'method' kwarg to 'generate' or 'loglikelihood'"
+            )
+            raise ValueError(err_str)
+
+        outputs = []
+        for inst in instances:
+            self.lm.write_result(inst.data, inst.result, result_field)
+            outputs.append(inst.data)
+
+        return outputs
 
     def get_cache_hook(self):
         return CacheHook(self)

@@ -1,6 +1,6 @@
 # Standard
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 # Local
 from fms_dgt.base.task import SdgData, SdgTask
