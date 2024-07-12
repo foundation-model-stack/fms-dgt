@@ -139,7 +139,7 @@ As mentioned above, in the data builder `__call__` function, you will make use o
 
 To define a new generator or validator, first take a look at the base classes that the concrete implementation will inherit from. These are found in `./fms_dgt/base/blocks/<generator/validator>.py`. All blocks must define a `generate` function which contains their main logic.
 
-Blocks are designed to be composable and specifiable through both config and code. A block will take as its main inputs an iterable of dictionaries, a huggingface dataset, or a pandas dataframe (see `./fms_dgt/base/block.py`). In addition, in either the \_\_init\_\_ of the block or in the call to the block, one can specify `arg_fields`, `kwarg_fields`, and `result_field`. When processing its inputs, the block will iterate over each row / element of the input and extract the args / kwargs. The core computation of the block (e.g., an LLM call in `./fms_dgt/blocks/generators/llm.py`) is then run on those extracted args / kwargs and the result for a particular element is written to the result_field.
+Blocks are designed to be composable and specifiable through both config and code. A block will take as its main inputs an iterable of dictionaries, a huggingface dataset, or a pandas dataframe (see `./fms_dgt/base/block.py`). In addition, in either the \_\_init\_\_ of the block or in the call to the block, one can specify `arg_fields`, `kwarg_fields`, and `result_field`. When processing its inputs, the block will iterate over each row / element of the input and extract the args / kwargs. The core computation of the block (e.g., an LLM call in `./fms_dgt/blocks/generators/llm.py`) is then run on those extracted args / kwargs and the result for a particular element is written to the `result_field`.
 
 For example, a generator might be called with:
 
@@ -161,7 +161,7 @@ for llm_output in llm_outputs:
   print(f"Result: {llm_output['result']}")
 ```
 
-Importantly, the result*field is \_written* onto the object that is passed in. Hence, if you want drag along additional elements in the dictionary, you just add those as fields to the input. Typically, in the process of SDG you are building up some object to return. This could be passed to through block as
+Importantly, the `result_field` is _written_ onto the object that is passed in. Hence, if you want drag along additional elements in the dictionary, you just add those as fields to the input. Typically, in the process of SDG you are building up some object to return. This could be passed to through block as
 
 ```python
 inp = {
