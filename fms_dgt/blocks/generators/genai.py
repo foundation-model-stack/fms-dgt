@@ -80,7 +80,7 @@ class GenAIGenerator(LMGenerator):
                     # start with default params then overwrite with kwargs
                     kwargs = {**self._base_kwargs, **kwargs}
                     until = kwargs.get("stop_sequences", None)
-                    model_id = kwargs.pop("model_id", self.model_id_or_path)
+                    model_id = kwargs.pop("model_id_or_path", self.model_id_or_path)
                 else:
                     raise ValueError(
                         f"Expected repr(kwargs) to be of type repr(dict) but got {kwargs}"
@@ -141,7 +141,7 @@ class GenAIGenerator(LMGenerator):
                 if isinstance(kwargs := copy.deepcopy(gen_kwargs), dict):
                     # start with default params in self.config then overwrite with kwargs
                     kwargs = {**self._base_kwargs, **kwargs}
-                    model_id = kwargs.pop("model_id", self.model_id_or_path)
+                    model_id = kwargs.pop("model_id_or_path", self.model_id_or_path)
                 else:
                     raise ValueError(
                         f"Expected repr(kwargs) to be of type repr(dict) but got {kwargs}"

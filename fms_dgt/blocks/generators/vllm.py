@@ -65,7 +65,7 @@ class vLLMGenerator(LMGenerator):
         max_gen_toks: int = 256,
         swap_space: int = 4,
         batch_size: Union[str, int] = 1,
-        max_batch_size=None,
+        max_batch_size: int = None,
         max_length: int = None,
         max_model_len: int = None,
         seed: int = 1234,
