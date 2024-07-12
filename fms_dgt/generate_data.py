@@ -30,8 +30,9 @@ def generate_data(
     )
     output_dir = os.path.join(output_dir, name)
 
+    # DMF/Lakehouse integration
     if task_kwargs.get("lakehouse_namespace") is not None:
-        print('import lh_data')
+        sdg_logger.debug("Importing lh_data")
         from fms_dgt import lh_data
         lh_data.lh_data_instance = lh_data.Lakehouse(task_kwargs.get("lakehouse_namespace"))
 
