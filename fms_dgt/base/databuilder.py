@@ -3,6 +3,7 @@ from abc import ABC
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Iterable, List, Mapping, Optional, Union
+import json
 import os
 import time
 
@@ -10,11 +11,10 @@ import time
 from tqdm import tqdm
 
 # Local
-from fms_dgt.base.generator import BaseGenerator
-from fms_dgt.base.registry import get_generator, get_validator
+from fms_dgt.base.block import BaseBlock
+from fms_dgt.base.registry import get_block
 from fms_dgt.base.task import SdgData, SdgTask
-from fms_dgt.base.validator import BaseValidator
-from fms_dgt.generators.llm import CachingLM, LMGenerator
+from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
 from fms_dgt.utils import all_annotations, sdg_logger
 
 
@@ -22,21 +22,17 @@ from fms_dgt.utils import all_annotations, sdg_logger
 class DataBuilderConfig(dict):
     # data builder naming/registry
     name: Optional[str] = None
-    generators: Optional[Union[str, list]] = None
-    validators: Optional[Union[str, list]] = None
+    blocks: Optional[dict] = None
     generation_kwargs: Optional[dict] = None
     metadata: Optional[
         dict
     ] = None  # by default, not used in the code. allows for users to pass arbitrary info to data builders
 
     def __post_init__(self) -> None:
-        if self.generation_kwargs is not None:
-            if "temperature" in self.generation_kwargs:
-                self.generation_kwargs["temperature"] = float(
-                    self.generation_kwargs["temperature"]
-                )
+        pass
 
 
+NAME_KEY = "name"
 TYPE_KEY = "type"
 
 
@@ -66,7 +62,7 @@ class DataBuilder(ABC):
         self._restart_generation = restart_generation
 
         # initializing generators / validators
-        self._init_gv(lm_cache=lm_cache)
+        self._init_blocks(lm_cache=lm_cache)
 
         # TODO: Data loader goes here
         self._tasks: List[SdgTask] = [
@@ -86,73 +82,69 @@ class DataBuilder(ABC):
         )
 
     @property
+    def name(self) -> str:
+        return self._name
+
+    @property
     def config(self) -> DataBuilderConfig:
         """Returns the DataBuilderConfig associated with this class."""
         return self._config
 
     @property
-    def generators(self) -> List[BaseGenerator]:
-        """Returns the generators associated with this class."""
-        return self._generators
+    def blocks(self) -> List[BaseBlock]:
+        """Returns the blocks associated with this class."""
+        return self._blocks
 
-    @property
-    def validators(self) -> List[BaseValidator]:
-        """Returns the validators associated with this class."""
-        return self._validators
+    def _init_blocks(self, lm_cache: str = None):
+        self._blocks: List[BaseBlock] = []
 
-    def _init_gv(self, lm_cache: str = None):
-        _generators = (
-            [self.config.generators]
-            if type(self.config.generators) == str
-            else self.config.generators
-        )
-        _validators = (
-            [self.config.validators]
-            if type(self.config.validators) == str
-            else self.config.validators
-        )
-        self._generators: List[BaseGenerator] = []
-        self._validators: List[BaseValidator] = []
+        # TODO: need to handle nested blocks
+        for obj_kwargs in self.config.blocks:
 
-        # TODO: need to handle nested generators / validators
-        for i, info_src in enumerate([_generators, _validators]):
-            # user may not define a generator / validator
-            if info_src is not None:
-                for obj_name, obj_config in info_src.items():
-                    sdg_logger.debug(
-                        "Initializing object %s with config %s", obj_name, obj_config
-                    )
-                    obj = (get_generator if i == 0 else get_validator)(
-                        obj_config[TYPE_KEY]
-                    )(obj_name, obj_config)
+            for req_key in (NAME_KEY, TYPE_KEY):
+                assert (
+                    req_key in obj_kwargs
+                ), f"'{req_key}' field missing in data builder config from block with args:\n{json.dumps(obj_kwargs, indent=4)} "
 
-                    if lm_cache is not None and isinstance(obj, LMGenerator):
-                        sdg_logger.info(
-                            "Using cache at %s",
-                            lm_cache + "_rank" + str(obj.rank) + ".db",
-                        )
-                        obj = CachingLM(
-                            obj,
-                            lm_cache
-                            # each rank receives a different cache db.
-                            # necessary to avoid multiple writes to cache at once
-                            + f"_model{os.path.split(obj.model_id_or_path)[-1]}_rank{obj.rank}.db",
-                        )
+            obj_name = obj_kwargs["name"]
 
-                    type_annotations = all_annotations(type(self))
-                    assert (
-                        obj_name in type_annotations
-                    ), f"Object {obj_name} is missing from definition of DataBuilder {self.__class__}"
+            assert not any(
+                block.name == obj_name for block in self._blocks
+            ), f"Duplicate '{obj_name}' block in '{self.name}' data builder"
 
-                    obj_type = type_annotations[obj_name]
+            sdg_logger.debug(
+                "Initializing object %s with config %s", obj_name, obj_kwargs
+            )
 
-                    # double check types
-                    assert isinstance(obj, obj_type) or (
-                        isinstance(obj, CachingLM) and isinstance(obj.lm, obj_type)
-                    ), f"Type of retrieved object {obj.__class__} for {obj_name} does not match type {obj_type} specified in DataBuilder {self.__class__}"
+            obj = get_block(obj_kwargs.pop(TYPE_KEY))(**obj_kwargs)
 
-                    setattr(self, obj_name, obj)
-                    (self._generators if i == 0 else self._validators).append(obj)
+            if lm_cache is not None and isinstance(obj, LMGenerator):
+                sdg_logger.info(
+                    "Using cache at %s",
+                    lm_cache + "_rank" + str(obj.rank) + ".db",
+                )
+                obj = CachingLM(
+                    obj,
+                    lm_cache
+                    # each rank receives a different cache db.
+                    # necessary to avoid multiple writes to cache at once
+                    + f"_model{os.path.split(obj.model_id_or_path)[-1]}_rank{obj.rank}.db",
+                )
+
+            type_annotations = all_annotations(type(self))
+            assert (
+                obj_name in type_annotations
+            ), f"Object {obj_name} is missing from definition of DataBuilder {self.__class__}"
+
+            obj_type = type_annotations[obj_name]
+
+            # double check types
+            assert isinstance(obj, obj_type) or (
+                isinstance(obj, CachingLM) and isinstance(obj.lm, obj_type)
+            ), f"Type of retrieved object {obj.__class__} for {obj_name} does not match type {obj_type} specified in DataBuilder {self.__class__}"
+
+            setattr(self, obj_name, obj)
+            self._blocks.append(obj)
 
     def execute_tasks(self):
         # main entry point to task execution

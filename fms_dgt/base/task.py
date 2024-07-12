@@ -5,6 +5,9 @@ import abc
 import json
 import os
 
+# Third Party
+import pandas as pd
+
 # Local
 from fms_dgt.base.dataloader import DATALOADER_TYPE_KEY
 from fms_dgt.base.registry import get_dataloader
@@ -39,7 +42,8 @@ class SdgTask:
         task_description: str,
         created_by: str,
         data_builder: str,
-        output_dir: Optional[str] = None,
+        output_dir: Optional[str] = "output",
+        output_format: Optional[str] = "jsonl",
         dataloader: Optional[Dict] = None,
         dataloader_batch_size: Optional[int] = None,
         seed_examples: Optional[List[Any]] = None,
@@ -53,8 +57,8 @@ class SdgTask:
         self._num_outputs_to_generate = num_outputs_to_generate
         self.machine_data = []
 
-        self._output_dir = output_dir if output_dir is not None else DEFAULT_OUTPUT_DIR
-        self._output_path = self._get_default_output_path()
+        self._output_dir = output_dir
+        self._output_path = self._get_default_output_path(output_format)
 
         self._dataloader_batch_size = (
             dataloader_batch_size if dataloader_batch_size is not None else 10000000
@@ -116,35 +120,60 @@ class SdgTask:
     def is_complete(self):
         return len(self.machine_data) > self.num_outputs_to_generate
 
-    def _get_default_output_path(self):
+    def _get_default_output_path(self, output_format: str = None):
         path_components = []
         path_components.append(self._output_dir)
         path_components.append(self._name)
-        path_components.append("generated_instructions.jsonl")
+        path_components.append("generated_instructions." + output_format)
         return os.path.join(*path_components)
 
     def save_data(
-        self, new_data: Union[SdgData, List[SdgData]], output_path: str = None
+        self,
+        new_data: Union[SdgData, List[SdgData]],
+        output_path: str = None,
     ) -> None:
         if type(new_data) != list:
             new_data = [new_data]
 
         output_path = self._output_path if output_path is None else output_path
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        with open(output_path, "a") as f:
-            for d in new_data:
-                f.write(json.dumps(d.to_output_dict()) + "\n")
+        output_format = os.path.splitext(output_path)[-1]
+
+        if output_format == ".jsonl":
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            with open(output_path, "a") as f:
+                for d in new_data:
+                    f.write(json.dumps(d.to_output_dict()) + "\n")
+        elif output_format == ".parquet":
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            pd.DataFrame(new_data).to_parquet(
+                output_path, engine="fastparquet", append=os.path.isfile(output_path)
+            )
+        else:
+            raise ValueError(f"Unhandled output format: {output_format}")
 
     def load_data(self, output_path: str = None) -> List[SdgData]:
         output_path = self._output_path if output_path is None else output_path
-        with open(output_path, "r") as f:
-            try:
-                machine_data = [
-                    self.instantiate_output_example(**json.loads(l.strip()))
-                    for l in f.readlines()
-                ]
-            except ValueError:
-                machine_data = []
+        output_format = os.path.splitext(output_path)[-1]
+        if output_format == ".jsonl":
+            with open(output_path, "r") as f:
+                try:
+                    machine_data = [
+                        self.instantiate_output_example(**json.loads(l.strip()))
+                        for l in f.readlines()
+                    ]
+                except ValueError:
+                    machine_data = []
+        elif output_format == ".parquet":
+            machine_data = [
+                self.instantiate_output_example(**r)
+                for r in (
+                    pd.read_parquet(output_path, engine="fastparquet")
+                    .apply(dict, axis=1)
+                    .to_list()
+                )
+            ]
+        else:
+            raise ValueError(f"Unhandled output format: {output_format}")
 
         self.machine_data = machine_data
 

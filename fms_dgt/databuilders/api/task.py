@@ -1,11 +1,10 @@
 # Standard
-from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, List, Optional
+from dataclasses import asdict, dataclass
+from typing import Any, Dict, List
 import copy
 
 # Local
 from fms_dgt.base.task import SdgData, SdgTask
-import fms_dgt.utils as utils
 
 
 @dataclass
