@@ -48,6 +48,7 @@ class SdgTask:
         dataloader_batch_size: Optional[int] = None,
         seed_examples: Optional[List[Any]] = None,
         num_outputs_to_generate: Optional[int] = None,
+        **kwargs: Any,
     ):
         self._name = name
         self._task_description = task_description
@@ -73,6 +74,18 @@ class SdgTask:
             self._dataloader = get_dataloader(dataloader.pop(DATALOADER_TYPE_KEY))(
                 **dataloader
             )
+        
+        # DMF / Lakehouse support
+        self.lh_data_instance = None
+        if "lakehouse_namespace" in kwargs and kwargs["lakehouse_namespace"] is not None:
+            # lakehouse is enabled
+            from fms_dgt import lh_data
+            self.lh_data_instance = lh_data.lh_data_instance
+            self.file_path = kwargs["file_path"]
+            self.builder_cfg = kwargs["builder_cfg"]
+            kwargs.pop("lakehouse_namespace", None) #remove the property required by DMF/Lakehouse integration
+        kwargs.pop("file_path", None) #remove the property required by DMF/Lakehouse integration
+        kwargs.pop("builder_cfg", None) #remove the property required by DMF/Lakehouse integration
 
     @property
     def name(self):
@@ -150,6 +163,10 @@ class SdgTask:
             )
         else:
             raise ValueError(f"Unhandled output format: {output_format}")
+        
+        # Check if lakehouse is enabled
+        if self.lh_data_instance is not None:
+            self.lh_data_instance.save_task_data(self, new_data)
 
     def load_data(self, output_path: str = None) -> List[SdgData]:
         output_path = self._output_path if output_path is None else output_path
@@ -176,6 +193,11 @@ class SdgTask:
             raise ValueError(f"Unhandled output format: {output_format}")
 
         self.machine_data = machine_data
+
+    def save_task_details_in_lakehouse(self):
+        # Check if lakehouse is enabled
+        if self.lh_data_instance is not None:
+            self.lh_data_instance.save_task_details(self)
 
     def clear_data(self, output_path: str = None) -> List[SdgData]:
         output_path = self._output_path if output_path is None else output_path

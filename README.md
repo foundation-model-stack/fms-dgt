@@ -73,6 +73,31 @@ pip install -e ".[vllm]"
 
 **Note:** vLLM [requires Linux OS and CUDA](https://docs.vllm.ai/en/latest/getting_started/installation.html#requirements).
 
+#### IBM DFM integration
+
+When using the DMF integration, you need to:
+
+1. Add configuration to `env` file as follows:
+
+```yaml
+LAKEHOUSE_TOKEN=<DMF Lakehouse token goes here>
+LAKEHOUSE_API=<DMF Lakehouse api token goes here>
+```
+
+2. Install DMF Lakehouse dependencies as follows:
+
+```command
+pip install -e ".[lakehouse]"
+```
+
+3. Add the following parameter in the command specifying the DMF/Lakehouse namespace where the data will be saved.
+
+   Notice: You must have write access to the namespace.
+```command
+--lakehouse-namespace <namespace>
+```
+
+
 ### Testing out the Framework
 
 To get started with this example, make sure you have followed the [Setup](#setup) instructions, [configured IBM GenAI](#ibm-generative-ai-genai), and/or [configured vLLM](#vLLM)
