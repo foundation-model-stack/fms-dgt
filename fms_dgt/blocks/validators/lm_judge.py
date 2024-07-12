@@ -28,23 +28,30 @@ class LMJudgeValidator(BaseValidatorBlock):
         self,
         inputs: DATASET_TYPE,
         *,
-        success_func: Callable = None,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
+        lm_arg_fields: Optional[List[str]] = None,
+        lm_kwarg_fields: Optional[List[str]] = None,
+        lm_result_field: Optional[str] = None,
         **kwargs,
     ):
 
         # simplify generation here
         llm_outputs = self._llm_generator.generate(
             inputs,
-            arg_fields=arg_fields,
-            kwarg_fields=kwarg_fields,
-            result_field=result_field,
+            arg_fields=lm_arg_fields,
+            kwarg_fields=lm_kwarg_fields,
+            result_field=lm_result_field,
             **kwargs,
         )
 
         for llm_output in llm_outputs:
+            args, kwargs = self.get_args_kwargs(
+                llm_output, arg_fields=arg_fields, kwarg_fields=kwarg_fields
+            )
+            success_func = args[0]
+
             lm_res = self.get_result(llm_output, result_field)
             new_result = success_func(lm_res)
             self.write_result(llm_output, new_result, result_field=result_field)
