@@ -91,8 +91,7 @@ class OpenaiCompletionsLM(LMGenerator):
     please install these via `pip install .[openai]`",
             )
 
-        self.base_url: str = base_url
-        self.truncate: bool = truncate
+        self.base_url = base_url
         self.truncate = truncate
         self._batch_size = int(batch_size)
         self._max_gen_toks = max_gen_toks
