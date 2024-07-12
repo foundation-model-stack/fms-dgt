@@ -97,6 +97,7 @@ class OpenaiCompletionsLM(LMGenerator):
         self._max_gen_toks = max_gen_toks
         self._max_length = max_length
         self.seed = 1234
+        self._chat = False
 
         # Read from environment variable OPENAI_API_KEY
         # Set to EMPTY for local
@@ -167,10 +168,10 @@ class OpenaiCompletionsLM(LMGenerator):
                         f"Expected repr(kwargs) to be of type repr(dict) but got {kwargs}"
                     )
 
+                kwargs[("messages" if self._chat else "prompt")] = inputs
                 response = oa_completion(
                     client=self.client,
-                    chat=False,
-                    prompt=inputs,
+                    chat=self._chat,
                     model=model_id,
                     **kwargs,
                 )
@@ -193,6 +194,7 @@ class OpenaiChatCompletionsLM(OpenaiCompletionsLM):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._batch_size = 1
+        self._chat = True
 
     def _prepare_input(self, prompt: str):
         return {"role": "user", "content": prompt}
