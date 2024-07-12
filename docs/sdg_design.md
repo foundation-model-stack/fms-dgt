@@ -21,8 +21,9 @@ The key architectural components are:
 - Task: A task that will be executed by a data builder. It contains global definitions, termination criteria, and seed data
 - Seed Data: The raw input data to the SDG algorithm
 - Data Builder: The algorithm that generates the new synthetic data. Each builder expects the seed data to be in a standard format
-- Generator: Inferences a Large Language Model (LLM) to generate synthetic data. Used by data builder
-- Validator: Validates the ganerated synthetic data against a LLM. Used by data builder
+- Blocks: The main unit of heavy-duty processing in fms-dgt. We provide a number of these to help speed up computation at known bottlenecks
+  - Generator: Expensive computation that produces some output, most often a Large Language Model (LLM) which is used to generate synthetic data. Used by data builder
+  - Validator: Validates the generated synthetic data. Used by data builder
 
 The overall architecture is fairly straightforward. At the top level, there are _tasks_ and _databuilders_. Tasks specify independent data generation objectives. These will have their own seed data, their own termination criteria, their own global variable definitions, etc. Data builders specify the process by which data for a set of tasks should be generated. A data builder will have its own specification for what it expects as inputs. Roughly speaking, there is a many-to-one correspondence between tasks and data builders (though, in theory, tasks could be solved by different data builders as long as their data abided by the constraints of the data builder). Below we have a figure showing how both of these components pass into the main data generation loop
 
@@ -91,7 +92,7 @@ As stated before, each iteration of generation will have the data builders takin
 
 ### Data Builders
 
-Data builders (see [here](../fms_dgt/databuilders/simple/generate.py) for an example) contain the means by which our framework generates data. They consist of some number of _generators_ and some number of _validators_. Generators are, roughly speaking, things that take in inputs and generate some output (e.g., most often an LLM taking in a prompt and then returning a string). Correspondingly, validators are things that inspect an object and return True or False to signify whether that object is valid (e.g., validating the output of an LLM for well-formedness constraints in the case of code generation).
+Data builders (see [here](../fms_dgt/databuilders/simple/generate.py) for an example) contain the means by which our framework generates data. They consist of some number of _blocks_, which can be _generators_ and / or _validators_. Generators are, roughly speaking, things that take in inputs and generate some output (e.g., most often an LLM taking in a prompt and then returning a string). Correspondingly, validators are things that inspect an object and return True or False to signify whether that object is valid (e.g., validating the output of an LLM for well-formedness constraints in the case of code generation).
 
 Each data builder is defined with a \_\_call\_\_ function. Importantly, the call function takes as input a list of the dataclass instances described above. This leads to an inherent composability of data builders, where the outputs of one data builder can be fed as the inputs to another (ideally leading to more code reuse across the repository).
 
@@ -132,30 +133,45 @@ metadata:
 
 In this, the `generators` and `validators` fields show the default settings for the generators and validators, respectively. This allows for trivial substitution of parameters like model types, LLM backends (e.g., `genai`, `vllm`, `openai`) without having to change the underlying code.
 
-### Generators and Validators
+### Blocks: Generators and Validators
 
-As mentioned above, in the data builder `__call__` function, you will make use of "generators" and "validators", which are the components in this framework that do the heavy lifting. We have provided a number of LLM-based generators for [IBM GenAI](https://ibm.github.io/ibm-generative-ai/v3.0.0/index.html), [OpenAI](https://github.com/openai/openai-python) and [vLLM](https://github.com/vllm-project/vllm). To use a specific generator, you need to specify it in both the YAML and in the `generate.py` file as a attribute of the task's class. From a design standpoint, we aim to keep all multiprocessing and parallelism contained to the generators and the validators, i.e., **not** in the `__call__` function. By defining these ahead of time and restricting heavy operations to these objects, we can allow for better performance optimizations in terms of speed and resource allocation.
+As mentioned above, in the data builder `__call__` function, you will make use of blocks, which can be "generators" and / or "validators". These are the components in this framework that do the heavy lifting. We have provided a number of LLM-based generators for [IBM GenAI](https://ibm.github.io/ibm-generative-ai/v3.0.0/index.html), [OpenAI](https://github.com/openai/openai-python) and [vLLM](https://github.com/vllm-project/vllm). To use a specific generator, you need to specify it in both the YAML and in the `generate.py` file as a attribute of the task's class. From a design standpoint, we aim to keep all multiprocessing and parallelism contained to the generators and the validators, i.e., **not** in the `__call__` function. By defining these ahead of time and restricting heavy operations to these objects, we can allow for better performance optimizations in terms of speed and resource allocation.
 
-To define a new generator or validator, first take a look at the base classes that the concrete implementation will inherit from. These are found in `./fms_dgt/base/<generator/validator>.py`. Generators and validators must define a `generate_batch` or `validate_batch` function, respectively.
+To define a new generator or validator, first take a look at the base classes that the concrete implementation will inherit from. These are found in `./fms_dgt/base/blocks/<generator/validator>.py`. All blocks must define a `generate` function which contains their main logic.
 
-The arguments to a generator or validator will always be a batch of `Instance` objects (see `./scale*sdg/base/instance.py`). `Instance` objects are very simple, consisting primarily of `_args*` and `_kwargs_` fields. We use these because the inputs to a generator may have a wide range of settings (e.g., different temperatures, models, etc.), and this allows us to batch those requests together as much as we can. Importantly, the generator or validator will treat the `_args_` and `_kwargs_` fields as they would in a function call, so you **must** provide `_args_` or `_kwargs_` as a list or dictionary, respectively.
+Blocks are designed to be composable and specifiable through both config and code. A block will take as its main inputs an iterable of dictionaries, a huggingface dataset, or a pandas dataframe (see `./fms_dgt/base/block.py`). In addition, in either the \_\_init\_\_ of the block or in the call to the block, one can specify `arg_fields`, `kwarg_fields`, and `result_field`. When processing its inputs, the block will iterate over each row / element of the input and extract the args / kwargs. The core computation of the block (e.g., an LLM call in `./fms_dgt/blocks/generators/llm.py`) is then run on those extracted args / kwargs and the result for a particular element is written to the result_field.
 
-For example, a generator called with:
-
-```python
-inst_lst = [Instance(args, kwargs), Instance(args, kwargs)]
-validator_class.validate_batch(inst_lst)
-```
-
-will internally call a function similar to the following:
+For example, a generator might be called with:
 
 ```python
-def validate_batch(inst_lst):
-    for inst in inst_lst:
-        inst.result = generator_fn(*inst.args, **inst.kwargs)
+inp = {
+  "prompt": "Respond 'yes' or 'no'",
+  "stop_sequences": ["yes", "no"],
+  "temperature": 1.0
+}
+inp_lst = [inp]
+llm_outputs = llm_class.generate(inp, arg_fields=["prompt"], kwarg_fields=["stop_sequences", "temperature"], result_field="result")
 ```
 
-Hence, an instance object that does not treat `_args_` as a list, e.g., `Instance(args='abc')` will have issues. In addition, all generator and validator functions must return `None`, with the result of function calls on these `Instance` objects being stored in the `result` field. For convenience, there is also a `data` field in each `Instance` object that lets one pass an arbitrary object along with the `Instance`. This is quite helpful for moving along a partially constructed SDG data instance through multiple different generators.
+and the output may be extracted with
+
+```python
+for llm_output in llm_outputs:
+  print("Original prompt: " + llm_output["prompt"])
+  print(f"Result: {llm_output['result']}")
+```
+
+Importantly, the result*field is \_written* onto the object that is passed in. Hence, if you want drag along additional elements in the dictionary, you just add those as fields to the input. Typically, in the process of SDG you are building up some object to return. This could be passed to through block as
+
+```python
+inp = {
+  "prompt": "Respond 'yes' or 'no'",
+  "stop_sequences": ["yes", "no"],
+  "temperature": 1.0,
+  "data": SdgObjectBeingGenerated
+}
+inp_lst = [inp]
+```
 
 ### Interfaces
 
