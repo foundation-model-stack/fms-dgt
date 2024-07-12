@@ -14,23 +14,28 @@ from pyiceberg.exceptions import NoSuchTableError
 from pyiceberg.table.sorting import SortOrder, SortField, SortDirection
 from pyiceberg.transforms import IdentityTransform
 from pyiceberg.types import (
-    TimestampType,
     TimestamptzType,
-    LongType,
-    FloatType,
-    DoubleType,
     StringType,
     NestedField,
-    StructType,
-    ListType
 )
 from pyiceberg.table import Table
-
+import logging
+import os
 
 from fms_dgt.base.task import SdgData, SdgTask
 import fms_dgt.utils as utils
 
 lh_data_instance = None
+
+root_log_level = utils.log_level
+dmf_log_level = getattr(logging, os.getenv("DMF_LOG_LEVEL", "error").upper())
+
+if root_log_level < dmf_log_level:
+    #remove logs from libraries used for DMF integration
+    root_logger = logging.getLogger()
+    for handler in root_logger.handlers:
+        handler.addFilter(lambda record: not record.name.startswith("daft"))
+        handler.addFilter(lambda record: not record.name.startswith("pyiceberg"))
 
 
 class CosCredentials():

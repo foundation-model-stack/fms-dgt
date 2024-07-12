@@ -81,7 +81,7 @@ When using the DMF integration, you need to:
 
 ```yaml
 LAKEHOUSE_TOKEN=<DMF Lakehouse token goes here>
-LAKEHOUSE_API=<DMF Lakehouse api token goes here>
+LAKEHOUSE_API=<DMF Lakehouse api URL goes here>
 ```
 
 2. Install DMF Lakehouse dependencies as follows:
