@@ -46,6 +46,7 @@ class LMJudgeValidator(BaseValidatorBlock):
             **kwargs,
         )
 
+        judge_outputs = []
         for llm_output in llm_outputs:
             args, kwargs = self.get_args_kwargs(
                 llm_output, arg_fields=arg_fields, kwarg_fields=kwarg_fields
@@ -54,9 +55,11 @@ class LMJudgeValidator(BaseValidatorBlock):
 
             lm_res = self.get_result(llm_output, result_field)
             new_result = success_func(lm_res)
-            self.write_result(llm_output, new_result, result_field=result_field)
+            if new_result or not self._filter_invalids:
+                self.write_result(llm_output, new_result, result_field=result_field)
+                judge_outputs.append(llm_output)
 
-        return llm_outputs
+        return judge_outputs
 
     def _validate(self, lm_output: str, success_func: Callable) -> bool:
         return success_func(lm_output)

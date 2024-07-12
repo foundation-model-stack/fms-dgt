@@ -178,3 +178,23 @@ class TestLlmGenerators:
             assert (
                 non["output"] == pre["output"] == post["output"]
             ), f"Different results detected at index {i}: {(non['output'], pre['output'], post['output'])}"
+
+    def test_vllm_remote_batch(self, model_cfg):
+        model_cfg = dict(GREEDY_VLLM_CFG)
+        model_type = model_cfg.pop("type")
+        lm: LMGenerator = get_block(model_type)(name=f"test_{model_type}", **model_cfg)
+
+        inputs: List[Dict] = []
+        for prompt in PROMPTS:
+            inp = {"prompt": prompt}
+            inputs.append(inp)
+
+        inputs_copy = copy.deepcopy(inputs)
+
+        lm.generate(inputs, arg_fields=["prompt"], result_field="output")
+
+        for i, inp in enumerate(inputs):
+            assert (
+                inp["prompt"] == inputs_copy[i]["prompt"]
+            ), f"Input list has been rearranged at index {i}"
+            assert isinstance(inp["output"], str)
