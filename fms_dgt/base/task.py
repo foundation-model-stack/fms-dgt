@@ -61,13 +61,14 @@ class SdgTask(metaclass=PostProcessingType):
         # DMF / Lakehouse support
         self.lh_data_instance = None
         if "lakehouse_namespace" in kwargs and kwargs["lakehouse_namespace"] is not None:
+            # lakehouse is enabled
             from fms_dgt import lh_data
             self.lh_data_instance = lh_data.lh_data_instance
             self.file_path = kwargs["file_path"]
             self.builder_cfg = kwargs["builder_cfg"]
-            kwargs.pop("lakehouse_namespace", None) #remove the property
-        kwargs.pop("file_path", None) #remove the property
-        kwargs.pop("builder_cfg", None) #remove the property
+            kwargs.pop("lakehouse_namespace", None) #remove the property required by DMF/Lakehouse integration
+        kwargs.pop("file_path", None) #remove the property required by DMF/Lakehouse integration
+        kwargs.pop("builder_cfg", None) #remove the property required by DMF/Lakehouse integration
         
 
     def __post_init__(self):
@@ -128,7 +129,7 @@ class SdgTask(metaclass=PostProcessingType):
             for d in new_data:
                 f.write(json.dumps(d.to_output_dict()) + "\n")
         
-        # Check for non-existent attribute
+        # Check if lakehouse is enabled
         if self.lh_data_instance is not None:
             self.lh_data_instance.save_task_data(self, new_data)
 
@@ -145,8 +146,8 @@ class SdgTask(metaclass=PostProcessingType):
 
         self.machine_data = machine_data
 
-    def save_task_and_config(self):
-        # Check for non-existent attribute
+    def save_task_details_in_lakehouse(self):
+        # Check if lakehouse is enabled
         if self.lh_data_instance is not None:
             self.lh_data_instance.save_task_details(self)
 
