@@ -1,7 +1,7 @@
 name: data_builder_name # MUST match the name of the file!
 blocks:
   llm1:
-    type: vllm-local
+    type: vllm-remote
     base_url: <vllm-server-url-here>
     temperature: 0.0
     max_new_tokens: 512

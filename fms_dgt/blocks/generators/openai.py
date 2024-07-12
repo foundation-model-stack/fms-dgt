@@ -68,7 +68,7 @@ def oa_completion(client, chat: bool = False, **kwargs):
     return completion()
 
 
-@register_block("openai", "vllm-local")
+@register_block("openai", "vllm-remote")
 class OpenaiCompletionsLM(LMGenerator):
     def __init__(
         self,
@@ -189,7 +189,7 @@ class OpenaiCompletionsLM(LMGenerator):
         raise NotImplementedError("No support for logits.")
 
 
-@register_block("openai-chat", "vllm-local-chat")
+@register_block("openai-chat", "vllm-remote-chat")
 class OpenaiChatCompletionsLM(OpenaiCompletionsLM):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

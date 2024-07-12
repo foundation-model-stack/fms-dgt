@@ -1,7 +1,7 @@
 name: data_builder_name # MUST match the name of the file!
 blocks:
   llm1:
-    type: genai
+    type: vllm
     temperature: 0.0
     max_new_tokens: 512
     min_new_tokens: 1
