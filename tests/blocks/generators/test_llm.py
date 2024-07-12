@@ -179,11 +179,21 @@ class TestLlmGenerators:
                 non["output"] == pre["output"] == post["output"]
             ), f"Different results detected at index {i}: {(non['output'], pre['output'], post['output'])}"
 
-    def test_vllm_remote_batch(self, model_cfg):
+    def test_vllm_remote_batch(self):
+        """
+        start server with
+
+        python -m vllm.entrypoints.openai.api_server --model ibm/granite-8b-code-instruc
+
+        """
         model_cfg = dict(GREEDY_VLLM_CFG)
+        model_cfg["type"] = "openai"
+        model_cfg["base_url"] = "http://0.0.0.0:8000/v1"
+
         model_type = model_cfg.pop("type")
         lm: LMGenerator = get_block(model_type)(name=f"test_{model_type}", **model_cfg)
 
+        # first we test generation
         inputs: List[Dict] = []
         for prompt in PROMPTS:
             inp = {"prompt": prompt}
@@ -198,3 +208,24 @@ class TestLlmGenerators:
                 inp["prompt"] == inputs_copy[i]["prompt"]
             ), f"Input list has been rearranged at index {i}"
             assert isinstance(inp["output"], str)
+
+        # now we test loglikelihood
+        # inputs: List[Dict] = []
+        # for prompt in PROMPTS:
+        #     inp = {"prompt1": prompt, "prompt2": prompt}
+        #     inputs.append(inp)
+
+        # inputs_copy = copy.deepcopy(inputs)
+
+        # lm.generate(
+        #     inputs,
+        #     arg_fields=["prompt1", "prompt2"],
+        #     result_field="output",
+        #     method="loglikelihood",
+        # )
+
+        # for i, inp in enumerate(inputs):
+        #     assert (
+        #         inp["prompt1"] == inputs_copy[i]["prompt1"]
+        #     ), f"Input list has been rearranged at index {i}"
+        #     assert isinstance(inp["output"], float)
