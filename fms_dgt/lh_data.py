@@ -153,19 +153,18 @@ class Lakehouse():
 
         schema = Schema(
             NestedField(field_id=1, name="run_id", field_type=StringType(), required=True),
-            NestedField(field_id=2, name="user_id", field_type=StringType(), required=False),
-            NestedField(field_id=3, name="name", field_type=StringType(), required=False),
+            NestedField(field_id=2, name="user_id", field_type=StringType(), required=True),
+            NestedField(field_id=3, name="task_name", field_type=StringType(), required=True),
             NestedField(field_id=4, name="data_builder", field_type=StringType(), required=False),
             NestedField(field_id=5, name="created_by", field_type=StringType(), required=False),
-            NestedField(field_id=6, name="seed_examples", field_type=StringType(), required=False), #TODO: check if makes sense
-            NestedField(field_id=12, name="taxonomy_path", field_type=StringType(), required=False),
-            NestedField(field_id=13, name="task_yaml", field_type=StringType(), required=False),
-            NestedField(field_id=14, name="builder_config", field_type=StringType(), required=False),
-            NestedField(field_id=15, name="created_at", field_type=TimestamptzType(), required=True),
-            identifier_field_ids=[1]
+            NestedField(field_id=6, name="taxonomy_path", field_type=StringType(), required=False),
+            NestedField(field_id=7, name="task_yaml", field_type=StringType(), required=False),
+            NestedField(field_id=8, name="builder_config", field_type=StringType(), required=False),
+            NestedField(field_id=9, name="created_at", field_type=TimestamptzType(), required=True),
+            identifier_field_ids=[1,3]
         )
         # Sort on the generated_at
-        sort_order = SortOrder(SortField(source_id=15, transform=IdentityTransform(), direction=SortDirection.DESC))
+        sort_order = SortOrder(SortField(source_id=9, transform=IdentityTransform(), direction=SortDirection.DESC))
         #maintenance properties
         properties = {
                     'lh.maintenance-required' : 'true',
@@ -205,9 +204,13 @@ class Lakehouse():
 
         fields: list[NestedField] = []
         fields.append(NestedField(field_id=1, name="run_id", field_type=StringType(), required=True))
-        fields.append(NestedField(field_id=2, name="user_id", field_type=StringType(), required=False))
-        fields.append( NestedField(field_id=3, name="created_at", field_type=TimestamptzType(), required=True))
-        index = 4
+        fields.append(NestedField(field_id=2, name="user_id", field_type=StringType(), required=True))
+        fields.append(NestedField(field_id=3, name="task_name", field_type=StringType(), required=True))
+        fields.append( NestedField(field_id=4, name="created_at", field_type=TimestamptzType(), required=True))
+        index = 5
+        if "task_name" in output:
+            # Remove the "age" attribute
+            del output["task_name"]
         for key in output:
             fields.append( NestedField(field_id=index, name=key, field_type=StringType(), required=False))
             index += 1
@@ -215,7 +218,7 @@ class Lakehouse():
 
         schema = Schema(
             fields=fields,
-            identifier_field_ids=[1]
+            identifier_field_ids=[1,3]
         )
         #maintenance properties
         properties = {
@@ -225,7 +228,7 @@ class Lakehouse():
                 }
         
         # Sort on the generated_at
-        sort_order = SortOrder(SortField(source_id=3, transform=IdentityTransform(), direction=SortDirection.DESC))
+        sort_order = SortOrder(SortField(source_id=4, transform=IdentityTransform(), direction=SortDirection.DESC))
         self._catalog.create_table(
             identifier=table_identifier,
             schema=schema,
@@ -251,10 +254,9 @@ class Lakehouse():
         ret =  [{
                         "run_id": self.run_id,
                         "user_id": self.user_id,
-                        "name": task.name,
+                        "task_name": task.name,
                         "data_builder": task.data_builder,
                         "created_by": task._created_by,
-                        "seed_examples": json.dumps(task_yaml.get("seed_examples")), #TODO: check if needed. Some qna.yaml doesn't have it
                         "taxonomy_path": task.file_path,
                         "task_yaml": json.dumps(task_yaml),
                         "builder_config" : json.dumps(task.builder_cfg),
@@ -279,6 +281,8 @@ class Lakehouse():
             output["run_id"] = self.run_id
             output["user_id"] = self.user_id
             output["created_at"] = datetime.now(timezone.utc)
+            if "task_name" not in output:
+                output["run_id"] = task.name
             ret.append(output)
 
         #get the table
