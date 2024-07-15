@@ -3,7 +3,6 @@ from typing import Any, List, TypeVar, Union
 import abc
 
 DATA_PATH_KEY = "data_path"
-DATALOADER_TYPE_KEY = "type"
 
 T = TypeVar("T")
 
