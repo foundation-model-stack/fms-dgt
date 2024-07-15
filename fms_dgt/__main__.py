@@ -2,7 +2,7 @@
 from typing import List
 import argparse
 
-# First Party
+# Local
 from fms_dgt.generate_data import generate_data
 
 DEFAULT_CONFIG = "config.yaml"
@@ -53,11 +53,6 @@ def add_base_args(parser: argparse.ArgumentParser):
         default=DEFAULT_GENERATED_FILES_OUTPUT_DIR,
         help="Path to output generated files.",
     )
-    group.add_argument(
-        "--restart-generation",
-        action="store_true",
-        help="Entirely restart instruction generation.",
-    )
     return group
 
 
@@ -100,6 +95,11 @@ def add_task_args(parser: argparse.ArgumentParser):
         type=int,
         help="Number of outputs to generate.",
         default=DEFAULT_NUM_OUTPUTS,
+    )
+    group.add_argument(
+        "--restart-generation",
+        action="store_true",
+        help="Entirely restart instruction generation.",
     )
     return group
 
