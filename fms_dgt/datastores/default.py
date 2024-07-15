@@ -47,7 +47,7 @@ class DefaultDatastore(BaseDatastore):
         path_components.append("generated_instructions." + output_format)
         return os.path.join(*path_components)
 
-    def save(
+    def save_data(
         self,
         new_data: List[T],
     ) -> None:
@@ -69,7 +69,7 @@ class DefaultDatastore(BaseDatastore):
         else:
             raise ValueError(f"Unhandled output format: {output_format}")
 
-    def load(self) -> List[T]:
+    def load_data(self) -> List[T]:
 
         if not os.path.exists(self.output_path):
             return
@@ -91,3 +91,6 @@ class DefaultDatastore(BaseDatastore):
             raise ValueError(f"Unhandled output format: {output_format}")
 
         return machine_data
+
+    def save_task(self) -> None:
+        pass
