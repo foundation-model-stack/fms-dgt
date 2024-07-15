@@ -1,11 +1,11 @@
 name: simple_pipeline
 blocks:
-  - name: mapper
+  - name: pb1
     type: prompt_builder
     prompt_path: data/pipeline/prompt.txt
     kwarg_fields:
-      - question
-      - answer
+      - input1
+      - input2
     result_field: prompt
   - name: llm1
     type: genai
@@ -17,6 +17,6 @@ blocks:
     min_new_tokens: 1
     model_id_or_path: mistralai/mixtral-8x7b-instruct-v01
     stop_sequences: ["Q:"]
-data_schema:
-  answer: string
-  question: string
+data_map:
+  question: input1
+  answer: input2

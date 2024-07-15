@@ -10,7 +10,7 @@ from fms_dgt.utils import sdg_logger
 
 @dataclass
 class PipelineConfig(DataBuilderConfig):
-    data_schema: Dict = None
+    data_map: Dict = None
 
 
 TYPE_KEY = "type"
@@ -19,18 +19,18 @@ TYPE_KEY = "type"
 class PipelineSdgTask(SdgTask):
     """This class is intended to hold general task information"""
 
-    def __init__(self, data_schema: Dict, **kwargs):
+    def __init__(self, data_map: Dict, **kwargs):
         super().__init__(**kwargs)
-        self._data_schema = data_schema
+        self._data_map = data_map
 
     @property
-    def data_schema(self):
-        return self._data_schema
+    def data_map(self):
+        return self._data_map
 
     def get_example(self) -> Dict:
         try:
             example = next(self._dataloader)
-            self._validate_example(example)
+            example = self._map_example(example)
             return example
         except StopIteration:
             return None
@@ -44,9 +44,12 @@ class PipelineSdgTask(SdgTask):
             outputs.append(example)
         return outputs
 
-    def _validate_example(self, ex: Dict):
+    def _map_example(self, ex: Dict):
         # validate example with schema
-        return True
+        new_ex = dict()
+        for k, v in ex.items():
+            new_ex[self.data_map.get(k, k)] = v
+        return new_ex
 
     def save_data(
         self,
@@ -81,7 +84,7 @@ class Pipeline(DataBuilder):
 
         super().__init__(
             config=config,
-            task_kwargs={"data_schema": config.data_schema, **task_kwargs},
+            task_kwargs={"data_map": config.data_map, **task_kwargs},
             **kwargs,
         )
 
