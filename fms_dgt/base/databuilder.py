@@ -116,12 +116,12 @@ class DataBuilder(ABC):
                 obj_name in type_annotations
             ), f"Object {obj_name} is missing from definition of DataBuilder {self.__class__}"
 
-            obj_type = type_annotations[obj_name]
+                obj_type = type_annotations[obj_name]
 
-            # double check types
-            assert isinstance(obj, obj_type) or (
-                isinstance(obj, CachingLM) and isinstance(obj.lm, obj_type)
-            ), f"Type of retrieved object {obj.__class__} for {obj_name} does not match type {obj_type} specified in DataBuilder {self.__class__}"
+                # double check types
+                assert isinstance(obj, obj_type) or (
+                    isinstance(obj, CachingLM) and isinstance(obj.lm, obj_type)
+                ), f"Type of retrieved object {obj.__class__} for {obj_name} does not match type {obj_type} specified in DataBuilder {self.__class__}"
 
             setattr(self, obj_name, obj)
 
