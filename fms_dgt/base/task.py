@@ -161,14 +161,17 @@ class SdgTask:
             new_data = [new_data]
 
         to_save = [d.to_output_dict() for d in new_data]
-        self._datastore.save(to_save)
+        self._datastore.save_data(to_save)
 
     def load_data(self) -> List[SdgData]:
-        loaded_data = self._datastore.load()
+        loaded_data = self._datastore.load_data()
         if loaded_data:
             self.machine_data = [
                 self.instantiate_output_example(**d) for d in loaded_data
             ]
+
+    def save_task(self):
+        self._datastore.save_task()
 
 
 T = TypeVar("T")
