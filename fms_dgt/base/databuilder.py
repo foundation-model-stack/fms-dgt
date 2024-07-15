@@ -13,7 +13,7 @@ from tqdm import tqdm
 # Local
 from fms_dgt.base.block import BaseBlock
 from fms_dgt.base.registry import get_block
-from fms_dgt.base.task import SdgData, SdgTask
+from fms_dgt.base.task import NAME_KEY, TYPE_KEY, SdgData, SdgTask
 from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
 from fms_dgt.utils import all_annotations, sdg_logger
 
@@ -32,10 +32,6 @@ class DataBuilderConfig(dict):
         pass
 
 
-NAME_KEY = "name"
-TYPE_KEY = "type"
-
-
 class DataBuilder(ABC):
     """A data builder represents a means of constructing data for a set of tasks"""
 
@@ -47,7 +43,6 @@ class DataBuilder(ABC):
         config: Mapping = None,
         lm_cache: str = None,
         output_dir: str = None,
-        restart_generation: bool = False,
         max_gen_requests: int = None,
         task_inits: dict = None,
         task_kwargs: dict = None,
@@ -59,7 +54,6 @@ class DataBuilder(ABC):
         )
         self._name = self.config.name
         self._max_gen_requests = max_gen_requests
-        self._restart_generation = restart_generation
 
         # initializing generators / validators
         self._init_blocks(lm_cache=lm_cache)
@@ -70,9 +64,6 @@ class DataBuilder(ABC):
             for task_init in task_inits
         ]
         #
-
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir, exist_ok=True)
 
         date_suffix = (
             datetime.now().replace(microsecond=0).isoformat().replace(":", "_")
@@ -152,10 +143,8 @@ class DataBuilder(ABC):
 
         # load the LM-generated data
         for task in tasks:
-            if self._restart_generation:
-                task.clear_data()
-            if os.path.exists(task.output_path):
-                task.load_data()
+            task.load_data()
+            if task.machine_data:
                 sdg_logger.debug(
                     "Loaded %s machine-generated data", len(task.machine_data)
                 )
