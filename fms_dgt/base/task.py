@@ -1,6 +1,6 @@
 # Standard
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, List, Optional, TypeVar, Union
+from typing import Any, Dict, List, Mapping, Optional, TypeVar, Union
 import abc
 import json
 import os
@@ -9,13 +9,21 @@ import os
 import pandas as pd
 
 # Local
-from fms_dgt.base.dataloader import DATALOADER_TYPE_KEY, DATA_PATH_KEY
-from fms_dgt.base.registry import get_dataloader
+from fms_dgt.base.dataloader import DATA_PATH_KEY
+from fms_dgt.base.registry import get_dataloader, get_datastore
 from fms_dgt.dataloaders.default import DefaultDataloader
+from fms_dgt.datastores.default import DefaultDatastore
 from fms_dgt.utils import group_data_by_attribute
+
+# TODO: make these dynamic imports
 import fms_dgt.dataloaders
+import fms_dgt.datastores
 
 DEFAULT_OUTPUT_DIR = "output"
+
+
+NAME_KEY = "name"
+TYPE_KEY = "type"
 
 
 @dataclass
@@ -44,11 +52,16 @@ class SdgTask:
         data_builder: str,
         output_dir: Optional[str] = "output",
         output_format: Optional[str] = "jsonl",
+        datastore: Optional[Dict] = None,
+        restart_generation: Optional[bool] = False,
+        builder_cfg: Optional[Mapping] = None,
+        file_path: Optional[str] = None,
         dataloader: Optional[Dict] = None,
         dataloader_batch_size: Optional[int] = None,
         seed_examples: Optional[List[Any]] = None,
         num_outputs_to_generate: Optional[int] = None,
     ):
+
         self._name = name
         self._task_description = task_description
         self._created_by = created_by
@@ -57,8 +70,22 @@ class SdgTask:
         self._num_outputs_to_generate = num_outputs_to_generate
         self.machine_data = []
 
-        self._output_dir = output_dir
-        self._output_path = self._get_default_output_path(output_format)
+        ds_kwargs = {
+            "restart_generation": restart_generation,
+            "file_path": file_path,
+            "builder_cfg": builder_cfg,
+        }
+        if datastore is None:
+            self._datastore = DefaultDatastore(
+                output_dir, name, output_format, **ds_kwargs
+            )
+        else:
+            assert (
+                TYPE_KEY in datastore
+            ), f"Must specify data store type with '{TYPE_KEY}' key"
+            self._datastore = get_datastore(datastore.pop(TYPE_KEY))(
+                **{**ds_kwargs, **datastore}
+            )
 
         self._dataloader_batch_size = (
             dataloader_batch_size if dataloader_batch_size is not None else 10000000
@@ -67,9 +94,9 @@ class SdgTask:
         if dataloader is None:
             self._dataloader = DefaultDataloader(data=seed_examples)
         else:
-            assert DATALOADER_TYPE_KEY in dataloader, (
+            assert TYPE_KEY in dataloader, (
                 "Must specify dataloader type with %s key",
-                DATALOADER_TYPE_KEY,
+                TYPE_KEY,
             )
             assert DATA_PATH_KEY in dataloader, (
                 "Must specify dataloader data path with %s key",
@@ -82,9 +109,7 @@ class SdgTask:
             dataloader[DATA_PATH_KEY] = os.path.join(
                 dir_name, dataloader[DATA_PATH_KEY]
             )
-            self._dataloader = get_dataloader(dataloader.pop(DATALOADER_TYPE_KEY))(
-                **dataloader
-            )
+            self._dataloader = get_dataloader(dataloader.pop(TYPE_KEY))(**dataloader)
 
     @property
     def name(self):
@@ -97,10 +122,6 @@ class SdgTask:
     @property
     def data_builder(self):
         return self._data_builder
-
-    @property
-    def output_path(self) -> str:
-        return self._output_path
 
     @property
     def num_outputs_to_generate(self):
@@ -132,67 +153,22 @@ class SdgTask:
     def is_complete(self):
         return len(self.machine_data) > self.num_outputs_to_generate
 
-    def _get_default_output_path(self, output_format: str = None):
-        path_components = []
-        path_components.append(self._output_dir)
-        path_components.append(self._name)
-        path_components.append("generated_instructions." + output_format)
-        return os.path.join(*path_components)
-
     def save_data(
         self,
         new_data: Union[SdgData, List[SdgData]],
-        output_path: str = None,
     ) -> None:
         if type(new_data) != list:
             new_data = [new_data]
 
-        output_path = self._output_path if output_path is None else output_path
-        output_format = os.path.splitext(output_path)[-1]
+        to_save = [d.to_output_dict() for d in new_data]
+        self._datastore.save(to_save)
 
-        if output_format == ".jsonl":
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            with open(output_path, "a") as f:
-                for d in new_data:
-                    f.write(json.dumps(d.to_output_dict()) + "\n")
-        elif output_format == ".parquet":
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            pd.DataFrame(new_data).to_parquet(
-                output_path, engine="fastparquet", append=os.path.isfile(output_path)
-            )
-        else:
-            raise ValueError(f"Unhandled output format: {output_format}")
-
-    def load_data(self, output_path: str = None) -> List[SdgData]:
-        output_path = self._output_path if output_path is None else output_path
-        output_format = os.path.splitext(output_path)[-1]
-        if output_format == ".jsonl":
-            with open(output_path, "r") as f:
-                try:
-                    machine_data = [
-                        self.instantiate_output_example(**json.loads(l.strip()))
-                        for l in f.readlines()
-                    ]
-                except ValueError:
-                    machine_data = []
-        elif output_format == ".parquet":
-            machine_data = [
-                self.instantiate_output_example(**r)
-                for r in (
-                    pd.read_parquet(output_path, engine="fastparquet")
-                    .apply(dict, axis=1)
-                    .to_list()
-                )
+    def load_data(self) -> List[SdgData]:
+        loaded_data = self._datastore.load()
+        if loaded_data:
+            self.machine_data = [
+                self.instantiate_output_example(**d) for d in loaded_data
             ]
-        else:
-            raise ValueError(f"Unhandled output format: {output_format}")
-
-        self.machine_data = machine_data
-
-    def clear_data(self, output_path: str = None) -> List[SdgData]:
-        output_path = self._output_path if output_path is None else output_path
-        if os.path.exists(output_path):
-            os.remove(output_path)
 
 
 T = TypeVar("T")
