@@ -1,5 +1,5 @@
 # Standard
-from typing import Any, List, TypeVar, Union
+from typing import List, TypeVar
 import abc
 
 DATA_PATH_KEY = "data_path"
@@ -14,11 +14,17 @@ class BaseDatastore(abc.ABC):
         super().__init__()
 
     @abc.abstractmethod
-    def save(self, new_data: List[T]) -> Any:
+    def save_data(self, new_data: List[T]) -> None:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def load(
+    def load_data(
         self,
     ) -> List[T]:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def save_task(
+        self,
+    ) -> None:
         raise NotImplementedError
