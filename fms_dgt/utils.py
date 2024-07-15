@@ -288,6 +288,7 @@ def read_data_file(file_path: str):
                 "data_builder": data_builder,
                 "created_by": created_by,
                 "seed_examples": seed_examples,
+                "file_path": os.path.abspath(__file__),
             },
             **contents,
         }
