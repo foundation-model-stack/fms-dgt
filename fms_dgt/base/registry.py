@@ -4,6 +4,7 @@ from typing import Any
 # Local
 from fms_dgt.base.block import BaseBlock
 from fms_dgt.base.dataloader import BaseDataloader
+from fms_dgt.base.datastore import BaseDatastore
 from fms_dgt.base.resource import BaseResource
 
 BLOCK_REGISTRY = {}
@@ -129,6 +130,38 @@ def get_dataloader(dataloader_name):
     except KeyError:
         raise ValueError(
             f"Attempted to load dataloader '{dataloader_name}', but no dataloader for this name found! Supported dataloader names: {', '.join(DATALOADER_REGISTRY.keys())}"
+        )
+
+
+DATASTORE_REGISTRY = {}
+
+
+def register_datastore(*names):
+    # either pass a list or a single alias.
+    # function receives them as a tuple of strings
+
+    def decorate(cls):
+        for name in names:
+            assert issubclass(
+                cls, BaseDatastore
+            ), f"Datastore '{name}' ({cls.__name__}) must extend BaseDatastore class"
+
+            assert (
+                name not in DATASTORE_REGISTRY
+            ), f"Datastore named '{name}' conflicts with existing datastore! Please register with a non-conflicting alias instead."
+
+            DATASTORE_REGISTRY[name] = cls
+        return cls
+
+    return decorate
+
+
+def get_datastore(datastore_name):
+    try:
+        return DATASTORE_REGISTRY[datastore_name]
+    except KeyError:
+        raise ValueError(
+            f"Attempted to load datastore '{datastore_name}', but no datastore for this name found! Supported datastore names: {', '.join(DATASTORE_REGISTRY.keys())}"
         )
 
 
