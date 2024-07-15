@@ -23,7 +23,6 @@ class DataBuilderConfig(dict):
     # data builder naming/registry
     name: Optional[str] = None
     blocks: Optional[dict] = None
-    generation_kwargs: Optional[dict] = None
     metadata: Optional[
         dict
     ] = None  # by default, not used in the code. allows for users to pass arbitrary info to data builders
@@ -125,17 +124,19 @@ class DataBuilder(ABC):
                     + f"_model{os.path.split(obj.model_id_or_path)[-1]}_rank{obj.rank}.db",
                 )
 
-            type_annotations = all_annotations(type(self))
-            assert (
-                obj_name in type_annotations
-            ), f"Object {obj_name} is missing from definition of DataBuilder {self.__class__}"
+            if not "fms_dgt.base.pipeline.Pipeline" in str(self.__class__):
+                # we type check when not using a pipeline
+                type_annotations = all_annotations(type(self))
+                assert (
+                    obj_name in type_annotations
+                ), f"Object {obj_name} is missing from definition of DataBuilder {self.__class__}"
 
-            obj_type = type_annotations[obj_name]
+                obj_type = type_annotations[obj_name]
 
-            # double check types
-            assert isinstance(obj, obj_type) or (
-                isinstance(obj, CachingLM) and isinstance(obj.lm, obj_type)
-            ), f"Type of retrieved object {obj.__class__} for {obj_name} does not match type {obj_type} specified in DataBuilder {self.__class__}"
+                # double check types
+                assert isinstance(obj, obj_type) or (
+                    isinstance(obj, CachingLM) and isinstance(obj.lm, obj_type)
+                ), f"Type of retrieved object {obj.__class__} for {obj_name} does not match type {obj_type} specified in DataBuilder {self.__class__}"
 
             setattr(self, obj_name, obj)
             self._blocks.append(obj)

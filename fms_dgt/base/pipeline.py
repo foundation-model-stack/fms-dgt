@@ -1,35 +1,21 @@
 # Standard
-from dataclasses import dataclass
-from datetime import datetime
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Union
-import json
-import os
-import time
-
-# Third Party
-from tqdm import tqdm
+from dataclasses import dataclass, fields
+from typing import Any, Dict, Mapping, Optional, Union
 
 # Local
-from fms_dgt.base.block import BaseBlock
-from fms_dgt.base.registry import get_block
-from fms_dgt.base.task import SdgData, SdgTask
-from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
-from fms_dgt.utils import all_annotations, sdg_logger
+from fms_dgt.base.databuilder import DataBuilder, DataBuilderConfig
+from fms_dgt.base.task import SdgTask
 
 
 @dataclass
-class PipelineConfig(dict):
-    # data builder naming/registry
-    blocks: List[Dict] = None
-    metadata: Optional[
-        dict
-    ] = None  # by default, not used in the code. allows for users to pass arbitrary info to data builders
+class PipelineConfig(DataBuilderConfig):
+    data_schema: Dict = None
 
 
 TYPE_KEY = "type"
 
 
-class Pipeline:
+class Pipeline(DataBuilder):
     """A data builder represents a means of constructing data for a set of tasks"""
 
     VERSION: Optional[Union[int, str]] = None
@@ -38,12 +24,54 @@ class Pipeline:
     def __init__(
         self,
         config: Mapping = None,
-        lm_cache: str = None,
-        output_dir: str = None,
-        restart_generation: bool = False,
-        max_gen_requests: int = None,
-        task_inits: dict = None,
-        task_kwargs: dict = None,
         **kwargs: Any,
     ) -> None:
         """ """
+        db_config = {
+            f.name: config.get(f.name)
+            for f in fields(DataBuilderConfig())
+            if f.name in config
+        }
+        super().__init__(config=db_config, **kwargs)
+
+        self._config: PipelineConfig = (
+            PipelineConfig(**config) if config else PipelineConfig()
+        )
+
+        self._data_schema = self._config.data_schema
+        print(self._data_schema)
+        input("--")
+
+    def generate(self, dataset):
+        """
+        Generate the dataset by running the pipeline steps.
+        dataset: the input dataset
+        """
+        for block_prop in self.blocks:
+            block_name = block_prop["name"]
+            block_type = _lookup_block_type(block_prop["type"])
+            block_config = block_prop["config"]
+            drop_columns = block_prop.get("drop_columns", [])
+            gen_kwargs = block_prop.get("gen_kwargs", {})
+            drop_duplicates_cols = block_prop.get("drop_duplicates", False)
+            block = block_type(self.ctx, self, block_name, **block_config)
+
+            logger.info("Running block: %s", block_name)
+            logger.info(dataset)
+
+            dataset = block.generate(dataset, **gen_kwargs)
+
+            # If at any point we end up with an empty data set, the pipeline has failed
+            if len(dataset) == 0:
+                raise EmptyDatasetError(
+                    f"Pipeline stopped: Empty dataset after running block: {block_name}"
+                )
+
+            drop_columns_in_ds = [e for e in drop_columns if e in dataset.column_names]
+            if drop_columns:
+                dataset = dataset.remove_columns(drop_columns_in_ds)
+
+            if drop_duplicates_cols:
+                dataset = self._drop_duplicates(dataset, cols=drop_duplicates_cols)
+
+        return dataset

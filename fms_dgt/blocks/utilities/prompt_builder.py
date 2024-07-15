@@ -7,8 +7,8 @@ from fms_dgt.base.block import DATASET_TYPE, BaseBlock
 from fms_dgt.base.registry import register_block
 
 
-@register_block("flatten_field")
-class FlattenField(BaseBlock):
+@register_block("prompt_builder")
+class PromptBuilder(BaseBlock):
     """Flatten specified args"""
 
     def generate(
@@ -19,12 +19,6 @@ class FlattenField(BaseBlock):
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
     ):
-        arg_fields = arg_fields or self._arg_fields or []
-
-        assert (
-            len(arg_fields) == 1
-        ), f"{self.__class__.__name__} can only have 1 arg field!"
-
         outputs = []
         for x in inputs:
             inp_args, _ = self.get_args_kwargs(x, arg_fields, kwarg_fields)
