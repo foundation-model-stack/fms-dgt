@@ -72,10 +72,10 @@ class SdgTask:
             )
         else:
             assert (
-                TYPE_KEY in dataloader
+                TYPE_KEY in datastore
             ), f"Must specify data store type with '{TYPE_KEY}' key"
-            self._dataloader = get_datastore(dataloader.pop(TYPE_KEY))(
-                restart_generation=restart_generation, **dataloader
+            self._datastore = get_datastore(datastore.pop(TYPE_KEY))(
+                restart_generation=restart_generation, **datastore
             )
 
         self._dataloader_batch_size = (
