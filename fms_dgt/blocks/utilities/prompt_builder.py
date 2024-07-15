@@ -9,7 +9,12 @@ from fms_dgt.base.registry import register_block
 
 @register_block("prompt_builder")
 class PromptBuilder(BaseBlock):
-    """Flatten specified args"""
+    """Convert inputs into prompt"""
+
+    def __init__(self, prompt_path: str = None, **kwargs) -> None:
+        super().__init__(**kwargs)
+        with open(prompt_path, "r") as f:
+            self._prompt = f.read().strip()
 
     def generate(
         self,
@@ -21,16 +26,15 @@ class PromptBuilder(BaseBlock):
     ):
         outputs = []
         for x in inputs:
-            inp_args, _ = self.get_args_kwargs(x, arg_fields, kwarg_fields)
-            to_flatten = inp_args[0] if type(inp_args[0]) == list else [inp_args[0]]
+            _, inp_kwargs = self.get_args_kwargs(x, arg_fields, kwarg_fields)
 
-            # remove flattened attribute
-            x_copy = copy.copy(x)
-            delattr(x_copy, arg_fields[0])
+            prompt = self._prompt + ""
 
-            for el in to_flatten:
-                outputs.append(copy.copy(x_copy))
-                delattr(outputs[-1], arg_fields[0])
-                self.write_result(outputs[-1], el, result_field)
+            for k, v in inp_kwargs.items():
+                prompt = prompt.replace("{{" + k + "}}", v)
+
+            outputs.append(x)
+
+            self.write_result(outputs[-1], prompt, result_field)
 
         return outputs

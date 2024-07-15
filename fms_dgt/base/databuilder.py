@@ -23,9 +23,9 @@ class DataBuilderConfig(dict):
     # data builder naming/registry
     name: Optional[str] = None
     blocks: Optional[dict] = None
-    metadata: Optional[
-        dict
-    ] = None  # by default, not used in the code. allows for users to pass arbitrary info to data builders
+    metadata: Optional[dict] = (
+        None  # by default, not used in the code. allows for users to pass arbitrary info to data builders
+    )
 
     def __post_init__(self) -> None:
         pass
@@ -48,9 +48,13 @@ class DataBuilder(ABC):
         **kwargs: Any,
     ) -> None:
         """ """
-        self._config: DataBuilderConfig = (
-            DataBuilderConfig(**config) if config else DataBuilderConfig()
-        )
+        if isinstance(config, DataBuilderConfig):
+            self._config = config
+        elif config is not None:
+            self._config = DataBuilderConfig(**config)
+        else:
+            self._config = DataBuilderConfig()
+
         self._name = self.config.name
         self._max_gen_requests = max_gen_requests
 
