@@ -60,7 +60,9 @@ class DataBuilder(ABC):
 
         # TODO: Data loader goes here
         self._tasks: List[SdgTask] = [
-            self.TASK_TYPE(output_dir=output_dir, **task_init, **task_kwargs)
+            self.TASK_TYPE(
+                output_dir=output_dir, builder_cfg=config, **task_init, **task_kwargs
+            )
             for task_init in task_inits
         ]
         #

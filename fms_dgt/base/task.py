@@ -1,6 +1,6 @@
 # Standard
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, List, Optional, TypeVar, Union
+from typing import Any, Dict, List, Mapping, Optional, TypeVar, Union
 import abc
 import json
 import os
@@ -53,11 +53,14 @@ class SdgTask:
         output_format: Optional[str] = "jsonl",
         datastore: Optional[Dict] = None,
         restart_generation: Optional[bool] = False,
+        builder_cfg: Optional[Mapping] = None,
+        file_path: Optional[str] = None,
         dataloader: Optional[Dict] = None,
         dataloader_batch_size: Optional[int] = None,
         seed_examples: Optional[List[Any]] = None,
         num_outputs_to_generate: Optional[int] = None,
     ):
+
         self._name = name
         self._task_description = task_description
         self._created_by = created_by
@@ -66,16 +69,21 @@ class SdgTask:
         self._num_outputs_to_generate = num_outputs_to_generate
         self.machine_data = []
 
+        ds_kwargs = {
+            "restart_generation": restart_generation,
+            "file_path": file_path,
+            "builder_cfg": builder_cfg,
+        }
         if datastore is None:
             self._datastore = DefaultDatastore(
-                output_dir, name, output_format, restart_generation=restart_generation
+                output_dir, name, output_format, **ds_kwargs
             )
         else:
             assert (
                 TYPE_KEY in datastore
             ), f"Must specify data store type with '{TYPE_KEY}' key"
             self._datastore = get_datastore(datastore.pop(TYPE_KEY))(
-                restart_generation=restart_generation, **datastore
+                **{**ds_kwargs, **datastore}
             )
 
         self._dataloader_batch_size = (

@@ -19,10 +19,11 @@ class DefaultDatastore(BaseDatastore):
 
     def __init__(
         self,
-        output_dir: str,
-        task_name: str,
+        output_dir: str = None,
+        task_name: str = None,
         output_format: str = ".jsonl",
         restart_generation: bool = False,
+        **kwargs,
     ) -> None:
         super().__init__()
 
