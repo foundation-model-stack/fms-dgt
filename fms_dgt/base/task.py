@@ -70,13 +70,15 @@ class SdgTask:
         self.machine_data = []
 
         ds_kwargs = {
+            "task_name": name,
+            "data_builder": data_builder,
             "restart_generation": restart_generation,
             "file_path": file_path,
             "builder_cfg": builder_cfg,
         }
         if datastore is None:
             self._datastore = DefaultDatastore(
-                output_dir, name, output_format, **ds_kwargs
+                output_dir=output_dir, output_format=output_format, **ds_kwargs
             )
         else:
             assert (
