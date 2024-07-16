@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Union
 
 # Local
+from fms_dgt.base.block import DATASET_TYPE
 from fms_dgt.base.databuilder import DataBuilder, DataBuilderConfig
 from fms_dgt.base.task import SdgTask
 from fms_dgt.utils import sdg_logger
@@ -34,15 +35,6 @@ class PipelineSdgTask(SdgTask):
             return example
         except StopIteration:
             return None
-
-    def get_batch_examples(self) -> List[Dict]:
-        outputs = []
-        for _ in range(self._dataloader_batch_size):
-            example = self.get_example()
-            if example is None:
-                return outputs
-            outputs.append(example)
-        return outputs
 
     def _map_example(self, ex: Dict):
         # validate example with schema
@@ -81,7 +73,6 @@ class Pipeline(DataBuilder):
         config: PipelineConfig = (
             PipelineConfig(**config) if config else PipelineConfig()
         )
-
         super().__init__(
             config=config,
             task_kwargs={"data_map": config.data_map, **task_kwargs},
@@ -96,12 +87,13 @@ class Pipeline(DataBuilder):
             sdg_logger.info(f"Running task: {task.name}")
 
             data_pool = task.get_batch_examples() + task.machine_data
+
             for res in self(data_pool):
                 if "task_name" not in res:
                     res["task_name"] = task.name
                 yield res
 
-    def __call__(self, data_pool: List[Dict]):
+    def __call__(self, data_pool: DATASET_TYPE):
         block_data = data_pool
         for block in self.blocks:
             sdg_logger.info(f"Running block {block.name}")
