@@ -14,10 +14,6 @@ from fms_dgt.dataloaders.default import DefaultDataloader
 from fms_dgt.datastores.default import DefaultDatastore
 from fms_dgt.utils import group_data_by_attribute
 
-# TODO: make these dynamic imports
-import fms_dgt.dataloaders
-import fms_dgt.datastores
-
 DEFAULT_OUTPUT_DIR = "output"
 
 
