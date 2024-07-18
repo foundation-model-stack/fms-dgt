@@ -15,10 +15,6 @@ from fms_dgt.dataloaders.default import DefaultDataloader
 from fms_dgt.datastores.default import DefaultDatastore
 from fms_dgt.utils import group_data_by_attribute
 
-# TODO: make these dynamic imports
-import fms_dgt.dataloaders
-import fms_dgt.datastores
-
 DEFAULT_OUTPUT_DIR = "output"
 
 
@@ -71,13 +67,15 @@ class SdgTask:
         self.machine_data = []
 
         ds_kwargs = {
+            "task_name": name,
+            "data_builder": data_builder,
             "restart_generation": restart_generation,
             "file_path": file_path,
             "builder_cfg": builder_cfg,
         }
         if datastore is None:
             self._datastore = DefaultDatastore(
-                output_dir, name, output_format, **ds_kwargs
+                output_dir=output_dir, output_format=output_format, **ds_kwargs
             )
         else:
             assert (
