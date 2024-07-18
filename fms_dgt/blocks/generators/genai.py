@@ -75,16 +75,15 @@ class GenAIGenerator(LMGenerator):
                 # all kwargs are identical within a chunk
                 gen_kwargs = next(iter(chunk)).kwargs
 
-                until = None
                 if isinstance(kwargs := copy.deepcopy(gen_kwargs), dict):
                     # start with default params then overwrite with kwargs
                     kwargs = {**self._base_kwargs, **kwargs}
-                    until = kwargs.get("stop_sequences", None)
-                    model_id = kwargs.pop("model_id_or_path", self.model_id_or_path)
                 else:
                     raise ValueError(
                         f"Expected repr(kwargs) to be of type repr(dict) but got {kwargs}"
                     )
+                model_id = kwargs.pop("model_id_or_path", self.model_id_or_path)
+                until = kwargs.get("stop_sequences", None)
 
                 parameters = TextGenerationParameters(
                     return_options=TextGenerationReturnOptions(
@@ -110,7 +109,10 @@ class GenAIGenerator(LMGenerator):
 
                     s = result.generated_text
                     self.update_instance_with_result(
-                        "generate_batch", s, instance, until
+                        "generate_batch",
+                        s,
+                        instance,
+                        until,
                     )
                     pbar.update(1)
 
@@ -141,11 +143,11 @@ class GenAIGenerator(LMGenerator):
                 if isinstance(kwargs := copy.deepcopy(gen_kwargs), dict):
                     # start with default params in self.config then overwrite with kwargs
                     kwargs = {**self._base_kwargs, **kwargs}
-                    model_id = kwargs.pop("model_id_or_path", self.model_id_or_path)
                 else:
                     raise ValueError(
                         f"Expected repr(kwargs) to be of type repr(dict) but got {kwargs}"
                     )
+                model_id = kwargs.pop("model_id_or_path", self.model_id_or_path)
 
                 score_params = TextGenerationParameters(
                     temperature=1.0,

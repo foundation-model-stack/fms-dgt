@@ -28,17 +28,17 @@ GREEDY_CFG = {
     "min_new_tokens": 1,
 }
 GREEDY_GENAI_CFG = {
-    "type": "genai",
+    "block_type": "genai",
     "model_id_or_path": "ibm/granite-8b-code-instruct",
     **GREEDY_CFG,
 }
 GREEDY_VLLM_CFG = {
-    "type": "vllm",
+    "block_type": "vllm",
     "model_id_or_path": "ibm-granite/granite-8b-code-instruct",
     **GREEDY_CFG,
 }
 GREEDY_OPENAI_CFG = {
-    "type": "openai-chat",
+    "block_type": "openai-chat",
     "model_id_or_path": "gpt-3.5-turbo",
     **GREEDY_CFG,
 }
@@ -47,11 +47,11 @@ PROMPTS = [f"Question: x = {i} + 1\nAnswer: x =" for i in range(25)]
 
 class TestLlmGenerators:
     @pytest.mark.parametrize(
-        "model_cfg", [GREEDY_GENAI_CFG, GREEDY_OPENAI_CFG]
+        "model_cfg", [GREEDY_OPENAI_CFG, GREEDY_GENAI_CFG, GREEDY_VLLM_CFG]
     )  # GREEDY_VLLM_CFG]
     def test_generate_batch(self, model_cfg):
         model_cfg = dict(model_cfg)
-        model_type = model_cfg.pop("type")
+        model_type = model_cfg.get("block_type")
         lm: LMGenerator = get_block(model_type)(name=f"test_{model_type}", **model_cfg)
 
         inputs: List[Dict] = []
@@ -72,7 +72,7 @@ class TestLlmGenerators:
     @pytest.mark.parametrize("model_cfg", [GREEDY_GENAI_CFG])  # , GREEDY_VLLM_CFG])
     def test_loglikelihood_batch(self, model_cfg):
         model_cfg = dict(model_cfg)
-        model_type = model_cfg.pop("type")
+        model_type = model_cfg.get("block_type")
         lm: LMGenerator = get_block(model_type)(name=f"test_{model_type}", **model_cfg)
 
         inputs: List[Dict] = []
@@ -100,10 +100,10 @@ class TestLlmGenerators:
     #     vllm_config["model_id_or_path"] = "ibm-granite/granite-8b-code-instruct"
     #     genai_config["model_id_or_path"] = "ibm/granite-8b-code-instruct"
 
-    #     vllm: LMGeneratorBlock = get_block(vllm_config["type"])(
+    #     vllm: LMGeneratorBlock = get_block(vllm_config["block_type"])(
     #         name=f"test_{vllm_config['type']}", config=vllm_config
     #     )
-    #     genai: LMGeneratorBlock = get_block(genai_config["type"])(
+    #     genai: LMGeneratorBlock = get_block(genai_config["block_type"])(
     #         name=f"test_{genai_config['type']}", config=genai_config
     #     )
 
@@ -131,7 +131,7 @@ class TestLlmGenerators:
             os.remove(cache_path)
 
         model_cfg = dict(GREEDY_GENAI_CFG)
-        model_type = model_cfg.pop("type")
+        model_type = model_cfg.get("block_type")
         lm: LMGenerator = get_block(model_type)(name=f"test_{model_type}", **model_cfg)
 
         non_cache_inputs: List[Dict] = []
@@ -183,14 +183,13 @@ class TestLlmGenerators:
         """
         start server with
 
-        python -m vllm.entrypoints.openai.api_server --model ibm/granite-8b-code-instruc
+        python -m vllm.entrypoints.openai.api_server --model ibm-granite/granite-8b-code-instruct
 
         """
         model_cfg = dict(GREEDY_VLLM_CFG)
-        model_cfg["type"] = "openai"
+        model_cfg["block_type"] = "vllm-remote"
         model_cfg["base_url"] = "http://0.0.0.0:8000/v1"
-
-        model_type = model_cfg.pop("type")
+        model_type = model_cfg.get("block_type")
         lm: LMGenerator = get_block(model_type)(name=f"test_{model_type}", **model_cfg)
 
         # first we test generation

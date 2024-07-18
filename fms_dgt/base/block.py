@@ -16,6 +16,7 @@ class BaseBlock(ABC):
     def __init__(
         self,
         name: str = None,
+        block_type: str = None,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
@@ -29,6 +30,7 @@ class BaseBlock(ABC):
             raise TypeError("result_field must be of type 'str'")
 
         self._name = name
+        self._block_type = block_type
 
         self._arg_fields = arg_fields
         self._kwarg_fields = kwarg_fields
@@ -37,6 +39,10 @@ class BaseBlock(ABC):
     @property
     def name(self):
         return self._name
+
+    @property
+    def block_type(self):
+        return self._block_type
 
     @property
     def arg_fields(self):

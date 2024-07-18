@@ -62,13 +62,7 @@ class vLLMGenerator(LMGenerator):
         prefix_token_id: Optional[int] = None,
         tensor_parallel_size: int = 1,
         quantization: Optional[str] = None,
-        max_gen_toks: int = 256,
         swap_space: int = 4,
-        batch_size: Union[str, int] = 1,
-        max_batch_size: int = None,
-        max_length: int = None,
-        max_model_len: int = None,
-        seed: int = 1234,
         gpu_memory_utilization: float = 0.9,
         device: str = "cuda",
         data_parallel_size: int = 1,
@@ -84,11 +78,10 @@ class vLLMGenerator(LMGenerator):
             )
 
         assert "cuda" in device or device is None, "vLLM only supports CUDA"
-        assert (
-            max_length is None or max_model_len is None
-        ), "Either max_length or max_model_len may be provided, but not both"
 
-        self._max_length = max_model_len if max_model_len is not None else max_length
+        if self.batch_size is None:
+            self._batch_size = "auto"
+
         self.tensor_parallel_size = int(tensor_parallel_size)
         self.data_parallel_size = int(data_parallel_size)
         self.model_args = {
@@ -101,17 +94,14 @@ class vLLMGenerator(LMGenerator):
             "tokenizer_revision": tokenizer_revision,
             "trust_remote_code": trust_remote_code,
             "tensor_parallel_size": int(tensor_parallel_size),
-            "max_model_len": int(self._max_length) if self._max_length else None,
+            "max_model_len": int(self.max_length) if self.max_length else None,
             "swap_space": int(swap_space),
             "quantization": quantization,
-            "seed": int(seed),
+            "seed": int(self.random_seed),
         }
 
-        self.batch_size = (
-            "auto"
-            if isinstance(batch_size, str) and "auto" in batch_size
-            else batch_size
-        )
+        self._prefix_token_id = prefix_token_id
+
         if self.data_parallel_size <= 1:
             self.model = LLM(**self.model_args)
         else:
@@ -135,6 +125,7 @@ class vLLMGenerator(LMGenerator):
                 trust_remote_code=trust_remote_code,
                 revision=revision,
             )
+
         self.tokenizer = get_tokenizer(
             tokenizer if tokenizer else self.model_id_or_path,
             tokenizer_mode=tokenizer_mode,
@@ -149,7 +140,10 @@ class vLLMGenerator(LMGenerator):
                 self.prefix_token_id,
             )
 
-        self._max_gen_toks = max_gen_toks
+    @property
+    def prefix_token_id(self):
+        # we use EOT because end of *text* is more accurate for what we're doing than end of *sentence*
+        return self.tokenizer.eos_token_id
 
     @property
     def eot_token_id(self):
@@ -173,10 +167,6 @@ class vLLMGenerator(LMGenerator):
                 return self.tokenizer.model_max_length
             return self._DEFAULT_MAX_LENGTH
 
-    @property
-    def max_gen_toks(self):
-        return self._max_gen_toks
-
     def _model_generate(
         self,
         requests: List[List[int]] = None,
@@ -185,12 +175,12 @@ class vLLMGenerator(LMGenerator):
         **kwargs,
     ):
         if generate:
-            kwargs = self.modify_gen_kwargs(kwargs)
             sampling_params = SamplingParams(stop=stop, **kwargs)
         else:
             sampling_params = SamplingParams(
                 temperature=0, prompt_logprobs=1, max_tokens=1
             )
+
         if self.data_parallel_size > 1:
             # vLLM hangs if tensor_parallel > 1 and resources are set in ray.remote
             # also seems to only work with decorator and not with ray.remote() fn
@@ -253,32 +243,11 @@ class vLLMGenerator(LMGenerator):
                 context, context_encoding = zip(*context_and_encoding)
                 # all kwargs are identical within a chunk
                 gen_kwargs = next(iter(chunk_instances)).kwargs
+                kwargs = self.modify_gen_kwargs(gen_kwargs)
 
-                # unpack our keyword arguments.
-                until = None
-                if isinstance(kwargs := copy.deepcopy(gen_kwargs), dict):
-                    # start with default params then overwrite with kwargs
-                    kwargs = {**self._base_kwargs, **kwargs}
-                    if "stop_sequences" in kwargs:
-                        until = kwargs.pop("stop_sequences")
-                        if isinstance(until, str):
-                            until = [until]
-                        elif not isinstance(until, list):
-                            raise ValueError(
-                                f"Expected `kwargs['stop_sequences']` to be of type Union[str,list] but got {until}"
-                            )
-                    if "max_new_tokens" in kwargs.keys():
-                        kwargs["max_tokens"] = kwargs.pop("max_new_tokens")
-                    if "min_new_tokens" in kwargs:
-                        kwargs["min_tokens"] = kwargs.pop("min_new_tokens")
-                    if "decoding_method" in kwargs:
-                        kwargs["do_sample"] = kwargs.pop("decoding_method") == "sample"
-                else:
-                    raise ValueError(
-                        f"Expected `kwargs` to be of type `dict` but got {gen_kwargs}"
-                    )
                 # add EOS token to stop sequences
                 eos = self.tokenizer.decode(self.eot_token_id)
+                until = kwargs.pop("stop_sequences", None)
                 if not until:
                     until = [eos]
                 else:
@@ -448,15 +417,35 @@ class vLLMGenerator(LMGenerator):
 
         return continuation_logprobs
 
-    @staticmethod
-    def modify_gen_kwargs(kwargs: dict) -> dict:
-        # sampling_params
-        do_sample = kwargs.pop("do_sample", None)
-        if do_sample is False or "temperature" not in kwargs:
-            kwargs["temperature"] = 0.0
-        # hf defaults
-        kwargs["skip_special_tokens"] = kwargs.get("skip_special_tokens", False)
-        kwargs["spaces_between_special_tokens"] = kwargs.get(
-            "spaces_between_special_tokens", False
-        )
+    def modify_gen_kwargs(self, gen_kwargs: dict) -> dict:
+        # unpack our keyword arguments.
+        until = None
+        if isinstance(kwargs := copy.deepcopy(gen_kwargs), dict):
+            # start with default params then overwrite with kwargs
+            kwargs = {**self._base_kwargs, **kwargs}
+            if "stop_sequences" in kwargs:
+                until = kwargs.get("stop_sequences")
+                if isinstance(until, str):
+                    until = [until]
+                elif not isinstance(until, list):
+                    raise ValueError(
+                        f"Expected `kwargs['stop_sequences']` to be of type Union[str,list] but got {until}"
+                    )
+            if "max_new_tokens" in kwargs.keys():
+                kwargs["max_tokens"] = kwargs.pop("max_new_tokens")
+            if "min_new_tokens" in kwargs:
+                kwargs["min_tokens"] = kwargs.pop("min_new_tokens")
+            if "decoding_method" in kwargs:
+                if kwargs.pop("decoding_method") == "sample":
+                    kwargs["temperature"] = 0.0
+            if "random_seed" in kwargs:
+                kwargs["seed"] = kwargs.pop("random_seed")
+            kwargs["skip_special_tokens"] = kwargs.get("skip_special_tokens", False)
+            kwargs["spaces_between_special_tokens"] = kwargs.get(
+                "spaces_between_special_tokens", False
+            )
+        else:
+            raise ValueError(
+                f"Expected `kwargs` to be of type `dict` but got {gen_kwargs}"
+            )
         return kwargs
