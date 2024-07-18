@@ -20,6 +20,12 @@ logging.basicConfig(
 sdg_logger = logging.getLogger("fms_dgt")
 
 
+def is_module_installed(module_name: str):
+    """Checks if a module is installed."""
+    result = importlib.util.find_spec(module_name) is not None
+    return result
+
+
 def all_annotations(cls) -> ChainMap:
     return ChainMap(
         *(c.__annotations__ for c in cls.__mro__ if "__annotations__" in c.__dict__)
