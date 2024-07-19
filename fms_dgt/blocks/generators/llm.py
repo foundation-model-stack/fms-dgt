@@ -36,11 +36,14 @@ class LMGenerator(BaseBlock):
         self,
         model_id_or_path: str = None,
         decoding_method: str = "sample",
+        truncate: bool = False,
         max_new_tokens: int = None,
         min_new_tokens: int = None,
-        random_seed: int = None,
+        max_length: int = 2049,
+        random_seed: int = 1234,
         stop_sequences: List[str] = None,
         temperature: float = None,
+        batch_size: int = None,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
@@ -53,14 +56,24 @@ class LMGenerator(BaseBlock):
             self.model_id_or_path is not None
         ), f"Must specify model for Generator {self.name}"
 
+        self._decoding_method = decoding_method
+        self._truncate = truncate
+        self._max_new_tokens = max_new_tokens
+        self._min_new_tokens = min_new_tokens
+        self._max_length = max_length
+        self._random_seed = random_seed
+        self._stop_sequences = stop_sequences
+        self._temperature = temperature
+        self._batch_size = batch_size
+
         cfg_kwargs = dict()
         for k, v in {
-            "decoding_method": decoding_method,
-            "max_new_tokens": max_new_tokens,
-            "min_new_tokens": min_new_tokens,
-            "random_seed": random_seed,
-            "stop_sequences": stop_sequences,
-            "temperature": temperature,
+            "decoding_method": self._decoding_method,
+            "max_new_tokens": self._max_new_tokens,
+            "min_new_tokens": self._min_new_tokens,
+            "random_seed": self._random_seed,
+            "stop_sequences": self._stop_sequences,
+            "temperature": self._temperature,
         }.items():
             if v is not None:
                 cfg_kwargs[k] = v
@@ -73,6 +86,19 @@ class LMGenerator(BaseBlock):
         # ensure no errors arise using API models which do
         # not support multi-device parallelism nor expect it.
         return self._rank
+
+    @property
+    def max_length(self) -> int:
+        # Note: the OpenAI API supports up to 2049 tokens, with the first token being the first input token
+        return self._max_length
+
+    @property
+    def batch_size(self) -> int:
+        return self._batch_size
+
+    @property
+    def random_seed(self) -> int:
+        return self._random_seed
 
     def update_instance_with_result(
         self,
