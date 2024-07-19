@@ -5,6 +5,7 @@ import abc
 import random
 
 # Local
+from fms_dgt.base.dataloader import DATA_PATH_KEY
 from fms_dgt.base.registry import get_dataloader, get_datastore
 from fms_dgt.dataloaders.default import DefaultDataloader
 from fms_dgt.datastores.default import DefaultDatastore
