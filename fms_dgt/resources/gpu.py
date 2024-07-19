@@ -1,7 +1,7 @@
 # Standard
 from typing import Dict
 
-# First Party
+# Local
 from fms_dgt.base.registry import register_resource
 from fms_dgt.base.resource import BaseResource
 

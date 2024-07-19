@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Dict, Optional
 import os
 
-# First Party
+# Local
 from fms_dgt.base.databuilder import DataBuilder
 from fms_dgt.base.registry import get_data_builder
 from fms_dgt.databuilders import DataBuilderIndex

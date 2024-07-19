@@ -9,6 +9,7 @@ import os
 import pandas as pd
 
 # Local
+from fms_dgt.base.dataloader import DATA_PATH_KEY
 from fms_dgt.base.registry import get_dataloader, get_datastore
 from fms_dgt.dataloaders.default import DefaultDataloader
 from fms_dgt.datastores.default import DefaultDatastore
@@ -87,14 +88,17 @@ class SdgTask:
         self._dataloader_batch_size = (
             dataloader_batch_size if dataloader_batch_size is not None else 10000000
         )
-
+        dl_kwargs = {"seed_examples": seed_examples}
         if dataloader is None:
             self._dataloader = DefaultDataloader(data=seed_examples)
         else:
-            assert (
-                TYPE_KEY in dataloader
-            ), f"Must specify data loader type with '{TYPE_KEY}' key"
-            self._dataloader = get_dataloader(dataloader.pop(TYPE_KEY))(**dataloader)
+            assert TYPE_KEY in dataloader, (
+                "Must specify dataloader type with %s key",
+                TYPE_KEY,
+            )
+            self._dataloader = get_dataloader(dataloader.pop(TYPE_KEY))(
+                **{**dl_kwargs, **dataloader}
+            )
 
     @property
     def name(self):

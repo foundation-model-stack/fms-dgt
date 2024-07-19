@@ -10,7 +10,7 @@ import string
 # Third Party
 from jinja2 import Template
 
-# First Party
+# Local
 from fms_dgt.databuilders.simple.task import InstructLabSdgData
 from fms_dgt.utils import sdg_logger
 

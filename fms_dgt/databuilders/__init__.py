@@ -3,7 +3,7 @@ from typing import List, Mapping, Optional, Union
 import collections
 import os
 
-# First Party
+# Local
 from fms_dgt.utils import sdg_logger
 import fms_dgt.utils as utils
 
