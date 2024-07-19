@@ -96,17 +96,8 @@ class SdgTask:
                 "Must specify dataloader type with %s key",
                 TYPE_KEY,
             )
-            assert DATA_PATH_KEY in dataloader, (
-                "Must specify dataloader data path with %s key",
-                DATA_PATH_KEY,
-            )
-            assert seed_examples == [
-                {}
-            ], "Please specify either seed_examples or dataloader, not both"
-            dir_name = "/".join(name.split("->"))
-            dataloader[DATA_PATH_KEY] = os.path.join(
-                dir_name, dataloader[DATA_PATH_KEY]
-            )
+            if dataloader[TYPE_KEY] == "file":
+                dataloader["seed_examples"] = seed_examples
             self._dataloader = get_dataloader(dataloader.pop(TYPE_KEY))(**dataloader)
 
     @property
