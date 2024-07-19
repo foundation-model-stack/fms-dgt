@@ -6,7 +6,7 @@ import os
 # Third Party
 from dotenv import load_dotenv
 
-# First Party
+# Local
 from fms_dgt.base.resource import BaseResource
 
 
