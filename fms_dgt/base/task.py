@@ -97,7 +97,7 @@ class SdgTask:
                 TYPE_KEY,
             )
             self._dataloader = get_dataloader(dataloader.pop(TYPE_KEY))(
-                **{**dataloader, **dl_kwargs}
+                **{**dl_kwargs, **dataloader}
             )
 
     @property
