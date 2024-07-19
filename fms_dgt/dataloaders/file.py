@@ -21,9 +21,11 @@ class FileDataloader(DefaultDataloader):
     def __init__(
         self,
         data_path: str = None,
-        seed_examples: List[Any] = [],
+        seed_examples: List[Any] = None,
     ) -> None:
 
+        if seed_examples is None:
+            seed_examples = []
         assert (
             data_path is not None
         ), f"{DATA_PATH_KEY} must be set in dataloader specification"
@@ -34,9 +36,9 @@ class FileDataloader(DefaultDataloader):
             with open(data_path, "r") as f:
                 data = list(yaml.safe_load(f))
 
-        assert type(data) == list, f"Data used for FileDataloader must be a list!"
+        assert type(data) == list, "Data used for FileDataloader must be a list!"
 
-        data = data + seed_examples
+        data = seed_examples + data
 
         sdg_logger.info(
             "Loaded %i seed examples",

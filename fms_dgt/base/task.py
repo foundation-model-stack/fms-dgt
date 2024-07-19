@@ -88,7 +88,7 @@ class SdgTask:
         self._dataloader_batch_size = (
             dataloader_batch_size if dataloader_batch_size is not None else 10000000
         )
-
+        dl_kwargs = {"seed_examples": seed_examples}
         if dataloader is None:
             self._dataloader = DefaultDataloader(data=seed_examples)
         else:
@@ -96,9 +96,9 @@ class SdgTask:
                 "Must specify dataloader type with %s key",
                 TYPE_KEY,
             )
-            if dataloader[TYPE_KEY] == "file":
-                dataloader["seed_examples"] = seed_examples
-            self._dataloader = get_dataloader(dataloader.pop(TYPE_KEY))(**dataloader)
+            self._dataloader = get_dataloader(dataloader.pop(TYPE_KEY))(
+                **{**dataloader, **dl_kwargs}
+            )
 
     @property
     def name(self):
