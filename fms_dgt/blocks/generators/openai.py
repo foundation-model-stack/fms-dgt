@@ -21,7 +21,7 @@ from tqdm import tqdm
 # Local
 from fms_dgt.base.instance import Instance
 from fms_dgt.base.registry import get_resource, register_block
-from fms_dgt.blocks.generators.llm import LMGenerator
+from fms_dgt.blocks.generators.llm import MODEL_ID_OR_PATH, LMGenerator
 from fms_dgt.resources.openai import OpenAIKeyResource
 from fms_dgt.utils import sdg_logger
 import fms_dgt.blocks.generators.utils as generator_utils
@@ -73,11 +73,6 @@ class OpenaiCompletionsLM(LMGenerator):
     def __init__(
         self,
         base_url: str = None,
-        truncate: bool = False,
-        max_gen_toks: int = 256,
-        batch_size: int = 1,
-        seed: int = 1234,
-        max_length: Optional[int] = 2048,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
@@ -92,12 +87,10 @@ class OpenaiCompletionsLM(LMGenerator):
             )
 
         self.base_url = base_url
-        self.truncate = truncate
-        self._batch_size = int(batch_size)
-        self._max_gen_toks = max_gen_toks
-        self._max_length = max_length
-        self.seed = 1234
         self._chat = False
+
+        if self.batch_size is None:
+            self._batch_size = 1
 
         # Read from environment variable OPENAI_API_KEY
         # Set to EMPTY for local
@@ -108,11 +101,6 @@ class OpenaiCompletionsLM(LMGenerator):
                 "openai", "OPENAI_API_KEY"
             )
             self.client = OpenAI(api_key=self._openai_resource.key)
-
-    @property
-    def max_length(self) -> int:
-        # Note: the OpenAI API supports up to 2049 tokens, with the first token being the first input token
-        return self._max_length
 
     def _prepare_input(self, prompt: str):
         return prompt
@@ -131,44 +119,20 @@ class OpenaiCompletionsLM(LMGenerator):
             desc="Running generate_batch requests",
         )
         for key, reqs in grouper.get_grouped().items():
-            # n needs to be 1 because messages in
-            # chat completion are not batch but
-            # is regarded as a single conversation.
             chunks: List[List[Instance]] = generator_utils.chunks(
-                reqs, n=self._batch_size
+                reqs, n=self.batch_size
             )
 
             for chunk in chunks:
                 inputs = [self._prepare_input(instance.args[0]) for instance in chunk]
                 # all kwargs are identical
                 gen_kwargs = next(iter(chunk)).kwargs
-
-                until = None
-                if isinstance(kwargs := copy.deepcopy(gen_kwargs), dict):
-                    # start with default params then overwrite with kwargs
-                    kwargs = {**self._base_kwargs, **kwargs}
-                    model_id = kwargs.pop("model_id_or_path", self.model_id_or_path)
-                    kwargs["stop"] = until
-                    if "stop_sequences" in kwargs:
-                        until = kwargs.pop("stop_sequences")
-                        if isinstance(until, str):
-                            until = [until]
-                        elif not isinstance(until, list):
-                            raise ValueError(
-                                f"Expected `kwargs['stop_sequences']` to be of type Union[str,list] but got {until}"
-                            )
-                    if "max_new_tokens" in kwargs.keys():
-                        kwargs["max_tokens"] = kwargs.pop("max_new_tokens")
-                    if "min_new_tokens" in kwargs:
-                        kwargs.pop("min_new_tokens")
-                    if "decoding_method" in kwargs:
-                        kwargs.pop("decoding_method")
-                else:
-                    raise ValueError(
-                        f"Expected repr(kwargs) to be of type repr(dict) but got {kwargs}"
-                    )
-
+                kwargs = self.modify_gen_kwargs(gen_kwargs)
                 kwargs[("messages" if self._chat else "prompt")] = inputs
+
+                model_id = kwargs.pop("model_id_or_path", self.model_id_or_path)
+                until = kwargs.get("stop", None)
+
                 response = oa_completion(
                     client=self.client,
                     chat=self._chat,
@@ -188,13 +152,47 @@ class OpenaiCompletionsLM(LMGenerator):
     def loglikelihood_batch(self, *args, **kwargs):
         raise NotImplementedError("No support for logits.")
 
+    def modify_gen_kwargs(self, gen_kwargs: dict) -> dict:
+        # sampling_params
+        if isinstance(kwargs := copy.deepcopy(gen_kwargs), dict):
+            # start with default params then overwrite with kwargs
+            kwargs = {**self._base_kwargs, **kwargs}
+            until = None
+            if "stop_sequences" in kwargs:
+                until = kwargs.pop("stop_sequences")
+                if isinstance(until, str):
+                    until = [until]
+                elif not isinstance(until, list):
+                    raise ValueError(
+                        f"Expected `kwargs['stop_sequences']` to be of type Union[str,list] but got {until}"
+                    )
+            kwargs["stop"] = until
+            if "max_new_tokens" in kwargs.keys():
+                kwargs["max_tokens"] = kwargs.pop("max_new_tokens")
+            if "min_new_tokens" in kwargs:
+                kwargs.pop("min_new_tokens")
+            if "decoding_method" in kwargs:
+                kwargs.pop("decoding_method")
+
+            kwargs.pop("random_seed", None)
+
+        else:
+            raise ValueError(
+                f"Expected repr(kwargs) to be of type repr(dict) but got {kwargs}"
+            )
+        return kwargs
+
 
 @register_block("openai-chat", "vllm-remote-chat")
 class OpenaiChatCompletionsLM(OpenaiCompletionsLM):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._batch_size = 1
         self._chat = True
+        if self.batch_size is None:
+            self._batch_size = 1
+        if self.block_type == "openai-chat":
+            sdg_logger.warn(f"OpenAI Chat models only support batch size of 1")
+            self._batch_size = 1
 
     def _prepare_input(self, prompt: str):
         return {"role": "user", "content": prompt}

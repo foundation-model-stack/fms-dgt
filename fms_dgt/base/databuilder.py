@@ -99,7 +99,8 @@ class DataBuilder(ABC):
                     req_key in obj_kwargs
                 ), f"'{req_key}' field missing in data builder config from block with args:\n{json.dumps(obj_kwargs, indent=4)} "
 
-            obj_name = obj_kwargs["name"]
+            obj_name = obj_kwargs.get("name")
+            obj_type = obj_kwargs.pop(TYPE_KEY)
 
             assert not any(
                 block.name == obj_name for block in self._blocks
@@ -109,7 +110,7 @@ class DataBuilder(ABC):
                 "Initializing object %s with config %s", obj_name, obj_kwargs
             )
 
-            obj = get_block(obj_kwargs.pop(TYPE_KEY))(**obj_kwargs)
+            obj = get_block(obj_type)(**{"block_type": obj_type, **obj_kwargs})
 
             if lm_cache is not None and isinstance(obj, LMGenerator):
                 sdg_logger.info(
