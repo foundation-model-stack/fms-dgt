@@ -104,23 +104,24 @@ class DefaultDatastore(BaseDatastore):
 
     def load_dataset(self) -> List[T]:
         seed_examples = self._seed_examples
+
         if self._seed_examples is None:
             seed_examples = []
-        assert (
-            self._data_path is not None
-        ), f"{DATA_PATH_KEY} must be set in datastore specification"
-        if self._data_path.endswith(".json"):
-            with open(self._data_path, "r") as f:
-                data = json.load(f)
-        elif self._data_path.endswith(".yaml"):
-            with open(self._data_path, "r") as f:
-                data = list(yaml.safe_load(f))
 
-        assert (
-            type(data) == list
-        ), "Data used for default 'load_dataset' method must be a list!"
+        if self._data_path is not None:
+            if self._data_path.endswith(".json"):
+                with open(self._data_path, "r") as f:
+                    data = json.load(f)
+            elif self._data_path.endswith(".yaml"):
+                with open(self._data_path, "r") as f:
+                    data = list(yaml.safe_load(f))
 
-        data = seed_examples + data
+            assert (
+                type(data) == list
+            ), "Data used for default 'load_dataset' method must be a list!"
+
+            seed_examples = seed_examples + data
+
         return seed_examples
 
     def save_task(self) -> None:
