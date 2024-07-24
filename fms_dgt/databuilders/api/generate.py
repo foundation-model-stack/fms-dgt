@@ -70,7 +70,7 @@ class ApiDataBuilder(DataBuilder):
 
         outputs, wf_discarded = self._wf_filter_data(llm_outputs)
 
-        outputs, rouge_discarded = self._rouge_filter_data(outputs)
+        outputs, rouge_discarded = self._rouge_filter_data(outputs, instruction_data)
 
         # return
         post_process_duration = time.time() - post_process_start
@@ -149,10 +149,12 @@ class ApiDataBuilder(DataBuilder):
 
         return outputs, discarded
 
-    def _rouge_filter_data(self, data_to_filter: List[ApiSdgData]):
+    def _rouge_filter_data(
+        self, data_to_filter: List[ApiSdgData], orig_data: List[ApiSdgData]
+    ):
         # Rouge filtering
         all_instruction_tokens = self.val2.tokenize(
-            [instr.input for instr in data_to_filter]
+            [instr.input for instr in data_to_filter + orig_data]
         )
 
         val2_inputs: List[Dict] = []
