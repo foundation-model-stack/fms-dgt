@@ -97,7 +97,7 @@ class SimpleInstructDataBuilder(DataBuilder):
                 llm_data.append(new_ins)
 
         post_process_duration = time.time() - post_process_start
-        sdg_logger.debug(
+        sdg_logger.info(
             "Request %s took %.2fs, post-processing took %.2fs",
             request_idx,
             request_duration,
@@ -107,10 +107,10 @@ class SimpleInstructDataBuilder(DataBuilder):
         # now we assess and filter with rouge
         assess_start = time.time()
         all_instruction_tokens = self.val1.tokenize(
-            [instr.instruction for instr in llm_data + instruction_data]
+            [instr.instruction for instr in instruction_data]
         )
 
-        val1_inputs: List[Dict] = []
+        outputs: List[InstructLabSdgData] = []
         for instruction_data_entry in llm_data:
             # computing similarity with the pre-tokenized instructions
             new_instruction_tokens = self.val1.tokenize(
@@ -121,15 +121,17 @@ class SimpleInstructDataBuilder(DataBuilder):
                 "all_toks": all_instruction_tokens,
                 "data": instruction_data_entry,
             }
-            val1_inputs.append(inp)
+            new_outputs = [output["data"] for output in self.val1.generate([inp])]
+            if new_outputs:
+                outputs.extend(new_outputs)
+                all_instruction_tokens.append(new_instruction_tokens)
 
         # filter rouge failed data
-        outputs = [output["data"] for output in self.val1.generate(val1_inputs)]
 
-        discarded += len(val1_inputs) - len(outputs)
+        discarded += len(llm_data) - len(outputs)
 
         assess_duration = time.time() - assess_start
-        sdg_logger.debug(
+        sdg_logger.info(
             "Assessing generated samples took %.2fs, discarded %s instances",
             assess_duration,
             discarded,
