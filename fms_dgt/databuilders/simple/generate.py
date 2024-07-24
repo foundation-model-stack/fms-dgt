@@ -107,7 +107,7 @@ class SimpleInstructDataBuilder(DataBuilder):
         # now we assess and filter with rouge
         assess_start = time.time()
         all_instruction_tokens = self.val1.tokenize(
-            [instr.instruction for instr in instruction_data]
+            [instr.instruction for instr in llm_data + instruction_data]
         )
 
         outputs: List[InstructLabSdgData] = []
