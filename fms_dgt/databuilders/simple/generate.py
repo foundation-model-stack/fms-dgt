@@ -79,7 +79,7 @@ class SimpleInstructDataBuilder(DataBuilder):
         request_duration = time.time() - request_start
 
         post_process_start = time.time()
-        instruction_data = []
+        llm_data: List[InstructLabSdgData] = []
         for gen_inp in llm_outputs:
             prompt_instructions: List[InstructLabSdgData] = gen_inp["data"]
             new_instruction_dicts, discarded = utils.post_process_gpt3_response(
@@ -94,7 +94,7 @@ class SimpleInstructDataBuilder(DataBuilder):
                 new_ins.instruction = new_ins_dict.get("instruction")
                 new_ins.input = new_ins_dict.get("input")
                 new_ins.output = new_ins_dict.get("output")
-                instruction_data.append(new_ins)
+                llm_data.append(new_ins)
 
         post_process_duration = time.time() - post_process_start
         sdg_logger.debug(
@@ -107,11 +107,11 @@ class SimpleInstructDataBuilder(DataBuilder):
         # now we assess and filter with rouge
         assess_start = time.time()
         all_instruction_tokens = self.val1.tokenize(
-            [instr.instruction for instr in instruction_data]
+            [instr.instruction for instr in llm_data + instruction_data]
         )
 
         val1_inputs: List[Dict] = []
-        for instruction_data_entry in instruction_data:
+        for instruction_data_entry in llm_data:
             # computing similarity with the pre-tokenized instructions
             new_instruction_tokens = self.val1.tokenize(
                 instruction_data_entry.instruction
