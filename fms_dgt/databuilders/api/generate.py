@@ -154,10 +154,10 @@ class ApiDataBuilder(DataBuilder):
     ):
         # Rouge filtering
         all_instruction_tokens = self.val2.tokenize(
-            [instr.input for instr in data_to_filter + orig_data]
+            [instr.input for instr in orig_data]
         )
 
-        val2_inputs: List[Dict] = []
+        outputs: List[Dict] = []
         for new_data in data_to_filter:
             # computing similarity with the pre-tokenized instructions
             new_instruction_tokens = self.val2.tokenize(new_data.input)
@@ -166,19 +166,20 @@ class ApiDataBuilder(DataBuilder):
                 "all_instruction_tokens": all_instruction_tokens,
                 "data": new_data,
             }
-            val2_inputs.append(inp)
+            new_outputs = [
+                output["data"]
+                for output in self.val2.generate(
+                    [inp],
+                    arg_fields=["new_instruction_tokens", "all_instruction_tokens"],
+                    result_field="output",
+                )
+            ]
+            if new_outputs:
+                outputs.extend(new_outputs)
+                all_instruction_tokens.append(new_instruction_tokens)
 
         # filter rouge failed data
-        outputs = [
-            output["data"]
-            for output in self.val2.generate(
-                val2_inputs,
-                arg_fields=["new_instruction_tokens", "all_instruction_tokens"],
-                result_field="output",
-            )
-        ]
-
-        discarded = len(val2_inputs) - len(outputs)
+        discarded = len(data_to_filter) - len(outputs)
 
         return outputs, discarded
 
