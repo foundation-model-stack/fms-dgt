@@ -50,11 +50,6 @@ class RougeValidator(BaseValidatorBlock):
         if self._threshold is None:
             return True
 
-        if new_tokens in check_tokens:
-            # remove only first occurrence
-            tok_ind = check_tokens.index(new_tokens)
-            check_tokens = check_tokens[:tok_ind] + check_tokens[tok_ind + 1 :]
-
         if len(check_tokens) == 0:
             return True
 
