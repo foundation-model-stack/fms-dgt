@@ -189,7 +189,8 @@ class DataBuilder(ABC):
             tasks = [task for task in tasks if task not in completed_tasks]
 
             sdg_logger.info(
-                "Generated %s data",
+                "Generated %s data in this iteration, %s data overall",
+                len(filtered_data),
                 sum([len(task.machine_data) for task in tasks + completed_tasks]),
             )
 
@@ -202,9 +203,8 @@ class DataBuilder(ABC):
         self, request_idx: int, tasks: List[SdgTask]
     ) -> Iterable[SdgData]:
         # default behavior is to simply extract the seed / machine generated data and pass to data builder
-        data_pool = [
-            e for task in tasks for e in (task.get_batch_examples() + task.machine_data)
-        ]
+
+        data_pool = [e for task in tasks for e in task.get_batch_examples()]
         args = [request_idx, data_pool]
         kwargs = dict()
         return self(*args, **kwargs)
