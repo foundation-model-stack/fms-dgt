@@ -40,7 +40,7 @@ class LMGenerator(BaseBlock):
         max_new_tokens: int = None,
         min_new_tokens: int = None,
         max_length: int = 2049,
-        random_seed: int = 1234,
+        random_seed: int = None,
         stop_sequences: List[str] = None,
         temperature: float = None,
         batch_size: int = None,
