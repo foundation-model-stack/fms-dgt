@@ -10,6 +10,7 @@ from fms_dgt.base.registry import register_data_builder
 from fms_dgt.base.task import SdgTask, group_data_by_task
 from fms_dgt.blocks.generators.llm import LMGenerator
 from fms_dgt.blocks.validators.rouge import RougeValidator
+from fms_dgt.blocks.validators.dupchecker import DupCheckerValidator
 from fms_dgt.databuilders.simple.task import InstructLabSdgData, InstructLabSdgTask
 from fms_dgt.utils import sdg_logger
 import fms_dgt.databuilders.simple.utils as utils
@@ -135,3 +136,15 @@ class SimpleInstructDataBuilder(DataBuilder):
         )
 
         return outputs
+
+@register_data_builder("simplededup")
+class SimpleInstructDedupDataBuilder(SimpleInstructDataBuilder):
+    """Class for InstructLab"""
+
+    TASK_TYPE: SdgTask = InstructLabSdgTask
+
+    # llm1 is the main generator that will produce the synthetic examples
+    llm1: LMGenerator
+
+    # val1 is the validator which checks for dups
+    val1: DupCheckerValidator
