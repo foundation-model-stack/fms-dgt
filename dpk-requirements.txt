@@ -1,0 +1,2 @@
+git+https://github.com/IBM/data-prep-kit.git#subdirectory=transforms/universal/fdedup/ray&egg=dpk_fdedup_transform_ray
+git+https://github.com/IBM/data-prep-kit.git#subdirectory=transforms/universal/doc_id/ray&egg=dpk_docid_transform_ray

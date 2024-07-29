@@ -19,5 +19,8 @@ blocks:
     result_field: output
     filter: true
     threshold: 1.0
+  - name: val2
+    type: fuzzy_dedup
+    result_field: output
 metadata:
   version: 1.0

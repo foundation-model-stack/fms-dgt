@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Mapping, Optional, TypeVar, Union
 import abc
 import json
 import os
-import random
 
 # Third Party
 import pandas as pd
@@ -48,14 +47,13 @@ class SdgTask:
         created_by: str,
         data_builder: str,
         output_dir: Optional[str] = "output",
-        output_format: Optional[str] = "jsonl",
+        output_format: Optional[str] = "parquet",
         datastore: Optional[Dict] = None,
         restart_generation: Optional[bool] = False,
         builder_cfg: Optional[Mapping] = None,
         file_path: Optional[str] = None,
         dataloader: Optional[Dict] = None,
-        seed_batch_size: Optional[int] = None,
-        machine_batch_size: Optional[int] = None,
+        dataloader_batch_size: Optional[int] = None,
         seed_examples: Optional[List[Any]] = None,
         num_outputs_to_generate: Optional[int] = None,
     ):
@@ -67,13 +65,6 @@ class SdgTask:
 
         self._num_outputs_to_generate = num_outputs_to_generate
         self.machine_data = []
-
-        self._seed_batch_size = (
-            seed_batch_size if seed_batch_size is not None else 10000000
-        )
-        self._machine_batch_size = (
-            machine_batch_size if machine_batch_size is not None else 10000000
-        )
 
         ds_kwargs = {
             "task_name": name,
@@ -94,6 +85,9 @@ class SdgTask:
                 **{**ds_kwargs, **datastore}
             )
 
+        self._dataloader_batch_size = (
+            dataloader_batch_size if dataloader_batch_size is not None else 10000000
+        )
         dl_kwargs = {"seed_examples": seed_examples}
         if dataloader is None:
             self._dataloader = DefaultDataloader(data=seed_examples)
@@ -138,21 +132,11 @@ class SdgTask:
 
     def get_batch_examples(self) -> List[SdgData]:
         outputs = []
-
-        # get outputs from seed data loader sequentially
-        for _ in range(self._seed_batch_size):
+        for _ in range(self._dataloader_batch_size):
             example = self.get_example()
             if example is None:
-                break
+                return outputs
             outputs.append(example)
-
-        # get outputs from machine batch randomly
-        m_data = self.machine_data
-        if len(m_data) > self._machine_batch_size:
-            m_data = random.sample(m_data, k=self._machine_batch_size)
-
-        outputs.extend(m_data)
-
         return outputs
 
     def is_complete(self):
