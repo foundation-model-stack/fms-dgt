@@ -73,12 +73,23 @@ class SdgTask:
         self._datastore_cfg = datastore
 
         self.machine_data = []
+
         self._seed_batch_size = (
             seed_batch_size if seed_batch_size is not None else 10000000
         )
+        if self._seed_batch_size < 0:
+            raise ValueError(
+                f"Cannot have negative value of {self._seed_batch_size} for seed_batch_size parameter"
+            )
+
         self._machine_batch_size = (
             machine_batch_size if machine_batch_size is not None else 10000000
         )
+        if self._machine_batch_size < 0:
+            raise ValueError(
+                f"Cannot have negative value of {self._machine_batch_size} for machine_batch_size parameter"
+            )
+
         self.init_datastore()
         self.init_dataloader()
 
@@ -159,7 +170,7 @@ class SdgTask:
 
         # get outputs from machine batch randomly
         m_data = self.machine_data
-        if len(m_data) > self._machine_batch_size:
+        if m_data and len(m_data) > self._machine_batch_size:
             m_data = random.sample(m_data, k=self._machine_batch_size)
 
         outputs.extend(m_data)
