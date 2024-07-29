@@ -185,7 +185,7 @@ class SdgTask:
         new_data: Union[SdgData, List[SdgData]],
     ) -> None:
         if type(new_data) != list:
-            new_data = [new_data]
+            new_data: List[SdgData] = [new_data]
 
         to_save = [d if type(d) == dict else d.to_output_dict() for d in new_data]
         self._datastore.save_data(to_save)
