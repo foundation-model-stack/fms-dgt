@@ -9,10 +9,6 @@ class BaseResource(ABC):
         self._id = id
 
     @property
-    def config(self):
-        return self._config
-
-    @property
     def id(self):
         return self._id
 

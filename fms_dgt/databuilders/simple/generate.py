@@ -1,11 +1,8 @@
 # Standard
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 import copy
 import random
 import time
-
-# Third Party
-import pandas as pd
 
 # Local
 from fms_dgt.base.databuilder import DataBuilder
@@ -79,7 +76,7 @@ class SimpleInstructDataBuilder(DataBuilder):
         request_duration = time.time() - request_start
 
         post_process_start = time.time()
-        instruction_data = []
+        llm_data: List[InstructLabSdgData] = []
         for gen_inp in llm_outputs:
             prompt_instructions: List[InstructLabSdgData] = gen_inp["data"]
             new_instruction_dicts, discarded = utils.post_process_gpt3_response(
@@ -94,10 +91,10 @@ class SimpleInstructDataBuilder(DataBuilder):
                 new_ins.instruction = new_ins_dict.get("instruction")
                 new_ins.input = new_ins_dict.get("input")
                 new_ins.output = new_ins_dict.get("output")
-                instruction_data.append(new_ins)
+                llm_data.append(new_ins)
 
         post_process_duration = time.time() - post_process_start
-        sdg_logger.debug(
+        sdg_logger.info(
             "Request %s took %.2fs, post-processing took %.2fs",
             request_idx,
             request_duration,
@@ -110,8 +107,8 @@ class SimpleInstructDataBuilder(DataBuilder):
             [instr.instruction for instr in instruction_data]
         )
 
-        val1_inputs: List[Dict] = []
-        for instruction_data_entry in instruction_data:
+        outputs: List[InstructLabSdgData] = []
+        for instruction_data_entry in llm_data:
             # computing similarity with the pre-tokenized instructions
             new_instruction_tokens = self.val1.tokenize(
                 instruction_data_entry.instruction
@@ -121,15 +118,17 @@ class SimpleInstructDataBuilder(DataBuilder):
                 "all_toks": all_instruction_tokens,
                 "data": instruction_data_entry,
             }
-            val1_inputs.append(inp)
+            new_outputs = [output["data"] for output in self.val1.generate([inp])]
+            if new_outputs:
+                outputs.extend(new_outputs)
+                all_instruction_tokens.append(new_instruction_tokens)
 
         # filter rouge failed data
-        outputs = [output["data"] for output in self.val1.generate(val1_inputs)]
 
-        discarded += len(val1_inputs) - len(outputs)
+        discarded += len(llm_data) - len(outputs)
 
         assess_duration = time.time() - assess_start
-        sdg_logger.debug(
+        sdg_logger.info(
             "Assessing generated samples took %.2fs, discarded %s instances",
             assess_duration,
             discarded,

@@ -70,16 +70,17 @@ class ApiDataBuilder(DataBuilder):
 
         outputs, wf_discarded = self._wf_filter_data(llm_outputs)
 
-        outputs, rouge_discarded = self._rouge_filter_data(outputs)
+        outputs, rouge_discarded = self._rouge_filter_data(outputs, instruction_data)
 
         # return
         post_process_duration = time.time() - post_process_start
-        sdg_logger.debug(
-            "Request %s took %.2fs, post-processing took %.2fs, discarded %s instances",
+        sdg_logger.info(
+            "Request %s took %.2fs, post-processing took %.2fs, discarded %s instances due to violated constraints, discarded %s instances due to rouge similarity",
             request_idx,
             request_duration,
             post_process_duration,
-            wf_discarded + rouge_discarded,
+            wf_discarded,
+            rouge_discarded,
         )
 
         return outputs
@@ -148,13 +149,15 @@ class ApiDataBuilder(DataBuilder):
 
         return outputs, discarded
 
-    def _rouge_filter_data(self, data_to_filter: List[ApiSdgData]):
+    def _rouge_filter_data(
+        self, data_to_filter: List[ApiSdgData], orig_data: List[ApiSdgData]
+    ):
         # Rouge filtering
         all_instruction_tokens = self.val2.tokenize(
-            [instr.input for instr in data_to_filter]
+            [instr.input for instr in orig_data]
         )
 
-        val2_inputs: List[Dict] = []
+        outputs: List[Dict] = []
         for new_data in data_to_filter:
             # computing similarity with the pre-tokenized instructions
             new_instruction_tokens = self.val2.tokenize(new_data.input)
@@ -163,19 +166,20 @@ class ApiDataBuilder(DataBuilder):
                 "all_instruction_tokens": all_instruction_tokens,
                 "data": new_data,
             }
-            val2_inputs.append(inp)
+            new_outputs = [
+                output["data"]
+                for output in self.val2.generate(
+                    [inp],
+                    arg_fields=["new_instruction_tokens", "all_instruction_tokens"],
+                    result_field="output",
+                )
+            ]
+            if new_outputs:
+                outputs.extend(new_outputs)
+                all_instruction_tokens.append(new_instruction_tokens)
 
         # filter rouge failed data
-        outputs = [
-            output["data"]
-            for output in self.val2.generate(
-                val2_inputs,
-                arg_fields=["new_instruction_tokens", "all_instruction_tokens"],
-                result_field="output",
-            )
-        ]
-
-        discarded = len(val2_inputs) - len(outputs)
+        discarded = len(data_to_filter) - len(outputs)
 
         return outputs, discarded
 
