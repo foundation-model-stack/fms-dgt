@@ -156,3 +156,28 @@ class BaseValidatorBlock(BaseBlock):
     @abstractmethod
     def _validate(self, *args: Any, **kwargs: Any) -> bool:
         """Derived validators must implement _validate with their core logic"""
+
+class BasePostProcessingBlock(BaseBlock):
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+
+    def generate(
+        self,
+        inputs: DATASET_TYPE,
+        *,
+        arg_fields: Optional[List[str]] = None,
+        kwarg_fields: Optional[List[str]] = None,
+        result_field: Optional[List[str]] = None,
+    ):
+        outputs = []
+        for x in inputs:
+            inp_args, inp_kwargs = self.get_args_kwargs(x, arg_fields, kwarg_fields)
+            res = self._validate(*inp_args, **inp_kwargs)
+            if res:
+                self.write_result(x, res, result_field)
+                outputs.append(x)
+        return outputs
+
+    @abstractmethod
+    def _validate(self, *args: Any, **kwargs: Any) -> bool:
+        """Derived validators must implement _validate with their core logic"""

@@ -1,14 +1,27 @@
 # Local
-from fms_dgt.base.block import BaseValidatorBlock
+from fms_dgt.base.block import BasePostProcessingBlock, DATASET_TYPE
 from fms_dgt.base.registry import register_block
 from typing import Any, Dict, List, Optional, Union
 
 @register_block("fuzzy_dedup")
-class FuzzyDedupPostprocesing(BaseValidatorBlock):
-    """Base Class for all Validators"""
+class FuzzyDedupPostprocessing(BasePostProcessingBlock):
+    """Base Class for all Postprocessors"""
 
-    def __init__(self, **kwargs: Any) -> None:
+    def __init__(self,
+                 input_folder_path: str,
+                 intermediate_folder_path: str,
+                 output_folder_path: str,
+                 num_permutations: int = 64,
+                 threshold: float = 0.8,
+                 shingles_size: int = 5,
+                 **kwargs: Any) -> None:
         super().__init__(**kwargs)
+        self.input_folder_path = input_folder_path
+        self.intermediate_folder_path = intermediate_folder_path
+        self.output_folder_path = output_folder_path
+        self.num_permutations = num_permutations
+        self.threshold = threshold
+        self.shingles_size = shingles_size
 
     def doc_id(self, input_folder: str, output_folder: str, input_params: dict):
         import sys
@@ -72,9 +85,9 @@ class FuzzyDedupPostprocesing(BaseValidatorBlock):
             "fdedup_num_minhash_actors": 1,
             "fdedup_num_preprocessors": 2,
             # fuzzy parameters
-            "fdedup_num_permutations": 64,
-            "fdedup_threshold": 0.8,
-            "fdedup_shingles_size": 5,
+            "fdedup_num_permutations": self.num_permutations,
+            "fdedup_threshold": self.threshold,
+            "fdedup_shingles_size": self.shingles_size,
             "fdedup_delimiters": " ",
             # Random delay between reads
             "fdedup_random_delay_limit": 5,
@@ -98,13 +111,25 @@ class FuzzyDedupPostprocesing(BaseValidatorBlock):
         args = locals()
         args.pop("input_folder_path", "")
         args.pop("self")
-        doc_id_output_folder = "./test-data/doc_id"
-        fdedup_output_folder = "./test-data/fedup"
+        doc_id_output_folder = self.intermediate_folder_path+"/doc_id"
+        fdedup_output_folder = self.output_folder_path
         doc_id_task = self.doc_id(input_folder=input_folder_path, output_folder=doc_id_output_folder, input_params=args)
         fdedup_task = self.fdedup(input_folder=doc_id_output_folder, output_folder=fdedup_output_folder,
                              input_params=args)
 
+    def generate(self, inputs: DATASET_TYPE,
+        *,
+        arg_fields: Optional[List[str]] = None,
+        kwarg_fields: Optional[List[str]] = None,
+        result_field: Optional[List[str]] = None,):
+
+        import shutil
+        self._validate()
+        shutil.rmtree(self.intermediate_folder_path)
+
+        return self.output_folder_path
+
     def _validate(self) -> bool:
-        self.fdedup_embeddable()
+        self.fdedup_embeddable(input_folder_path=self.input_folder_path)
         return True
 
