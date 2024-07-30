@@ -23,24 +23,11 @@ class DupCheckerValidator(BaseValidatorBlock):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
-        self._cache = dict()
-
-        self.scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=False)
-
     def tokenize(self, inp: Union[List, str]):
-        if type(inp) == list:
-            tokenized = []
-            for el in inp:
-                if el not in self._cache:
-                    self._cache[el] = self.scorer._tokenizer.tokenize(el)
-                tokenized.append(self._cache[el])
-            return tokenized
-        else:
-            if inp not in self._cache:
-                self._cache[inp] = self.scorer._tokenizer.tokenize(inp)
-            return self._cache[inp]
+        # MC points out that this doesn't even have to tokenize,
+        # and that the input may not even be strings
+        return inp
 
-    def _validate(self, new_tokens: List[int], check_tokens: List[List[int]]) -> bool:
+    def _validate(self, new_tokens: List, check_tokens: List[List]) -> bool:
         """Runs through all the validators if data list is None. Otherwise just runs through the validators specified for data in the List"""
-        print("DUPCHECK",new_tokens,check_tokens) ##
         return new_tokens not in check_tokens

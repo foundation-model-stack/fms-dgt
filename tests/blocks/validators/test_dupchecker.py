@@ -12,7 +12,6 @@ from fms_dgt.blocks.validators.dupchecker import DupCheckerValidator
 class TestDupCheckerValidator:
     def test_matches(self):
         validator = DupCheckerValidator(name="test_dupchecker_validator")
-
         all_data = [
             "I went to the store",
             "I went to the store yesterday",
@@ -24,10 +23,10 @@ class TestDupCheckerValidator:
         new_tokens = validator.tokenize(data_entry)
         inputs = [{"a": new_tokens, "b": all_tokens}]
         validator.generate(inputs, arg_fields=["a", "b"], result_field="result")
-        assert inputs[0]["result"]
+        assert not inputs[0]["result"]
 
         data_entry = "one two three"
         new_tokens = validator.tokenize(data_entry)
         inputs = [{"a": new_tokens, "b": all_tokens}]
         validator.generate(inputs, arg_fields=["a", "b"], result_field="result")
-        assert not inputs[0]["result"]
+        assert inputs[0]["result"]
