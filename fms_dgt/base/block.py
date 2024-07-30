@@ -10,6 +10,13 @@ DATASET_ROW_TYPE = Union[Dict[str, Any], pd.Series]
 DATASET_TYPE = Union[Iterable[DATASET_ROW_TYPE], pd.DataFrame, Dataset]
 
 
+def get_row_name(gen_inst: DATASET_ROW_TYPE):
+    if isinstance(gen_inst, dict):
+        return gen_inst.get("task_name")
+    else:
+        return getattr(gen_inst, "task_name")
+
+
 class BaseBlock(ABC):
     """Base Class for all Blocks"""
 

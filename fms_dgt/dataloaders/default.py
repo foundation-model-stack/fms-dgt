@@ -1,8 +1,9 @@
 # Standard
-from typing import Any, Callable, List
+from typing import Any
 
 # Local
 from fms_dgt.base.dataloader import BaseDataloader
+from fms_dgt.base.datastore import BaseDatastore
 from fms_dgt.base.registry import register_dataloader
 
 
@@ -12,10 +13,10 @@ class DefaultDataloader(BaseDataloader):
 
     def __init__(
         self,
-        data: List[Any] = None,
+        datastore: BaseDatastore = None,
     ) -> None:
         super().__init__()
-        self._data = data
+        self._data = datastore.load_dataset()
         self._i = 0
 
     def __next__(self) -> Any:

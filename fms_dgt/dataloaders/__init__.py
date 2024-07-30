@@ -1,2 +1,2 @@
 # Local
-from . import default, file
+from . import default
