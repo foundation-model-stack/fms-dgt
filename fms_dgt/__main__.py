@@ -32,20 +32,21 @@ def add_base_args(parser: argparse.ArgumentParser):
         "--include-builder-path",
         "--include-bp",
         type=str,
-        metavar="DIR",
+        metavar="BUILDER_PATH",
         help="Additional path to include if there are new data builders.",
     )
     group.add_argument(
         "--include-config-path",
         type=str,
-        metavar="DIR",
+        metavar="CONFIG_PATH",
         help="Additional path to include if there are overrides for data builder config files.",
     )
     group.add_argument(
-        "--data-path",
+        "--data-paths",
         type=str,
+        nargs="+",
         default=DEFAULT_DATA_PATH,
-        help=f"Path to local data.",
+        help="One or more paths to local data.",
     )
     group.add_argument(
         "--output-dir",

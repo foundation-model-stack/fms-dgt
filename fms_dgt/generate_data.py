@@ -1,5 +1,4 @@
 # Standard
-from pathlib import Path
 from typing import Dict, Optional
 import os
 
@@ -13,7 +12,7 @@ sdg_logger = utils.sdg_logger
 
 
 def generate_data(
-    data_path: str,
+    data_paths: str,
     output_dir: str,
     task_kwargs: Dict,
     builder_kwargs: Dict,
@@ -23,20 +22,21 @@ def generate_data(
     restart_generation: bool = False,
 ):
     # TODO: better naming convention...
-    name = (
-        Path(os.path.split(data_path)[0]).stem
-        if os.path.isfile(data_path)
-        else Path(data_path).stem
-    )
+    names = []
+    for data_path in data_paths:
+        names.append(utils.get_data_path_name(data_path))
+    name = "_AND_".join(names)
     output_dir = os.path.join(output_dir, name)
 
     # check data_path first then seed_tasks_path
     # throw an error if both not found
     # pylint: disable=broad-exception-caught,raise-missing-from
-    if data_path and os.path.exists(data_path):
-        task_inits = utils.read_data(data_path, include_data_path)
-    else:
-        raise SystemExit(f"Error: data path ({data_path}) does not exist.")
+    task_inits = []
+    for data_path in data_paths:
+        if data_path and os.path.exists(data_path):
+            task_inits.extend(utils.read_data(data_path, include_data_path))
+        else:
+            raise SystemExit(f"Error: data path ({data_path}) does not exist.")
 
     # gather data builders here
     builder_list = [t["data_builder"] for t in task_inits]
