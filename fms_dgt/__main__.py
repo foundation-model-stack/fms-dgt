@@ -98,6 +98,18 @@ def add_task_args(parser: argparse.ArgumentParser):
         default=DEFAULT_NUM_OUTPUTS,
     )
     group.add_argument(
+        "--seed-batch-size",
+        type=int,
+        help="Number of seed examples to pass from data loader to data builder.",
+        default=None,
+    )
+    group.add_argument(
+        "--machine-batch-size",
+        type=int,
+        help="Number of machine generated examples to pass from data loader to data builder.",
+        default=None,
+    )
+    group.add_argument(
         "--restart-generation",
         action="store_true",
         help="Entirely restart instruction generation.",
