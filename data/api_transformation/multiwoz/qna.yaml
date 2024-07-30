@@ -1,0 +1,7 @@
+created_by: IBM
+data_builder: transform_api_llm
+datastore:
+  type: api_datastore
+  data_path: data/api_transformation/multiwoz/MultiWOZ_2.2
+  splits: [train, test, dev]
+task_description: To teach a language model about Logical Reasoning - causal relationships
