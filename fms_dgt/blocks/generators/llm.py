@@ -24,6 +24,7 @@ from tqdm import tqdm
 # Local
 from fms_dgt.base.block import DATASET_TYPE, BaseBlock
 from fms_dgt.base.instance import Instance
+from fms_dgt.blocks import TYPE_KEY
 from fms_dgt.utils import sdg_logger
 
 MODEL_ID_OR_PATH = "model_id_or_path"
@@ -44,6 +45,7 @@ class LMGenerator(BaseBlock):
         stop_sequences: List[str] = None,
         temperature: float = None,
         batch_size: int = None,
+        lm_cache: str = None,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
@@ -209,7 +211,7 @@ class CachingLM:
         self.dbdict = SqliteDict(cache_db, autocommit=True)
 
         # add hook to lm
-        lm.set_cache_hook(self.get_cache_hook())
+        self.lm.set_cache_hook(self.get_cache_hook())
 
         self.dbdict
 

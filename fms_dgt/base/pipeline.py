@@ -6,6 +6,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Union
 from fms_dgt.base.block import DATASET_TYPE
 from fms_dgt.base.databuilder import DataBuilder, DataBuilderConfig
 from fms_dgt.base.task import SdgTask
+from fms_dgt.blocks.compositions.chain import BlockChain
 from fms_dgt.utils import sdg_logger
 
 
@@ -79,6 +80,9 @@ class Pipeline(DataBuilder):
             **kwargs,
         )
 
+    def _init_blocks(self):
+        self._pipeline = BlockChain(self.config.blocks)
+
     def call_with_task_list(
         self, request_idx: int, tasks: List[PipelineSdgTask]
     ) -> Iterable[Dict]:
@@ -86,7 +90,7 @@ class Pipeline(DataBuilder):
         for task in tasks:
             sdg_logger.info(f"Running task: {task.name}")
 
-            data_pool = task.get_batch_examples() + task.machine_data
+            data_pool = task.get_batch_examples()
 
             for res in self(data_pool):
                 if "task_name" not in res:
@@ -94,8 +98,4 @@ class Pipeline(DataBuilder):
                 yield res
 
     def __call__(self, data_pool: DATASET_TYPE):
-        block_data = data_pool
-        for block in self.blocks:
-            sdg_logger.info(f"Running block {block.name}")
-            block_data = block.generate(block_data)
-        return block_data
+        return self._pipeline.generate(data_pool)

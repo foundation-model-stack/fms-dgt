@@ -14,7 +14,7 @@ from tqdm import tqdm
 from fms_dgt.base.block import BaseBlock, get_row_name
 from fms_dgt.base.registry import get_block
 from fms_dgt.base.task import NAME_KEY, TYPE_KEY, SdgData, SdgTask
-from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
+from fms_dgt.blocks.generators.llm import CachingLM
 from fms_dgt.utils import all_annotations, sdg_logger
 
 
@@ -40,7 +40,6 @@ class DataBuilder(ABC):
     def __init__(
         self,
         config: Mapping = None,
-        lm_cache: str = None,
         output_dir: str = None,
         max_gen_requests: int = None,
         task_inits: dict = None,
@@ -59,7 +58,7 @@ class DataBuilder(ABC):
         self._max_gen_requests = max_gen_requests
 
         # initializing generators / validators
-        self._init_blocks(lm_cache=lm_cache)
+        self._init_blocks()
 
         # TODO: Data loader goes here
         self._tasks: List[SdgTask] = [
@@ -91,7 +90,7 @@ class DataBuilder(ABC):
         """Returns the blocks associated with this class."""
         return self._blocks
 
-    def _init_blocks(self, lm_cache: str = None):
+    def _init_blocks(self):
         self._blocks: List[BaseBlock] = []
 
         # TODO: need to handle nested blocks
@@ -103,47 +102,28 @@ class DataBuilder(ABC):
                 ), f"'{req_key}' field missing in data builder config from block with args:\n{json.dumps(obj_kwargs, indent=4)} "
 
             obj_name = obj_kwargs.get("name")
-            obj_type = obj_kwargs.pop(TYPE_KEY)
+            obj_type = obj_kwargs.get(TYPE_KEY)
 
             assert not any(
                 block.name == obj_name for block in self._blocks
             ), f"Duplicate '{obj_name}' block in '{self.name}' data builder"
 
-            sdg_logger.debug(
-                "Initializing object %s with config %s", obj_name, obj_kwargs
-            )
+            obj = get_block(obj_type, **obj_kwargs)
 
-            obj = get_block(obj_type)(**{"block_type": obj_type, **obj_kwargs})
+            # we type check when not using a pipeline
+            type_annotations = all_annotations(type(self))
+            assert (
+                obj_name in type_annotations
+            ), f"Object {obj_name} is missing from definition of DataBuilder {self.__class__}"
 
-            if lm_cache is not None and isinstance(obj, LMGenerator):
-                sdg_logger.info(
-                    "Using cache at %s",
-                    lm_cache + "_rank" + str(obj.rank) + ".db",
-                )
-                obj = CachingLM(
-                    obj,
-                    lm_cache
-                    # each rank receives a different cache db.
-                    # necessary to avoid multiple writes to cache at once
-                    + f"_model{os.path.split(obj.model_id_or_path)[-1]}_rank{obj.rank}.db",
-                )
+            obj_type = type_annotations[obj_name]
 
-            if not "fms_dgt.base.pipeline.Pipeline" in str(self.__class__):
-                # we type check when not using a pipeline
-                type_annotations = all_annotations(type(self))
-                assert (
-                    obj_name in type_annotations
-                ), f"Object {obj_name} is missing from definition of DataBuilder {self.__class__}"
-
-                obj_type = type_annotations[obj_name]
-
-                # double check types
-                assert isinstance(obj, obj_type) or (
-                    isinstance(obj, CachingLM) and isinstance(obj.lm, obj_type)
-                ), f"Type of retrieved object {obj.__class__} for {obj_name} does not match type {obj_type} specified in DataBuilder {self.__class__}"
+            # double check types
+            assert isinstance(obj, obj_type) or (
+                isinstance(obj, CachingLM) and isinstance(obj.lm, obj_type)
+            ), f"Type of retrieved object {obj.__class__} for {obj_name} does not match type {obj_type} specified in DataBuilder {self.__class__}"
 
             setattr(self, obj_name, obj)
-            self._blocks.append(obj)
 
     def execute_tasks(self):
         # main entry point to task execution

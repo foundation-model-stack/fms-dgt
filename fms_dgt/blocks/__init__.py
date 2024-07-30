@@ -1,2 +1,2 @@
-# Local
-from . import generators, utilities, validators
+NAME_KEY = "name"
+TYPE_KEY = "type"

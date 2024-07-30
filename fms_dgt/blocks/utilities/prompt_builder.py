@@ -1,6 +1,5 @@
 # Standard
 from typing import List, Optional
-import copy
 
 # Local
 from fms_dgt.base.block import DATASET_TYPE, BaseBlock

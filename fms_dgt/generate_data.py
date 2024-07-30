@@ -79,27 +79,26 @@ def generate_data(
 
         sdg_logger.debug("Builder config for %s: %s", builder_name, builder_cfg)
 
+        all_builder_kwargs = {
+            "config": builder_cfg,
+            "output_dir": output_dir,
+            "restart_generation": restart_generation,
+            "task_inits": [
+                task_init
+                for task_init in task_inits
+                if task_init["data_builder"] == builder_name
+            ],
+            "task_kwargs": task_kwargs,
+            **builder_kwargs,
+        }
         if original_builder_info[IS_DB_KEY]:
             # builder_dir is stored in the first builder_info in the list
             utils.import_builder(
                 original_builder_info["builder_dir"], include_path=include_builder_path
             )
-            data_builder_type = get_data_builder(builder_name)
+            data_builder = get_data_builder(builder_name, **all_builder_kwargs)
         else:
-            data_builder_type = Pipeline
-
-        data_builder: DataBuilder = data_builder_type(
-            config=builder_cfg,
-            output_dir=output_dir,
-            restart_generation=restart_generation,
-            task_inits=[
-                task_init
-                for task_init in task_inits
-                if task_init["data_builder"] == builder_name
-            ],
-            task_kwargs=task_kwargs,
-            **builder_kwargs,
-        )
+            data_builder = Pipeline(**all_builder_kwargs)
 
         # TODO: ship this off
         data_builder.execute_tasks()
