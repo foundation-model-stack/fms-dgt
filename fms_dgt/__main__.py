@@ -113,6 +113,12 @@ def add_task_args(parser: argparse.ArgumentParser):
         action="store_true",
         help="Entirely restart instruction generation.",
     )
+    group.add_argument(
+        "--task-batch-size",
+        type=int,
+        help="Number of seed examples to draw from a task per iteration.",
+        default=None,
+    )
     return group
 
 
