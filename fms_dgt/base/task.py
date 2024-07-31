@@ -13,10 +13,6 @@ from fms_dgt.utils import group_data_by_attribute
 DEFAULT_OUTPUT_DIR = "output"
 
 
-NAME_KEY = "name"
-TYPE_KEY = "type"
-
-
 @dataclass
 class SdgData(abc.ABC):
     """This class is intended to hold the seed / machine generated instruction data"""
