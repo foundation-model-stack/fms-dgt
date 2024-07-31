@@ -17,16 +17,13 @@ class TestDupCheckerValidator:
             "I went to the store yesterday",
             "blue red yellow green",
         ]
-        all_tokens = validator.tokenize(all_data)
 
         data_entry = "I went to the store"
-        new_tokens = validator.tokenize(data_entry)
-        inputs = [{"a": new_tokens, "b": all_tokens}]
+        inputs = [{"a": data_entry, "b": all_data}]
         validator.generate(inputs, arg_fields=["a", "b"], result_field="result")
         assert not inputs[0]["result"]
 
         data_entry = "one two three"
-        new_tokens = validator.tokenize(data_entry)
-        inputs = [{"a": new_tokens, "b": all_tokens}]
+        inputs = [{"a": data_entry, "b": all_data}]
         validator.generate(inputs, arg_fields=["a", "b"], result_field="result")
         assert inputs[0]["result"]
