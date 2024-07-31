@@ -5,17 +5,12 @@ import abc
 import random
 
 # Local
-from fms_dgt.base.dataloader import DATA_PATH_KEY
 from fms_dgt.base.registry import get_dataloader, get_datastore
 from fms_dgt.dataloaders.default import DefaultDataloader
 from fms_dgt.datastores.default import DefaultDatastore
 from fms_dgt.utils import group_data_by_attribute
 
 DEFAULT_OUTPUT_DIR = "output"
-
-
-NAME_KEY = "name"
-TYPE_KEY = "type"
 
 
 @dataclass
