@@ -18,7 +18,13 @@ REGISTRATION_SEARCHABLE_DIRECTORIES = [
     os.path.join("fms_dgt", "dataloaders"),
     os.path.join("fms_dgt", "datastores"),
 ]
+_ADDED_REGISTRATION_DIRECTORIES = set()
 _REGISTRATION_MODULE_MAP = {}
+
+
+def add_directory_to_registration(search_dir: str):
+    if search_dir not in REGISTRATION_SEARCHABLE_DIRECTORIES:
+        REGISTRATION_SEARCHABLE_DIRECTORIES.append(search_dir)
 
 
 def _build_importable_registration_map(registration_func: str):
@@ -36,18 +42,30 @@ def _build_importable_registration_map(registration_func: str):
 
     if registration_func not in _REGISTRATION_MODULE_MAP:
         _REGISTRATION_MODULE_MAP[registration_func] = dict()
-        for search_dir in REGISTRATION_SEARCHABLE_DIRECTORIES:
-            for dirpath, _, filenames in os.walk(search_dir):
-                for filename in filenames:
-                    filepath = os.path.join(dirpath, filename)
-                    if filepath.endswith(".py"):
-                        import_path = filepath.replace(os.sep, ".")[:-3]
-                        with open(filepath, "r") as f:
-                            class_names = extract_registered_classes(f.read())
-                            for class_name in class_names:
+
+    for search_dir in REGISTRATION_SEARCHABLE_DIRECTORIES:
+        if (search_dir, registration_func) in _ADDED_REGISTRATION_DIRECTORIES:
+            continue
+        _ADDED_REGISTRATION_DIRECTORIES.add((search_dir, registration_func))
+        for dirpath, _, filenames in os.walk(search_dir):
+            for filename in filenames:
+                filepath = os.path.join(dirpath, filename)
+                if filepath.endswith(".py"):
+                    import_path = filepath.replace(os.sep, ".")[:-3]
+                    with open(filepath, "r") as f:
+                        class_names = extract_registered_classes(f.read())
+                        for class_name in class_names:
+                            # we have this be a list to allow conflicts to naturally occur when duplicate names are detected
+                            if (
+                                not class_name
+                                in _REGISTRATION_MODULE_MAP[registration_func]
+                            ):
                                 _REGISTRATION_MODULE_MAP[registration_func][
                                     class_name
-                                ] = import_path
+                                ] = []
+                            _REGISTRATION_MODULE_MAP[registration_func][
+                                class_name
+                            ].append(import_path)
 
 
 def _dynamic_import(registration_func: str, class_name: str):
@@ -56,16 +74,17 @@ def _dynamic_import(registration_func: str, class_name: str):
         registration_func in _REGISTRATION_MODULE_MAP
         and class_name in _REGISTRATION_MODULE_MAP[registration_func]
     ):
-        import_path = _REGISTRATION_MODULE_MAP[registration_func][class_name]
-        try:
-            sdg_logger.info(
-                f"Attempting dynamic import of {import_path} for {class_name}"
-            )
-            importlib.import_module(import_path)
-        except ModuleNotFoundError as e:
-            # we try both, but we will overwrite with include path
-            if f"No module named '{import_path}" not in str(e):
-                raise e
+        import_paths = _REGISTRATION_MODULE_MAP[registration_func][class_name]
+        for import_path in import_paths:
+            try:
+                sdg_logger.info(
+                    f"Attempting dynamic import of {import_path} for {class_name}"
+                )
+                importlib.import_module(import_path)
+            except ModuleNotFoundError as e:
+                # we try both, but we will overwrite with include path
+                if f"No module named '{import_path}" not in str(e):
+                    raise e
 
 
 BLOCK_REGISTRY = {}
