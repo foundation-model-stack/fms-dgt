@@ -2,13 +2,11 @@
 from typing import Any
 import abc
 
-DATA_PATH_KEY = "data_path"
-
 
 class BaseDataloader(abc.ABC):
     """Base Class for all dataloaders"""
 
-    def __init__(self) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__()
 
     @abc.abstractmethod
