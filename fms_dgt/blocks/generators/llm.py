@@ -45,7 +45,6 @@ class LMGenerator(BaseBlock):
         stop_sequences: List[str] = None,
         temperature: float = None,
         batch_size: int = None,
-        lm_cache: str = None,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)

@@ -23,9 +23,9 @@ class DataBuilderConfig(dict):
     # data builder naming/registry
     name: Optional[str] = None
     blocks: Optional[dict] = None
-    metadata: Optional[dict] = (
-        None  # by default, not used in the code. allows for users to pass arbitrary info to data builders
-    )
+    metadata: Optional[
+        dict
+    ] = None  # by default, not used in the code. allows for users to pass arbitrary info to data builders
 
     def __post_init__(self) -> None:
         pass

@@ -92,10 +92,10 @@ class TestLlmGenerators:
     #     vllm_config["model_id_or_path"] = "ibm-granite/granite-8b-code-instruct"
     #     genai_config["model_id_or_path"] = "ibm/granite-8b-code-instruct"
 
-    #     vllm: LMGeneratorBlock = get_block(vllm_config["type"])(
+    #     vllm: LMGeneratorBlock = get_block(vllm_config["block_type"])(
     #         name=f"test_{vllm_config['type']}", config=vllm_config
     #     )
-    #     genai: LMGeneratorBlock = get_block(genai_config["type"])(
+    #     genai: LMGeneratorBlock = get_block(genai_config["block_type"])(
     #         name=f"test_{genai_config['type']}", config=genai_config
     #     )
 
