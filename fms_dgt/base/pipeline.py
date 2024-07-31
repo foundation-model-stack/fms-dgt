@@ -15,9 +15,6 @@ class PipelineConfig(DataBuilderConfig):
     data_map: Dict = None
 
 
-TYPE_KEY = "type"
-
-
 class PipelineSdgTask(SdgTask):
     """This class is intended to hold general task information"""
 
