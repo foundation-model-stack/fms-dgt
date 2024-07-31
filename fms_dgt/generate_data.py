@@ -1,5 +1,5 @@
 # Standard
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 import os
 
 # Local
@@ -12,7 +12,7 @@ sdg_logger = utils.sdg_logger
 
 
 def generate_data(
-    data_paths: str,
+    data_paths: List[str],
     output_dir: str,
     task_kwargs: Dict,
     builder_kwargs: Dict,

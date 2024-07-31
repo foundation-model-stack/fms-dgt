@@ -285,7 +285,7 @@ def sanitize_path(path: str):
     """
     Sanitize a path against directory traversals
     """
-    return os.path.relpath(os.path.normpath(os.path.join("/", path)), "/")
+    return os.path.relpath(os.path.normpath(os.path.join(os.sep, path)), os.sep)
 
 
 # pylint: disable=broad-exception-caught

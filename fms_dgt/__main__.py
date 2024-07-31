@@ -148,6 +148,6 @@ def main():
 
 if __name__ == "__main__":
     """
-    python -m fms_dgt.__main__ --data-path <path-to-data> --lm_cache <path-to-cache>
+    python -m fms_dgt.__main__ --data-paths <path-to-data> --lm_cache <path-to-cache>
     """
     main()
