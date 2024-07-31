@@ -112,8 +112,9 @@ class SdgTask:
             assert (
                 TYPE_KEY in self._datastore_cfg
             ), f"Must specify data store type with '{TYPE_KEY}' key"
-            self._datastore = get_datastore(self._datastore_cfg.pop(TYPE_KEY))(
-                **{**ds_kwargs, **self._datastore_cfg}
+            self._datastore = get_datastore(
+                self._datastore_cfg.get(TYPE_KEY),
+                **{**ds_kwargs, **self._datastore_cfg},
             )
 
     def init_dataloader(self):
@@ -124,8 +125,10 @@ class SdgTask:
                 "Must specify dataloader type with %s key",
                 TYPE_KEY,
             )
-            self._dataloader = get_dataloader(self._dataloader_cfg.pop(TYPE_KEY))(
-                datastore=self._datastore, **self._dataloader_cfg
+            self._dataloader = get_dataloader(
+                self._dataloader_cfg.get(TYPE_KEY),
+                datastore=self._datastore,
+                **self._dataloader_cfg,
             )
 
     @property
