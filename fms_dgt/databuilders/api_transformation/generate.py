@@ -44,7 +44,7 @@ class ApiTransformDataBuilder(TransformationDataBuilder):
     ) -> Iterable[ApiTransformData]:
 
         api_str_list, api_str_dialog_map, dialog_info = [], {}, {}
-        for d in tqdm(instruction_data, desc="API transformation"):
+        for d in tqdm(instruction_data, desc="API Transformation"):
             if d.output and "NONE(" not in d.output:
                 api_str_list.append(d.output)
                 api_str_dialog_map.setdefault(d.dialog_id, []).append(d.output)
