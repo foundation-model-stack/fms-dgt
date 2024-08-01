@@ -161,6 +161,14 @@ class SdgTask:
         except StopIteration:
             return None
 
+    def get_all_seed_examples(self) -> List[SdgData]:
+        outputs = []
+        example = self.get_example()
+        while example is not None:
+            outputs.append(example)
+            example = self.get_example()
+        return outputs
+
     def get_batch_examples(self) -> List[SdgData]:
         outputs = []
 

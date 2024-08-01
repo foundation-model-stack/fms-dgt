@@ -12,7 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 # Standard
 from importlib.util import find_spec
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, List
 import copy
 
 # Third Party
@@ -25,7 +25,6 @@ from fms_dgt.blocks.generators.llm import MODEL_ID_OR_PATH, LMGenerator
 from fms_dgt.resources.openai import OpenAIKeyResource
 from fms_dgt.utils import sdg_logger
 import fms_dgt.blocks.generators.utils as generator_utils
-import fms_dgt.utils as utils
 
 try:
     # Third Party
@@ -130,7 +129,7 @@ class OpenaiCompletionsLM(LMGenerator):
                 kwargs = self.modify_gen_kwargs(gen_kwargs)
                 kwargs[("messages" if self._chat else "prompt")] = inputs
 
-                model_id = kwargs.pop("model_id_or_path", self.model_id_or_path)
+                model_id = kwargs.pop(MODEL_ID_OR_PATH, self.model_id_or_path)
                 until = kwargs.get("stop", None)
 
                 response = oa_completion(

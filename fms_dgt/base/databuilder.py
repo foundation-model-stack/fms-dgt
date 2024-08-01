@@ -266,7 +266,6 @@ class TransformationDataBuilder(DataBuilder):
         while data_pool:
             args = [data_pool]
             kwargs = dict()
-            for task in tasks:
-                for output in self(*args, **kwargs):
-                    yield output
+            for output in self(*args, **kwargs):
+                yield output
             data_pool = [e for task in tasks for e in task.get_batch_examples()]

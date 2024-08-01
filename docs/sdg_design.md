@@ -178,7 +178,7 @@ inp_lst = [inp]
 The interfaces are as follows:
 
 - `generate_data()`: Generate synthentic data
-  - `data_path` (str): Path to data directory (or data file), this is where all task data will be loaded from
+  - `data_paths` (str): One or more paths to data directory (or data files), this is where all task data will be loaded from
   - `num_outputs_to_generate` (int): Number of outputs to generate
   - `num_prompt_instructions` (int): Number of prompt instructions to generate
   - `max_gen_requests` (int): How many iterations of generation should be attempted
@@ -193,13 +193,18 @@ The interfaces are as follows:
 To call this from the command line use the \_\_main\_\_.py file, e.g.,
 
 ```shell
-python -m fms_dgt.__main__ --data-path ./data/logical_reasoning/causal/qna.yaml
+python -m fms_dgt.__main__ --data-paths ./data/logical_reasoning/causal/qna.yaml
 ```
 
-or to run all files in a directory, just specify the top-level directory
+To run all files in a directory, just specify the top-level directory
 
 ```shell
-python -m fms_dgt.__main__ --data-path ./data/logical_reasoning/
+python -m fms_dgt.__main__ --data-paths ./data/logical_reasoning/
+```
+
+To run specific list of files and/or directories, you can pass multiple data paths
+```shell
+python -m fms_dgt.__main__ --data-paths ./data/logical_reasoning/causal ./data/writing/freeform
 ```
 
 ### Implementation
@@ -214,7 +219,7 @@ from fms_dgt.generate_data import generate_data
 generate_data(
     num_outputs_to_generate=2,
     num_prompt_instructions=2,
-    data_path="data",
+    data_paths=["data"],
     max_gen_requests=2,
     output_dir="output",
     lm_cache=None,

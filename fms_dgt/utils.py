@@ -1,6 +1,7 @@
 # Standard
 from collections import ChainMap
 from typing import Any, Callable, List, TypeVar
+from pathlib import Path
 import collections
 import copy
 import fnmatch
@@ -271,6 +272,22 @@ def merge_dictionaries(*args: List[dict]):
     return merged_dict
 
 
+def get_data_path_name(data_path: str):
+    name = (
+        Path(os.path.split(data_path)[0]).stem
+        if os.path.isfile(data_path)
+        else Path(data_path).stem
+    )
+    return name
+
+
+def sanitize_path(path: str):
+    """
+    Sanitize a path against directory traversals
+    """
+    return os.path.relpath(os.path.normpath(os.path.join(os.sep, path)), os.sep)
+
+
 # pylint: disable=broad-exception-caught
 def read_data_file(file_path: str):
     if file_path.endswith(".yaml"):
@@ -284,7 +301,7 @@ def read_data_file(file_path: str):
             file_path = file_path[len("." + os.sep) :]
 
         # get seed instruction data
-        task_name = "->".join(os.path.dirname(file_path).split(os.sep))
+        task_name = "->".join(sanitize_path(os.path.dirname(file_path)).split(os.sep))
         data_builder = contents.get("data_builder", "simple")
         created_by = contents.get("created_by", "")
         seed_examples = contents.pop("seed_examples", [dict()])

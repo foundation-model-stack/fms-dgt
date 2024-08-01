@@ -220,3 +220,32 @@ class TestLlmGenerators:
         #         inp["prompt1"] == inputs_copy[i]["prompt1"]
         #     ), f"Input list has been rearranged at index {i}"
         #     assert isinstance(inp["output"], float)
+
+    def test_vllm_tensor_parallel(self):
+        """
+
+        replace "model_id_or_path" with suitably large model and ensure you have 2 GPUs of sufficient size, e.g. 2 of the a100_80gb
+
+        """
+        model_cfg = dict(GREEDY_VLLM_CFG)
+        model_cfg["block_type"] = "vllm"
+        model_cfg["tensor_parallel_size"] = 2
+        model_cfg["model_id_or_path"] = "mistralai/Mixtral-8x7B-Instruct-v0.1"
+        model_type = model_cfg.get("block_type")
+        lm: LMGenerator = get_block(model_type)(name=f"test_{model_type}", **model_cfg)
+
+        # first we test generation
+        inputs: List[Dict] = []
+        for prompt in PROMPTS:
+            inp = {"prompt": prompt}
+            inputs.append(inp)
+
+        inputs_copy = copy.deepcopy(inputs)
+
+        lm.generate(inputs, arg_fields=["prompt"], result_field="output")
+
+        for i, inp in enumerate(inputs):
+            assert (
+                inp["prompt"] == inputs_copy[i]["prompt"]
+            ), f"Input list has been rearranged at index {i}"
+            assert isinstance(inp["output"], str)
