@@ -24,12 +24,21 @@ class TestRougeValidator:
         new_tokens = validator.tokenize(data_entry)
         inputs = [{"a": new_tokens, "b": all_tokens}]
         validator._threshold = 0.91
+        # since "I went to the store" is in the input,
+        # its similarity score with itself will be 1.0,
+        # so the return value is False
+        # (1.0 < 0.91)
         validator.generate(inputs, arg_fields=["a", "b"], result_field="result")
-        assert inputs[0]["result"]
+        assert not inputs[0]["result"]
 
         data_entry = "one two three"
         new_tokens = validator.tokenize(data_entry)
         inputs = [{"a": new_tokens, "b": all_tokens}]
+
+        # a threshold of 0.0 ensures that the return value is False
+        # (x<0.0) where x is non-negative
+        # (since the similarity of data_entry with the items in add_data is 0.0,
+        # any positive value would result in a return value of True)
         validator._threshold = 0.0
         validator.generate(inputs, arg_fields=["a", "b"], result_field="result")
         assert not inputs[0]["result"]
