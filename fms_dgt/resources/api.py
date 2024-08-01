@@ -16,6 +16,9 @@ class ApiKeyResource(BaseResource):
 
         load_dotenv()
         self._key = os.getenv(key_name, None)
+        if self._key == "":
+            self._key = None
+
         assert (
             self._key is not None
         ), f"Could not find API key {key_name} in config or environment!"
