@@ -13,30 +13,27 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 # Standard
 from importlib.metadata import version
 from importlib.util import find_spec
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, List, Literal, Optional, Tuple
 import copy
 
 # Third Party
-from datasets import Dataset
 from more_itertools import distribute
 from packaging.version import parse as parse_version
-from pandas import DataFrame
 from tqdm import tqdm
 
 # Local
 from fms_dgt.base.instance import Instance
 from fms_dgt.base.registry import register_block
 from fms_dgt.blocks.generators.llm import LMGenerator
-from fms_dgt.blocks.generators.utils import Collator, undistribute
+from fms_dgt.blocks.generators.utils import undistribute
 from fms_dgt.utils import sdg_logger
 import fms_dgt.blocks.generators.utils as generator_utils
 
 try:
     # Third Party
-    from vllm import LLM
-    from vllm.sampling_params import SamplingParams
+    from vllm import LLM, SamplingParams
+    from vllm.lora.request import LoRARequest
     from vllm.transformers_utils.tokenizer import get_tokenizer
-    from vllm.utils import random_uuid
     import ray
     import transformers
 except ModuleNotFoundError:
@@ -62,7 +59,7 @@ class vLLMGenerator(LMGenerator):
         prefix_token_id: Optional[int] = None,
         tensor_parallel_size: int = 1,
         quantization: Optional[str] = None,
-        swap_space: int = 4,
+        swap_space: int = None,
         gpu_memory_utilization: float = 0.9,
         device: str = "cuda",
         data_parallel_size: int = 1,
@@ -84,7 +81,7 @@ class vLLMGenerator(LMGenerator):
 
         self.tensor_parallel_size = int(tensor_parallel_size)
         self.data_parallel_size = int(data_parallel_size)
-        self.model_args = {
+        model_args = {
             "model": self.model_id_or_path,
             "gpu_memory_utilization": float(gpu_memory_utilization),
             "revision": revision,
@@ -94,11 +91,17 @@ class vLLMGenerator(LMGenerator):
             "tokenizer_revision": tokenizer_revision,
             "trust_remote_code": trust_remote_code,
             "tensor_parallel_size": int(tensor_parallel_size),
-            "max_model_len": int(self.max_length) if self.max_length else None,
-            "swap_space": int(swap_space),
+            "max_model_len": (
+                int(self.max_length) if self.max_length is not None else None
+            ),
+            "swap_space": int(swap_space) if swap_space is not None else None,
             "quantization": quantization,
-            "seed": int(self.random_seed),
+            "seed": int(self.random_seed) if self.random_seed is not None else None,
+            # "distributed_executor_backend": (
+            #     "ray" if self.tensor_parallel_size > 1 else "mp"
+            # ),
         }
+        self.model_args = {k: v for k, v in model_args.items() if v is not None}
 
         self._prefix_token_id = prefix_token_id
 
@@ -139,6 +142,14 @@ class vLLMGenerator(LMGenerator):
                 "Loglikelihood prefix token id used in evaluation: %s",
                 self.prefix_token_id,
             )
+
+        if lora_local_path is not None:
+            assert parse_version(version("vllm")) > parse_version(
+                "0.3.0"
+            ), "lora adapters only compatible with vllm > v0.3.0."
+            self.lora_request = LoRARequest("finetuned", 1, lora_local_path)
+        else:
+            self.lora_request = None
 
     @property
     def prefix_token_id(self):
@@ -207,11 +218,19 @@ class vLLMGenerator(LMGenerator):
             # flatten results
             return undistribute(results)
 
-        outputs = self.model.generate(
-            prompt_token_ids=requests,
-            sampling_params=sampling_params,
-            use_tqdm=True if self.batch_size == "auto" else False,
-        )
+        if self.lora_request is not None:
+            outputs = self.model.generate(
+                prompt_token_ids=requests,
+                sampling_params=sampling_params,
+                use_tqdm=True if self.batch_size == "auto" else False,
+                lora_request=self.lora_request,
+            )
+        else:
+            outputs = self.model.generate(
+                prompt_token_ids=requests,
+                sampling_params=sampling_params,
+                use_tqdm=True if self.batch_size == "auto" else False,
+            )
         return outputs
 
     def generate_batch(
