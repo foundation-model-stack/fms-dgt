@@ -22,6 +22,8 @@ Data builder used to transform existing datasets into instruction-following func
 
 ## Data specification
 
+`bash python -m spacy download en_core_web_sm `
+
 ### Raw Data:
 
 Please download the raw data from the following links.
@@ -33,8 +35,6 @@ The raw data should be stored as
 
 `data/raw/dstc8-schema-guided-dialogue`
 `data/raw/MultiWOZ_2.2`
-
-This data builder supports generation defining the following parameters:
 
 ### Required
 
