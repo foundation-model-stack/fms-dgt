@@ -27,8 +27,7 @@ class PromptBuilder(BaseBlock):
         for x in inputs:
             _, inp_kwargs = self.get_args_kwargs(x, arg_fields, kwarg_fields)
 
-            prompt = self._prompt + ""
-
+            prompt = self._prompt
             for k, v in inp_kwargs.items():
                 prompt = prompt.replace("{{" + k + "}}", v)
 
