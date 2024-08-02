@@ -71,6 +71,13 @@ When using the vLLM batched inference, you need to:
 pip install -e ".[vllm]"
 ```
 
+#### Data Prep Kit 
+
+When using the postprocessing pipeline supported by Data Prep Kit (DPK), you need to install:
+```command
+pip install -e ".[dpk]"
+```
+
 **Note:** vLLM [requires Linux OS and CUDA](https://docs.vllm.ai/en/latest/getting_started/installation.html#requirements).
 
 ### Testing out the Framework

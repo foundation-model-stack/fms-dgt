@@ -1,10 +1,10 @@
 # Local
-from fms_dgt.base.block import BasePostProcessingBlock, DATASET_TYPE
+from fms_dgt.base.block import BaseBlock, DATASET_TYPE
 from fms_dgt.base.registry import register_block
 from typing import Any, Dict, List, Optional, Union
 
 @register_block("fuzzy_dedup")
-class FuzzyDedupPostprocessing(BasePostProcessingBlock):
+class FuzzyDedupPostprocessing(BaseBlock):
     """Base Class for all Postprocessors"""
 
     def __init__(self,
@@ -124,12 +124,12 @@ class FuzzyDedupPostprocessing(BasePostProcessingBlock):
         result_field: Optional[List[str]] = None,):
 
         import shutil
-        self._validate()
+        self._postprocess()
         shutil.rmtree(self.intermediate_folder_path)
 
         return self.output_folder_path
 
-    def _validate(self) -> bool:
+    def _postprocess(self) -> bool:
         self.fdedup_embeddable(input_folder_path=self.input_folder_path)
         return True
 

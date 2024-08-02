@@ -1,11 +1,8 @@
 # Standard
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 import copy
 import random
 import time
-
-# Third Party
-import pandas as pd
 
 # Local
 from fms_dgt.base.databuilder import DataBuilder
@@ -13,7 +10,6 @@ from fms_dgt.base.registry import register_data_builder
 from fms_dgt.base.task import SdgTask, group_data_by_task
 from fms_dgt.blocks.generators.llm import LMGenerator
 from fms_dgt.blocks.validators.rouge import RougeValidator
-from fms_dgt.blocks.postprocessors.fuzzy_dedup import FuzzyDedupPostprocessing
 from fms_dgt.databuilders.simple.task import InstructLabSdgData, InstructLabSdgTask
 from fms_dgt.utils import sdg_logger
 import fms_dgt.databuilders.simple.utils as utils
@@ -30,9 +26,6 @@ class SimpleInstructDataBuilder(DataBuilder):
 
     # val1 is the validator which checks rouge score
     val1: RougeValidator
-
-    # postproc1 invokes fuzzy dedup postprocessing
-    postproc1: FuzzyDedupPostprocessing
 
     def __init__(
         self,
@@ -142,7 +135,3 @@ class SimpleInstructDataBuilder(DataBuilder):
         )
 
         return outputs
-
-    def execute_postprocessing(self):
-        # kick off fuzzy dedup
-        self.postproc1.generate(inputs=None)

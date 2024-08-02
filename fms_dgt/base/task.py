@@ -47,7 +47,7 @@ class SdgTask:
         created_by: str,
         data_builder: str,
         output_dir: Optional[str] = "output",
-        output_format: Optional[str] = "parquet",
+        output_format: Optional[str] = "jsonl",
         datastore: Optional[Dict] = None,
         restart_generation: Optional[bool] = False,
         builder_cfg: Optional[Mapping] = None,

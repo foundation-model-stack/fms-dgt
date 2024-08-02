@@ -19,13 +19,5 @@ blocks:
     result_field: output
     filter: true
     threshold: 1.0
-  - name: postproc1
-    type: fuzzy_dedup
-    num_permutations: 64
-    threshold: 0.8
-    shingles_size: 5
-    input_folder_path: output
-    intermediate_folder_path: intermediate_tmp
-    output_folder_path: postprocessed_output
 metadata:
   version: 1.0
