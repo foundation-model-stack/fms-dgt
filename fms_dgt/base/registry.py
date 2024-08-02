@@ -10,7 +10,7 @@ from fms_dgt.base.dataloader import BaseDataloader
 from fms_dgt.base.datastore import BaseDatastore
 from fms_dgt.base.resource import BaseResource
 from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
-from fms_dgt.utils import sdg_logger
+from fms_dgt.utils import dynamic_import, sdg_logger
 
 # TODO: better strategy needed, but this will eliminate some of the confusing errors people get when registering a new class.
 REGISTRATION_SEARCHABLE_DIRECTORIES = [
@@ -68,7 +68,7 @@ def _build_importable_registration_map(registration_func: str):
                             ].append(import_path)
 
 
-def _dynamic_import(registration_func: str, class_name: str):
+def _dynamic_registration_import(registration_func: str, class_name: str):
     _build_importable_registration_map(registration_func)
     if (
         registration_func in _REGISTRATION_MODULE_MAP
@@ -76,15 +76,7 @@ def _dynamic_import(registration_func: str, class_name: str):
     ):
         import_paths = _REGISTRATION_MODULE_MAP[registration_func][class_name]
         for import_path in import_paths:
-            try:
-                sdg_logger.info(
-                    f"Attempting dynamic import of {import_path} for {class_name}"
-                )
-                importlib.import_module(import_path)
-            except ModuleNotFoundError as e:
-                # we try both, but we will overwrite with include path
-                if f"No module named '{import_path}" not in str(e):
-                    raise e
+            dynamic_import(import_path, throw_top_level_error=True)
 
 
 BLOCK_REGISTRY = {}
@@ -112,7 +104,7 @@ def register_block(*names):
 
 def get_block(block_name, *args: Any, **kwargs: Any):
     if block_name not in BLOCK_REGISTRY:
-        _dynamic_import("register_block", block_name)
+        _dynamic_registration_import("register_block", block_name)
     try:
         ret_block = BLOCK_REGISTRY[block_name](*args, **kwargs)
         if isinstance(ret_block, LMGenerator) and "lm_cache" in kwargs:
@@ -150,7 +142,7 @@ def register_resource(*names):
 
 def get_resource(resource_name, *args: Any, **kwargs: Any):
     if resource_name not in RESOURCE_REGISTRY:
-        _dynamic_import("register_resource", resource_name)
+        _dynamic_registration_import("register_resource", resource_name)
     try:
         resource: BaseResource = RESOURCE_REGISTRY[resource_name](*args, **kwargs)
     except KeyError:
@@ -213,7 +205,7 @@ def register_dataloader(*names):
 
 def get_dataloader(dataloader_name, *args: Any, **kwargs: Any):
     if dataloader_name not in DATALOADER_REGISTRY:
-        _dynamic_import("register_dataloader", dataloader_name)
+        _dynamic_registration_import("register_dataloader", dataloader_name)
     try:
         return DATALOADER_REGISTRY[dataloader_name](*args, **kwargs)
     except KeyError:
@@ -247,7 +239,7 @@ def register_datastore(*names):
 
 def get_datastore(datastore_name, *args: Any, **kwargs: Any):
     if datastore_name not in DATASTORE_REGISTRY:
-        _dynamic_import("register_datastore", datastore_name)
+        _dynamic_registration_import("register_datastore", datastore_name)
     try:
         return DATASTORE_REGISTRY[datastore_name](*args, **kwargs)
     except KeyError:

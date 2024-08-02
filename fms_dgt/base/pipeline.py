@@ -6,7 +6,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Union
 from fms_dgt.base.block import DATASET_TYPE
 from fms_dgt.base.databuilder import DataBuilder, DataBuilderConfig
 from fms_dgt.base.task import SdgTask
-from fms_dgt.blocks.compositions.chain import BlockChain
+from fms_dgt.blocks.compositions.sequence import BlockSequence
 from fms_dgt.utils import sdg_logger
 
 
@@ -56,7 +56,7 @@ class PipelineSdgTask(SdgTask):
 
 
 class Pipeline(DataBuilder):
-    """A data builder represents a means of constructing data for a set of tasks"""
+    """A pipeline is a config-based approach for constructing data for a set of tasks"""
 
     VERSION: Optional[Union[int, str]] = None
     TASK_TYPE: SdgTask = PipelineSdgTask
@@ -67,10 +67,9 @@ class Pipeline(DataBuilder):
         task_kwargs: Dict = None,
         **kwargs: Any,
     ) -> None:
-        """ """
-        config: PipelineConfig = (
-            PipelineConfig(**config) if config else PipelineConfig()
-        )
+        config: PipelineConfig = PipelineConfig(**(config or {}))
+
+        # the call to DataBuilder.__init__ will call self._init_blocks, thus ensuring that self._pipeline is defined
         super().__init__(
             config=config,
             task_kwargs={"data_map": config.data_map, **task_kwargs},
@@ -78,14 +77,14 @@ class Pipeline(DataBuilder):
         )
 
     def _init_blocks(self):
-        self._pipeline = BlockChain(self.config.blocks)
+        self._pipeline = BlockSequence(self.config.blocks)
 
     def call_with_task_list(
         self, request_idx: int, tasks: List[PipelineSdgTask]
     ) -> Iterable[Dict]:
         _ = request_idx
         for task in tasks:
-            sdg_logger.info(f"Running task: {task.name}")
+            sdg_logger.info("Running task: %s", task.name)
 
             data_pool = task.get_batch_examples()
 

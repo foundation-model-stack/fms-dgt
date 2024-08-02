@@ -2,7 +2,7 @@
 from abc import ABC
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Iterable, List, Mapping, Optional, Union
+from typing import Any, Iterable, List, Mapping, Optional, Type, Union
 import json
 import os
 import time
@@ -39,7 +39,7 @@ class DataBuilder(ABC):
 
     def __init__(
         self,
-        config: Mapping = None,
+        config: Union[Mapping, DataBuilderConfig] = None,
         output_dir: str = None,
         max_gen_requests: int = None,
         task_inits: dict = None,
@@ -91,6 +91,13 @@ class DataBuilder(ABC):
         return self._blocks
 
     def _init_blocks(self):
+        """This method does two things:
+        (1) It initializes each block object specified in self.config.blocks
+        (2) It sets the block-attributes for a DataBuilder to be those initialized blocks (where the block is assumed to be assigned to `obj_name`)
+            - In the process of doing this, it checks that the type specified in the DataBuilder class's attribute matches the block type that was initialized
+
+        This method is intended to be overloaded when type checking is not necessary (e.g., in the case of the Pipeline class).
+        """
         self._blocks: List[BaseBlock] = []
 
         # TODO: need to handle nested blocks

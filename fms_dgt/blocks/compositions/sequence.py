@@ -8,24 +8,22 @@ from fms_dgt.blocks import TYPE_KEY
 from fms_dgt.utils import sdg_logger
 
 
-@register_block("chain")
-class BlockChain(BaseBlock):
-    """Class for chain of blocks connected in a sequence, i.e., a BlockChain..."""
+@register_block("sequence")
+class BlockSequence(BaseBlock):
+    """Class for sequence of blocks connected in a sequence..."""
 
     def __init__(
         self,
-        block_list: List[Dict] = None,
+        block_list: List[Dict],
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
 
-        if block_list is None:
-            raise ValueError(f"'block_list' argument cannot be 'None'")
-
-        for attr in ["arg_fields", "kwarg_fields", "result_field"]:
-            if getattr(self, attr, False):
+        for attr in [self._arg_fields, self._kwarg_fields, self._result_field]:
+            if attr is not None:
                 sdg_logger.warn(
-                    f"Attribute '{attr}' is set but it will not be used in block '{self.name}'"
+                    "Field attribute is set but it will not be used in block '%s'",
+                    self.name,
                 )
 
         self._blocks: List[BaseBlock] = [
@@ -40,7 +38,7 @@ class BlockChain(BaseBlock):
     def generate(self, inputs: DATASET_TYPE):
         block_data = inputs
         for block in self.blocks:
-            sdg_logger.info(f"Running block {block.name}")
+            sdg_logger.info("Running block %s", block.name)
             # initial block call will pass custom arg_fields / kwarg_fields / result_field
             block_data = block.generate(block_data)
         return block_data

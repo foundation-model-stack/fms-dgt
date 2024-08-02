@@ -1,5 +1,5 @@
 # Local
-from fms_dgt.blocks.compositions.chain import BlockChain
+from fms_dgt.blocks.compositions.sequence import BlockSequence
 
 
 class TestBlockChain:
@@ -15,7 +15,7 @@ class TestBlockChain:
             "result_field": "arg",
         }
         cfgs = [flatten_cfg1, flatten_cfg2]
-        block_chain = BlockChain(cfgs)
+        block_chain = BlockSequence(cfgs)
         data = [{"arg": [[1, 2, 3], [4, 5, 6]]}]
         outputs = block_chain.generate(data)
         for i in range(1, 7):

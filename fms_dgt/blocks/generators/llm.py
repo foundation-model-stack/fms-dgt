@@ -24,7 +24,6 @@ from tqdm import tqdm
 # Local
 from fms_dgt.base.block import DATASET_TYPE, BaseBlock
 from fms_dgt.base.instance import Instance
-from fms_dgt.blocks import TYPE_KEY
 from fms_dgt.utils import sdg_logger
 
 MODEL_ID_OR_PATH = "model_id_or_path"
