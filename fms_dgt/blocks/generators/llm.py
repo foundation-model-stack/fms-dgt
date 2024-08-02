@@ -209,7 +209,7 @@ class CachingLM:
         self.dbdict = SqliteDict(cache_db, autocommit=True)
 
         # add hook to lm
-        lm.set_cache_hook(self.get_cache_hook())
+        self.lm.set_cache_hook(self.get_cache_hook())
 
         self.dbdict
 

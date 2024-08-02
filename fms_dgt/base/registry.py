@@ -1,11 +1,83 @@
 # Standard
 from typing import Any
+import importlib
+import os
+import re
 
 # Local
 from fms_dgt.base.block import BaseBlock
 from fms_dgt.base.dataloader import BaseDataloader
 from fms_dgt.base.datastore import BaseDatastore
 from fms_dgt.base.resource import BaseResource
+from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
+from fms_dgt.utils import dynamic_import, sdg_logger
+
+# TODO: better strategy needed, but this will eliminate some of the confusing errors people get when registering a new class.
+REGISTRATION_SEARCHABLE_DIRECTORIES = [
+    os.path.join("fms_dgt", "blocks"),
+    os.path.join("fms_dgt", "dataloaders"),
+    os.path.join("fms_dgt", "datastores"),
+]
+_ADDED_REGISTRATION_DIRECTORIES = set()
+_REGISTRATION_MODULE_MAP = {}
+
+
+def add_directory_to_registration(search_dir: str):
+    if search_dir not in REGISTRATION_SEARCHABLE_DIRECTORIES:
+        REGISTRATION_SEARCHABLE_DIRECTORIES.append(search_dir)
+
+
+def _build_importable_registration_map(registration_func: str):
+    def extract_registered_classes(file_contents: str):
+        classes = []
+        for matching_pattern in re.findall(f"{registration_func}\(.*\)", file_contents):
+            # last character is ")"
+            matching_pattern = matching_pattern.replace(registration_func + "(", "")[
+                :-1
+            ]
+            classes.extend(
+                [pattern.replace('"', "") for pattern in matching_pattern.split(",")]
+            )
+        return classes
+
+    if registration_func not in _REGISTRATION_MODULE_MAP:
+        _REGISTRATION_MODULE_MAP[registration_func] = dict()
+
+    for search_dir in REGISTRATION_SEARCHABLE_DIRECTORIES:
+        if (search_dir, registration_func) in _ADDED_REGISTRATION_DIRECTORIES:
+            continue
+        _ADDED_REGISTRATION_DIRECTORIES.add((search_dir, registration_func))
+        for dirpath, _, filenames in os.walk(search_dir):
+            for filename in filenames:
+                filepath = os.path.join(dirpath, filename)
+                if filepath.endswith(".py"):
+                    import_path = filepath.replace(os.sep, ".")[:-3]
+                    with open(filepath, "r") as f:
+                        class_names = extract_registered_classes(f.read())
+                        for class_name in class_names:
+                            # we have this be a list to allow conflicts to naturally occur when duplicate names are detected
+                            if (
+                                not class_name
+                                in _REGISTRATION_MODULE_MAP[registration_func]
+                            ):
+                                _REGISTRATION_MODULE_MAP[registration_func][
+                                    class_name
+                                ] = []
+                            _REGISTRATION_MODULE_MAP[registration_func][
+                                class_name
+                            ].append(import_path)
+
+
+def _dynamic_registration_import(registration_func: str, class_name: str):
+    _build_importable_registration_map(registration_func)
+    if (
+        registration_func in _REGISTRATION_MODULE_MAP
+        and class_name in _REGISTRATION_MODULE_MAP[registration_func]
+    ):
+        import_paths = _REGISTRATION_MODULE_MAP[registration_func][class_name]
+        for import_path in import_paths:
+            dynamic_import(import_path, throw_top_level_error=True)
+
 
 BLOCK_REGISTRY = {}
 
@@ -30,9 +102,14 @@ def register_block(*names):
     return decorate
 
 
-def get_block(block_name):
+def get_block(block_name, *args: Any, **kwargs: Any):
+    if block_name not in BLOCK_REGISTRY:
+        _dynamic_registration_import("register_block", block_name)
     try:
-        return BLOCK_REGISTRY[block_name]
+        ret_block = BLOCK_REGISTRY[block_name](*args, **kwargs)
+        if isinstance(ret_block, LMGenerator) and "lm_cache" in kwargs:
+            ret_block = CachingLM(ret_block, kwargs.get("lm_cache"))
+        return ret_block
     except KeyError:
         raise ValueError(
             f"Attempted to load block '{block_name}', but no block for this name found! Supported block names: {', '.join(BLOCK_REGISTRY.keys())}"
@@ -64,6 +141,8 @@ def register_resource(*names):
 
 
 def get_resource(resource_name, *args: Any, **kwargs: Any):
+    if resource_name not in RESOURCE_REGISTRY:
+        _dynamic_registration_import("register_resource", resource_name)
     try:
         resource: BaseResource = RESOURCE_REGISTRY[resource_name](*args, **kwargs)
     except KeyError:
@@ -92,9 +171,9 @@ def register_data_builder(name):
     return decorate
 
 
-def get_data_builder(name):
+def get_data_builder(name, *args: Any, **kwargs: Any):
     try:
-        return DATABUILDER_REGISTRY[name]
+        return DATABUILDER_REGISTRY[name](*args, **kwargs)
     except KeyError:
         raise ValueError(
             f"Attempted to load data builder '{name}', but no data builder for this name found! Supported data builder names: {', '.join(DATABUILDER_REGISTRY.keys())}"
@@ -124,9 +203,11 @@ def register_dataloader(*names):
     return decorate
 
 
-def get_dataloader(dataloader_name):
+def get_dataloader(dataloader_name, *args: Any, **kwargs: Any):
+    if dataloader_name not in DATALOADER_REGISTRY:
+        _dynamic_registration_import("register_dataloader", dataloader_name)
     try:
-        return DATALOADER_REGISTRY[dataloader_name]
+        return DATALOADER_REGISTRY[dataloader_name](*args, **kwargs)
     except KeyError:
         raise ValueError(
             f"Attempted to load dataloader '{dataloader_name}', but no dataloader for this name found! Supported dataloader names: {', '.join(DATALOADER_REGISTRY.keys())}"
@@ -156,9 +237,11 @@ def register_datastore(*names):
     return decorate
 
 
-def get_datastore(datastore_name):
+def get_datastore(datastore_name, *args: Any, **kwargs: Any):
+    if datastore_name not in DATASTORE_REGISTRY:
+        _dynamic_registration_import("register_datastore", datastore_name)
     try:
-        return DATASTORE_REGISTRY[datastore_name]
+        return DATASTORE_REGISTRY[datastore_name](*args, **kwargs)
     except KeyError:
         raise ValueError(
             f"Attempted to load datastore '{datastore_name}', but no datastore for this name found! Supported datastore names: {', '.join(DATASTORE_REGISTRY.keys())}"
@@ -182,9 +265,9 @@ def register_task(name):
     return decorate
 
 
-def get_task(name):
+def get_task(name, *args: Any, **kwargs: Any):
     try:
-        return TASK_REGISTRY[name]
+        return TASK_REGISTRY[name](*args, **kwargs)
     except KeyError:
         raise ValueError(
             f"Attempted to load task '{name}', but no task for this name found! Supported task names: {', '.join(TASK_REGISTRY.keys())}"

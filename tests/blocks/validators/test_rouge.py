@@ -1,10 +1,3 @@
-# Standard
-from typing import List
-import json
-
-# Third Party
-import pytest
-
 # Local
 from fms_dgt.blocks.validators.rouge import RougeValidator
 

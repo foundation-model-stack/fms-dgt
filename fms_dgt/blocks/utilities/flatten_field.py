@@ -1,10 +1,6 @@
 # Standard
-from typing import Any, Dict, List, Optional, Union
+from typing import List, Optional
 import copy
-
-# Third Party
-from datasets import Dataset
-from pandas import DataFrame
 
 # Local
 from fms_dgt.base.block import DATASET_TYPE, BaseBlock
@@ -33,14 +29,8 @@ class FlattenField(BaseBlock):
         for x in inputs:
             inp_args, _ = self.get_args_kwargs(x, arg_fields, kwarg_fields)
             to_flatten = inp_args[0] if type(inp_args[0]) == list else [inp_args[0]]
-
-            # remove flattened attribute
-            x_copy = copy.copy(x)
-            delattr(x_copy, arg_fields[0])
-
             for el in to_flatten:
-                outputs.append(copy.copy(x_copy))
-                delattr(outputs[-1], arg_fields[0])
+                outputs.append(copy.copy(x))
                 self.write_result(outputs[-1], el, result_field)
 
         return outputs

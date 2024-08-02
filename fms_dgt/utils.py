@@ -1,7 +1,7 @@
 # Standard
 from collections import ChainMap
-from typing import Any, Callable, List, TypeVar
 from pathlib import Path
+from typing import Any, Callable, List, TypeVar
 import collections
 import copy
 import fnmatch
@@ -83,19 +83,26 @@ def import_builder(inp_dir: str, include_path: str = None) -> None:
     for imp_path in ["fms_dgt.databuilders", include_path]:
         if imp_path is not None:
             import_path = f"{imp_path}.{inp_dir}.generate"
-            try:
-                importlib.import_module(import_path)
-                loaded = True
-            except ModuleNotFoundError as e:
-                # we try both, but we will overwrite with include path
-                if f"No module named '{imp_path}" not in str(e):
-                    raise e
+            # we try both, but we will overwrite with include path
+            loaded = dynamic_import(import_path) or loaded
 
     if not loaded:
         err_str = f"No module named 'fms_dgt.databuilders.{inp_dir}.generate'"
         if include_path is not None:
             err_str += f" or '{include_path}.{inp_dir}.generate'"
         raise ModuleNotFoundError(err_str)
+
+
+def dynamic_import(import_module: str, throw_top_level_error: bool = False):
+    """This function will attempt to import the module specified by `import_module`"""
+    try:
+        sdg_logger.debug("Attempting dynamic import of %s", import_module)
+        importlib.import_module(import_module)
+        return True
+    except ModuleNotFoundError as e:
+        if f"No module named '{import_module}" not in str(e) or throw_top_level_error:
+            raise e
+        return False
 
 
 def ignore_constructor(loader, node):

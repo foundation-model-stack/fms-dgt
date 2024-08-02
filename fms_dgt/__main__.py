@@ -72,14 +72,6 @@ def add_builder_args(parser: argparse.ArgumentParser):
         help="Path to prompt file.",
     )
     group.add_argument(
-        "--lm-cache",
-        "-c",
-        type=str,
-        default=None,
-        metavar="DIR",
-        help="A path to a sqlite db file for caching model responses. `None` if not caching.",
-    )
-    group.add_argument(
         "--max-gen-requests",
         type=int,
         help="Maximum number of attempts to solve tasks",

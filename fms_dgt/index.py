@@ -7,6 +7,8 @@ import os
 from fms_dgt.utils import sdg_logger
 import fms_dgt.utils as utils
 
+IS_DB_KEY = "is_databuilder"
+
 
 class DataBuilderIndex:
     """DataBuilderIndex indexes all data builders from the default `fms_dgt/databuilders/` and an optional directory if provided."""
@@ -25,12 +27,25 @@ class DataBuilderIndex:
         self.data_builder_group_map = collections.defaultdict(list)
 
     def _initialize_data_builders(self, include_paths: List[str]):
-        all_paths = [os.path.dirname(os.path.abspath(__file__)) + "/"]
+        all_paths = [
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), comp)
+            for comp in ["databuilders", "pipelines"]
+        ]
         for to_include in include_paths:
             if to_include is not None:
                 if isinstance(to_include, str):
                     to_include = [to_include]
                 all_paths.extend(to_include)
+
+        # validate paths
+        for path in all_paths:
+            path_components = path.split(os.sep)
+            assert any(
+                [comp in ["databuilders", "pipelines"] for comp in path_components]
+            ), f"Path [{path}] to directory must include either a 'databuilders' or 'pipelines' subdirectory"
+            assert not all(
+                [comp in ["databuilders", "pipelines"] for comp in path_components]
+            ), f"Path [{path}] to directory must not include both 'databuilders' and 'pipelines' subdirectories"
 
         for data_builder_dir in all_paths:
             self._get_data_builder(data_builder_dir)
@@ -106,6 +121,7 @@ class DataBuilderIndex:
                 f_builder_dir = os.path.split(root)[-1]
                 yaml_path = os.path.join(root, f)
                 config = utils.load_yaml_config(yaml_path, mode="simple")
+                is_db = "databuilders" in builder_path.split(os.sep)
 
                 # TODO: Clean this up and get rid of it, just load top two levels
                 if not "name" in config:
@@ -117,6 +133,7 @@ class DataBuilderIndex:
                     {
                         "yaml_path": yaml_path,
                         "builder_dir": f_builder_dir,
+                        IS_DB_KEY: is_db,
                     }
                 )
 

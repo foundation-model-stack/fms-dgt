@@ -14,7 +14,7 @@ from tqdm import tqdm
 from fms_dgt.base.block import BaseBlock, get_row_name
 from fms_dgt.base.registry import get_block
 from fms_dgt.base.task import NAME_KEY, TYPE_KEY, SdgData, SdgTask
-from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
+from fms_dgt.blocks.generators.llm import CachingLM
 from fms_dgt.utils import all_annotations, sdg_logger
 
 
@@ -23,7 +23,6 @@ class DataBuilderConfig(dict):
     # data builder naming/registry
     name: Optional[str] = None
     blocks: Optional[dict] = None
-    generation_kwargs: Optional[dict] = None
     metadata: Optional[
         dict
     ] = None  # by default, not used in the code. allows for users to pass arbitrary info to data builders
@@ -40,8 +39,7 @@ class DataBuilder(ABC):
 
     def __init__(
         self,
-        config: Mapping = None,
-        lm_cache: str = None,
+        config: Union[Mapping, DataBuilderConfig] = None,
         output_dir: str = None,
         max_gen_requests: int = None,
         task_inits: dict = None,
@@ -49,15 +47,18 @@ class DataBuilder(ABC):
         **kwargs: Any,
     ) -> None:
         """ """
-        self._config: DataBuilderConfig = (
-            DataBuilderConfig(**config) if config else DataBuilderConfig()
-        )
+        if isinstance(config, DataBuilderConfig):
+            self._config = config
+        elif config is not None:
+            self._config = DataBuilderConfig(**config)
+        else:
+            self._config = DataBuilderConfig()
 
         self._name = self.config.name
         self._max_gen_requests = max_gen_requests
 
         # initializing generators / validators
-        self._init_blocks(lm_cache=lm_cache)
+        self._init_blocks()
 
         # TODO: Data loader goes here
         self._tasks: List[SdgTask] = [
@@ -90,7 +91,14 @@ class DataBuilder(ABC):
         """Returns the blocks associated with this class."""
         return self._blocks
 
-    def _init_blocks(self, lm_cache: str = None):
+    def _init_blocks(self):
+        """This method does two things:
+        (1) It initializes each block object specified in self.config.blocks
+        (2) It sets the block-attributes for a DataBuilder to be those initialized blocks (where the block is assumed to be assigned to `obj_name`)
+            - In the process of doing this, it checks that the type specified in the DataBuilder class's attribute matches the block type that was initialized
+
+        This method is intended to be overloaded when type checking is not necessary (e.g., in the case of the Pipeline class).
+        """
         self._blocks: List[BaseBlock] = []
 
         # TODO: need to handle nested blocks
@@ -102,31 +110,15 @@ class DataBuilder(ABC):
                 ), f"'{req_key}' field missing in data builder config from block with args:\n{json.dumps(obj_kwargs, indent=4)} "
 
             obj_name = obj_kwargs.get("name")
-            obj_type = obj_kwargs.pop(TYPE_KEY)
+            obj_type = obj_kwargs.get(TYPE_KEY)
 
             assert not any(
                 block.name == obj_name for block in self._blocks
             ), f"Duplicate '{obj_name}' block in '{self.name}' data builder"
 
-            sdg_logger.debug(
-                "Initializing object %s with config %s", obj_name, obj_kwargs
-            )
+            obj = get_block(obj_type, **obj_kwargs)
 
-            obj = get_block(obj_type)(**{"block_type": obj_type, **obj_kwargs})
-
-            if lm_cache is not None and isinstance(obj, LMGenerator):
-                sdg_logger.info(
-                    "Using cache at %s",
-                    lm_cache + "_rank" + str(obj.rank) + ".db",
-                )
-                obj = CachingLM(
-                    obj,
-                    lm_cache
-                    # each rank receives a different cache db.
-                    # necessary to avoid multiple writes to cache at once
-                    + f"_model{os.path.split(obj.model_id_or_path)[-1]}_rank{obj.rank}.db",
-                )
-
+            # we type check when not using a pipeline
             type_annotations = all_annotations(type(self))
             assert (
                 obj_name in type_annotations
@@ -140,7 +132,6 @@ class DataBuilder(ABC):
             ), f"Type of retrieved object {obj.__class__} for {obj_name} does not match type {obj_type} specified in DataBuilder {self.__class__}"
 
             setattr(self, obj_name, obj)
-            self._blocks.append(obj)
 
     def execute_tasks(self):
         # main entry point to task execution
