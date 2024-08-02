@@ -22,7 +22,7 @@ from sqlitedict import SqliteDict
 from tqdm import tqdm
 
 # Local
-from fms_dgt.base.block import DATASET_TYPE, BaseBlock
+from fms_dgt.base.block import DATASET_ROW_TYPE, DATASET_TYPE, BaseBlock
 from fms_dgt.base.instance import Instance
 from fms_dgt.utils import sdg_logger
 
@@ -44,6 +44,7 @@ class LMGenerator(BaseBlock):
         stop_sequences: List[str] = None,
         temperature: float = None,
         batch_size: int = None,
+        auto_chat_template: bool = False,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
@@ -79,6 +80,18 @@ class LMGenerator(BaseBlock):
                 cfg_kwargs[k] = v
 
         self._base_kwargs = cfg_kwargs
+
+        self._chat_template = None
+        if auto_chat_template:
+            try:
+                # Third Party
+                from transformers import AutoTokenizer
+            except ModuleNotFoundError:
+                raise ModuleNotFoundError(
+                    "In order to set 'auto_chat_template' flag, ",
+                    "lease install transformers via `pip install transformers`",
+                )
+            self._chat_template = AutoTokenizer.from_pretrained(model_id_or_path)
 
     @property
     def rank(self):
@@ -143,7 +156,9 @@ class LMGenerator(BaseBlock):
         # simplify generation here
         instances: List[Instance] = []
         for inp in inputs:
-            inp_args, inp_kwargs = self.get_args_kwargs(inp, arg_fields, kwarg_fields)
+            inp_args, inp_kwargs = self.get_args_kwargs(
+                inp, arg_fields, kwarg_fields, method
+            )
             instances.append(Instance(args=inp_args, kwargs=inp_kwargs, data=inp))
 
         if method == "generate":
@@ -170,6 +185,23 @@ class LMGenerator(BaseBlock):
             outputs.append(inst.data)
 
         return outputs
+
+    def get_args_kwargs(
+        self,
+        inp: DATASET_ROW_TYPE,
+        arg_fields: List[str] | None = None,
+        kwarg_fields: List[str] | None = None,
+        method: str = None,
+    ):
+        inp_args, inp_kwargs = super().get_args_kwargs(inp, arg_fields, kwarg_fields)
+        if (
+            self._chat_template is not None
+            and inp_kwargs.get(MODEL_ID_OR_PATH, self.model_id_or_path)
+            == self.model_id_or_path
+        ):
+            inp_args = [self._chat_template.apply_chat_template(inp_args[0])]
+
+        return inp_args, inp_kwargs
 
 
 ### SQLite-based caching of LM responses
@@ -295,9 +327,7 @@ class CachingLM:
         instances: List[Instance] = []
         for inp in inputs:
             inp_args, inp_kwargs = self.lm.get_args_kwargs(
-                inp,
-                arg_fields,
-                kwarg_fields,
+                inp, arg_fields, kwarg_fields, method
             )
             instances.append(Instance(args=inp_args, kwargs=inp_kwargs, data=inp))
 

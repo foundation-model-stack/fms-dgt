@@ -12,7 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 # Standard
 from importlib.util import find_spec
-from typing import Any, List
+from typing import Any, Dict, List, Union
 import copy
 
 # Third Party
@@ -193,8 +193,10 @@ class OpenaiChatCompletionsLM(OpenaiCompletionsLM):
             sdg_logger.warn(f"OpenAI Chat models only support batch size of 1")
             self._batch_size = 1
 
-    def _prepare_input(self, prompt: str):
-        return {"role": "user", "content": prompt}
+    def _prepare_input(self, prompt: Union[str, List[Dict]]):
+        if type(prompt) == str:
+            return {"role": "user", "content": prompt}
+        return prompt
 
     def _extract_output(self, resp) -> str:
         return resp.message.content
