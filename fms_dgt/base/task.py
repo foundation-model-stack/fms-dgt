@@ -2,14 +2,9 @@
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Mapping, Optional, TypeVar, Union
 import abc
-import json
-import os
-
-# Third Party
-import pandas as pd
+import random
 
 # Local
-from fms_dgt.base.dataloader import DATA_PATH_KEY
 from fms_dgt.base.registry import get_dataloader, get_datastore
 from fms_dgt.dataloaders.default import DefaultDataloader
 from fms_dgt.datastores.default import DefaultDatastore
@@ -53,7 +48,8 @@ class SdgTask:
         builder_cfg: Optional[Mapping] = None,
         file_path: Optional[str] = None,
         dataloader: Optional[Dict] = None,
-        dataloader_batch_size: Optional[int] = None,
+        seed_batch_size: Optional[int] = None,
+        machine_batch_size: Optional[int] = None,
         seed_examples: Optional[List[Any]] = None,
         num_outputs_to_generate: Optional[int] = None,
     ):
@@ -62,42 +58,74 @@ class SdgTask:
         self._task_description = task_description
         self._created_by = created_by
         self._data_builder = data_builder
-
+        self._restart_generation = restart_generation
+        self._file_path = file_path
+        self._builder_cfg = builder_cfg
+        self._seed_examples = seed_examples
         self._num_outputs_to_generate = num_outputs_to_generate
+        self._output_format = output_format
+        self._output_dir = output_dir
+
+        # dataloader params
+        self._dataloader_cfg = dataloader
+
+        # datastore params
+        self._datastore_cfg = datastore
+
         self.machine_data = []
 
+        self._seed_batch_size = (
+            seed_batch_size if seed_batch_size is not None else 10000000
+        )
+        if self._seed_batch_size < 0:
+            raise ValueError(
+                f"Cannot have negative value of {self._seed_batch_size} for seed_batch_size parameter"
+            )
+
+        self._machine_batch_size = (
+            machine_batch_size if machine_batch_size is not None else 10000000
+        )
+        if self._machine_batch_size < 0:
+            raise ValueError(
+                f"Cannot have negative value of {self._machine_batch_size} for machine_batch_size parameter"
+            )
+
+        self.init_datastore()
+        self.init_dataloader()
+
+    def init_datastore(self):
         ds_kwargs = {
-            "task_name": name,
-            "data_builder": data_builder,
-            "restart_generation": restart_generation,
-            "file_path": file_path,
-            "builder_cfg": builder_cfg,
+            "task_name": self._name,
+            "data_builder": self._data_builder,
+            "restart_generation": self._restart_generation,
+            "file_path": self._file_path,
+            "builder_cfg": self._builder_cfg,
+            "seed_examples": self._seed_examples,
+            "output_dir": self._output_dir,
+            "output_format": self._output_format,
         }
-        if datastore is None:
+        if self._datastore_cfg is None:
             self._datastore = DefaultDatastore(
-                output_dir=output_dir, output_format=output_format, **ds_kwargs
+                **ds_kwargs,
             )
         else:
             assert (
-                TYPE_KEY in datastore
+                TYPE_KEY in self._datastore_cfg
             ), f"Must specify data store type with '{TYPE_KEY}' key"
-            self._datastore = get_datastore(datastore.pop(TYPE_KEY))(
-                **{**ds_kwargs, **datastore}
+            self._datastore = get_datastore(self._datastore_cfg.pop(TYPE_KEY))(
+                **{**ds_kwargs, **self._datastore_cfg}
             )
 
-        self._dataloader_batch_size = (
-            dataloader_batch_size if dataloader_batch_size is not None else 10000000
-        )
-        dl_kwargs = {"seed_examples": seed_examples}
-        if dataloader is None:
-            self._dataloader = DefaultDataloader(data=seed_examples)
+    def init_dataloader(self):
+        if self._dataloader_cfg is None:
+            self._dataloader = DefaultDataloader(datastore=self._datastore)
         else:
-            assert TYPE_KEY in dataloader, (
+            assert TYPE_KEY in self._dataloader_cfg, (
                 "Must specify dataloader type with %s key",
                 TYPE_KEY,
             )
-            self._dataloader = get_dataloader(dataloader.pop(TYPE_KEY))(
-                **{**dl_kwargs, **dataloader}
+            self._dataloader = get_dataloader(self._dataloader_cfg.pop(TYPE_KEY))(
+                datastore=self._datastore, **self._dataloader_cfg
             )
 
     @property
@@ -130,13 +158,31 @@ class SdgTask:
         except StopIteration:
             return None
 
+    def get_all_seed_examples(self) -> List[SdgData]:
+        outputs = []
+        example = self.get_example()
+        while example is not None:
+            outputs.append(example)
+            example = self.get_example()
+        return outputs
+
     def get_batch_examples(self) -> List[SdgData]:
         outputs = []
-        for _ in range(self._dataloader_batch_size):
+
+        # get outputs from seed data loader sequentially
+        for _ in range(self._seed_batch_size):
             example = self.get_example()
             if example is None:
-                return outputs
+                break
             outputs.append(example)
+
+        # get outputs from machine batch randomly
+        m_data = self.machine_data
+        if m_data and len(m_data) > self._machine_batch_size:
+            m_data = random.sample(m_data, k=self._machine_batch_size)
+
+        outputs.extend(m_data)
+
         return outputs
 
     def is_complete(self):
@@ -147,9 +193,9 @@ class SdgTask:
         new_data: Union[SdgData, List[SdgData]],
     ) -> None:
         if type(new_data) != list:
-            new_data = [new_data]
+            new_data: List[SdgData] = [new_data]
 
-        to_save = [d.to_output_dict() for d in new_data]
+        to_save = [d if type(d) == dict else d.to_output_dict() for d in new_data]
         self._datastore.save_data(to_save)
 
     def load_data(self) -> List[SdgData]:
