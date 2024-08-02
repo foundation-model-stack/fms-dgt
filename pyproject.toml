@@ -22,7 +22,7 @@ dependencies = [
     "rouge-score>=0.0.4",
     "scikit-learn>=0.24.1",
     "sqlitedict",
-    "torch>=2.3",
+    "torch>=2.2",
     "tqdm-multiprocess",
     "transformers>=4.1",
     "tabulate>=0.9",
@@ -57,6 +57,12 @@ sentencepiece = ["sentencepiece>=0.1.98"]
 sql = ["pydantic>=2.4.2", "pydantic-settings>=2.0.3", "pyyaml>=6.0.1", "sqlglot==23.11.2"]
 testing = ["pytest", "pytest-cov", "pytest-xdist"]
 vllm = ["vllm>=0.3.2", "xformers==0.0.26.post1", "flash-attn>=2.5.8"]
+dpk =  [
+        "dpk_docid_transform_ray @ git+https://github.com/IBM/data-prep-kit.git@v0.2.0#subdirectory=transforms/universal/doc_id/ray",
+        "dpk_ededup_transform_ray @ git+https://github.com/IBM/data-prep-kit.git@v0.2.0#subdirectory=transforms/universal/ededup/ray",
+        "dpk_fdedup_transform_ray @ git+https://github.com/IBM/data-prep-kit.git@v0.2.0#subdirectory=transforms/universal/fdedup/ray",
+        "dpk_code_quality_transform_python @ git+https://github.com/IBM/data-prep-kit.git@v0.2.0#subdirectory=transforms/code/code_quality/python",
+        ]
 dev-test = [
     # TODO: Add packages when tests are built out
     # "pytest>=6",
@@ -81,6 +87,7 @@ all = [
     "fms_dgt[openai]",
     "fms_dgt[sentencepiece]",
     "fms_dgt[sql]",
+    "fms_dgt[dpk]",
     # Disable as its Linux CUDA specific
     # Use can set with the [vllm] target
     # "fms_dgt[vllm]",

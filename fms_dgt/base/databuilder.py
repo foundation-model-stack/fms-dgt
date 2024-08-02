@@ -52,6 +52,7 @@ class DataBuilder(ABC):
         self._config: DataBuilderConfig = (
             DataBuilderConfig(**config) if config else DataBuilderConfig()
         )
+
         self._name = self.config.name
         self._max_gen_requests = max_gen_requests
 
@@ -73,6 +74,7 @@ class DataBuilder(ABC):
         self._output_file_discarded = os.path.join(
             output_dir, f"discarded_{self.config.name}_{date_suffix}.log"
         )
+        self.kwargs = kwargs
 
     @property
     def name(self) -> str:
@@ -198,6 +200,13 @@ class DataBuilder(ABC):
 
         generate_duration = time.time() - generate_start
         sdg_logger.info("Generation took %.2fs", generate_duration)
+
+        sdg_logger.info("Launch postprocessing")
+        self.execute_postprocessing()
+        sdg_logger.info("Postprocessing completed")
+
+    def execute_postprocessing(self):
+        pass
 
     def call_with_task_list(
         self, request_idx: int, tasks: List[SdgTask]
