@@ -84,7 +84,12 @@ def import_builder(inp_dir: str, include_path: str = None) -> None:
         if imp_path is not None:
             import_path = f"{imp_path}.{inp_dir}.generate"
             # we try both, but we will overwrite with include path
-            loaded = dynamic_import(import_path) or loaded
+            try:
+                loaded = dynamic_import(import_path) or loaded
+            except ModuleNotFoundError as e:
+                # we try both, but we will overwrite with include path
+                if f"No module named '{imp_path}.{inp_dir}" not in str(e):
+                    raise e
 
     if not loaded:
         err_str = f"No module named 'fms_dgt.databuilders.{inp_dir}.generate'"
