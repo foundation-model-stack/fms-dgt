@@ -64,7 +64,7 @@ class ApiLlmTransformDataBuilder(TransformationDataBuilder):
             for api in api_list:
                 if api in api_to_str.keys():
                     output_list.append(api)
-                    api_str = api_to_str[api].lower()
+                    api_str = api_to_str[api]#.lower()
                     api_str = api_str + "." if not api_str.endswith(".") else api_str
                     input_list.append(api_str)
             if input_list and output_list:
@@ -75,7 +75,7 @@ class ApiLlmTransformDataBuilder(TransformationDataBuilder):
                         "split": split,
                         "task_name": task_name,
                         "input": " ".join(input_list),
-                        "output": " [SEP] ".join(output_list),
+                        "output": output_list,
                     }
                 )
 
@@ -199,8 +199,8 @@ class ApiSnipsAtisTransformDataBuilder(TransformationDataBuilder):
             yield {
                 "task_name": task_name,
                 "split": split,
-                "text": sentence,
-                "APIs": apis,
+                "input": sentence,
+                "output": apis,
             }
 
 
@@ -333,7 +333,7 @@ class ApiTopv2TransformDataBuilder(TransformationDataBuilder):
                     "split": split,
                     "domain": domain,
                     "input": question,
-                    "apis": only_apis,
+                    "output": only_apis,
                 }
 
 
