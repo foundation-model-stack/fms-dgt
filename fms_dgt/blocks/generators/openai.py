@@ -72,9 +72,13 @@ class OpenaiCompletionsLM(LMGenerator):
     def __init__(
         self,
         base_url: str = None,
+        auto_chat_template: bool = False,
         **kwargs: Any,
     ):
-        super().__init__(**kwargs)
+        # only use auto_chat_template when model backend is vllm and auto_chat_template
+        auto_chat_template = base_url and auto_chat_template
+        super().__init__(auto_chat_template=auto_chat_template, **kwargs)
+
         try:
             # Third Party
             import openai  # noqa: E401
@@ -100,6 +104,8 @@ class OpenaiCompletionsLM(LMGenerator):
                 "openai", "OPENAI_API_KEY"
             )
             self.client = OpenAI(api_key=self._openai_resource.key)
+            if auto_chat_template:
+                sdg_logger.warning(f"Auto chat template is disabled for OpenAI models")
 
     def _prepare_input(self, prompt: str):
         return prompt
