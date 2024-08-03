@@ -35,7 +35,10 @@ def _build_importable_registration_map(registration_func: str):
                 :-1
             ]
             classes.extend(
-                [pattern.replace('"', "") for pattern in matching_pattern.split(",")]
+                [
+                    pattern.replace('"', "").strip()
+                    for pattern in matching_pattern.split(",")
+                ]
             )
         return classes
 
