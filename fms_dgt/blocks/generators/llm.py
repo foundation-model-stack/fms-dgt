@@ -22,7 +22,7 @@ from sqlitedict import SqliteDict
 from tqdm import tqdm
 
 # Local
-from fms_dgt.base.block import DATASET_TYPE, BaseBlock
+from fms_dgt.base.block import DATASET_ROW_TYPE, DATASET_TYPE, BaseBlock
 from fms_dgt.base.instance import Instance
 from fms_dgt.utils import sdg_logger
 
@@ -31,6 +31,9 @@ MODEL_ID_OR_PATH = "model_id_or_path"
 
 class LMGenerator(BaseBlock):
     """Class for LLM Generators"""
+
+    GENERATE = "generate"
+    LOGLIKELIHOOD = "loglikelihood"
 
     def __init__(
         self,
@@ -44,6 +47,7 @@ class LMGenerator(BaseBlock):
         stop_sequences: List[str] = None,
         temperature: float = None,
         batch_size: int = None,
+        auto_chat_template: bool = False,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
@@ -79,6 +83,18 @@ class LMGenerator(BaseBlock):
                 cfg_kwargs[k] = v
 
         self._base_kwargs = cfg_kwargs
+
+        self._chat_template = None
+        if auto_chat_template:
+            try:
+                # Third Party
+                from transformers import AutoTokenizer
+            except ModuleNotFoundError:
+                raise ModuleNotFoundError(
+                    "In order to enable 'auto_chat_template', ",
+                    "please install transformers via `pip install transformers`",
+                )
+            self._chat_template = AutoTokenizer.from_pretrained(model_id_or_path)
 
     @property
     def rank(self):
@@ -136,22 +152,24 @@ class LMGenerator(BaseBlock):
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
-        method: str = "generate",
+        method: str = GENERATE,
         **kwargs: Any,
     ):
 
         # simplify generation here
         instances: List[Instance] = []
         for inp in inputs:
-            inp_args, inp_kwargs = self.get_args_kwargs(inp, arg_fields, kwarg_fields)
+            inp_args, inp_kwargs = self.get_args_kwargs(
+                inp, method, arg_fields, kwarg_fields
+            )
             instances.append(Instance(args=inp_args, kwargs=inp_kwargs, data=inp))
 
-        if method == "generate":
+        if method == self.GENERATE:
             self.generate_batch(
                 instances,
                 **kwargs,
             )
-        elif method == "loglikelihood":
+        elif method == self.LOGLIKELIHOOD:
             self.loglikelihood_batch(
                 instances,
                 **kwargs,
@@ -160,7 +178,7 @@ class LMGenerator(BaseBlock):
             err_str = (
                 f"Unhandled method type: {method}"
                 if method is not None
-                else "Must set 'method' kwarg to 'generate' or 'loglikelihood'"
+                else f"Must set 'method' kwarg to '{self.GENERATE}' or '{self.LOGLIKELIHOOD}'"
             )
             raise ValueError(err_str)
 
@@ -170,6 +188,43 @@ class LMGenerator(BaseBlock):
             outputs.append(inst.data)
 
         return outputs
+
+    def get_args_kwargs(
+        self,
+        inp: DATASET_ROW_TYPE,
+        method: str,
+        arg_fields: Optional[List[str]] = None,
+        kwarg_fields: Optional[List[str]] = None,
+    ):
+
+        assert method in [
+            self.GENERATE,
+            self.LOGLIKELIHOOD,
+        ], f"'method' value should be one of [{self.GENERATE}, {self.LOGLIKELIHOOD}], instead it was given as {method}"
+        inp_args, inp_kwargs = super().get_args_kwargs(inp, arg_fields, kwarg_fields)
+
+        # double check that model specified in kwargs (if it is specified in kwargs) matches model defined for chat template
+        if (
+            method == self.GENERATE
+            and self._chat_template is not None
+            and (
+                inp_kwargs.get(MODEL_ID_OR_PATH, self.model_id_or_path)
+                == self.model_id_or_path
+            )
+        ):
+
+            prompt = inp_args[0]
+            assert type(prompt) in [
+                list,
+                str,
+            ], f"Prompt must be given as either List[Dict] or str, but was instead given as {type(prompt)}"
+
+            if type(prompt) == str:
+                prompt = [{"role": "user", "content": prompt}]
+
+            inp_args = [self._chat_template.apply_chat_template(prompt, tokenize=False)]
+
+        return inp_args, inp_kwargs
 
 
 ### SQLite-based caching of LM responses
@@ -295,18 +350,16 @@ class CachingLM:
         instances: List[Instance] = []
         for inp in inputs:
             inp_args, inp_kwargs = self.lm.get_args_kwargs(
-                inp,
-                arg_fields,
-                kwarg_fields,
+                inp, method, arg_fields, kwarg_fields
             )
             instances.append(Instance(args=inp_args, kwargs=inp_kwargs, data=inp))
 
-        if method == "generate":
+        if method == self.lm.GENERATE:
             self.generate_batch(
                 instances,
                 **kwargs,
             )
-        elif method == "loglikelihood":
+        elif method == self.lm.LOGLIKELIHOOD:
             self.loglikelihood_batch(
                 instances,
                 **kwargs,
@@ -315,7 +368,7 @@ class CachingLM:
             err_str = (
                 f"Unhandled method type: {method}"
                 if method is not None
-                else "Must set 'method' kwarg to 'generate' or 'loglikelihood'"
+                else f"Must set 'method' kwarg to '{self.lm.GENERATE}' or '{self.lm.LOGLIKELIHOOD}'"
             )
             raise ValueError(err_str)
 

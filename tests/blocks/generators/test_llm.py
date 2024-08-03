@@ -37,10 +37,10 @@ GREEDY_OPENAI_CFG = {
 PROMPTS = [f"Question: x = {i} + 1\nAnswer: x =" for i in range(25)]
 
 
-class TestLlmGenerators:
+class TestLlmGeneration:
     @pytest.mark.parametrize(
         "model_cfg", [GREEDY_OPENAI_CFG, GREEDY_GENAI_CFG, GREEDY_VLLM_CFG]
-    )  # GREEDY_VLLM_CFG]
+    )
     def test_generate_batch(self, model_cfg):
         model_cfg = dict(model_cfg)
         model_type = model_cfg.get("type")
@@ -92,10 +92,10 @@ class TestLlmGenerators:
     #     vllm_config["model_id_or_path"] = "ibm-granite/granite-8b-code-instruct"
     #     genai_config["model_id_or_path"] = "ibm/granite-8b-code-instruct"
 
-    #     vllm: LMGeneratorBlock = get_block(vllm_config["block_type"])(
+    #     vllm: LMGeneratorBlock = get_block(vllm_config["type"],
     #         name=f"test_{vllm_config['type']}", config=vllm_config
     #     )
-    #     genai: LMGeneratorBlock = get_block(genai_config["block_type"])(
+    #     genai: LMGeneratorBlock = get_block(genai_config["type"],
     #         name=f"test_{genai_config['type']}", config=genai_config
     #     )
 
@@ -228,11 +228,11 @@ class TestLlmGenerators:
 
         """
         model_cfg = dict(GREEDY_VLLM_CFG)
-        model_cfg["block_type"] = "vllm"
+        model_cfg["type"] = "vllm"
         model_cfg["tensor_parallel_size"] = 2
         model_cfg["model_id_or_path"] = "mistralai/Mixtral-8x7B-Instruct-v0.1"
-        model_type = model_cfg.get("block_type")
-        lm: LMGenerator = get_block(model_type)(name=f"test_{model_type}", **model_cfg)
+        model_type = model_cfg.get("type")
+        lm: LMGenerator = get_block(model_type, name=f"test_{model_type}", **model_cfg)
 
         # first we test generation
         inputs: List[Dict] = []
@@ -249,3 +249,41 @@ class TestLlmGenerators:
                 inp["prompt"] == inputs_copy[i]["prompt"]
             ), f"Input list has been rearranged at index {i}"
             assert isinstance(inp["output"], str)
+
+
+class TestLlmPrompting:
+    @pytest.mark.parametrize("model_cfg", [GREEDY_GENAI_CFG, GREEDY_OPENAI_CFG])
+    def test_auto_chat_template(self, model_cfg):
+        model_type = model_cfg.get("type")
+        model_cfg["auto_chat_template"] = True
+        model_cfg["model_id_or_path"] = "mistralai/Mixtral-8x7B-Instruct-v0.1"
+        lm: LMGenerator = get_block(model_type, name=f"test_{model_type}", **model_cfg)
+
+        # check it passes through for a simple string
+        prompt = {"prompt": "Hello world"}
+        outputs, _ = lm.get_args_kwargs(prompt, lm.GENERATE, ["prompt"])
+        output = outputs[0]
+        if "openai" in model_type:
+            assert output == prompt["prompt"]
+        else:
+            assert output != prompt["prompt"]
+
+        # check it passes through a list of dictionaries
+        prompt = {
+            "prompt": [
+                {"role": "user", "content": "Hello World"},
+                {"role": "assistant", "content": "Yes, it is me, World"},
+            ]
+        }
+        outputs, _ = lm.get_args_kwargs(prompt, lm.GENERATE, ["prompt"])
+        output = outputs[0]
+        if "openai" in model_type:
+            assert output == prompt["prompt"]
+        else:
+            assert output != prompt["prompt"]
+
+        # check it does nothing for loglikelihood
+        prompt = {"prompt": "Hello world"}
+        outputs, _ = lm.get_args_kwargs(prompt, lm.LOGLIKELIHOOD, ["prompt"])
+        output = outputs[0]
+        assert output == prompt["prompt"]

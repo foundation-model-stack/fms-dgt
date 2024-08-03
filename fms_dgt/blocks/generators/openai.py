@@ -12,7 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 # Standard
 from importlib.util import find_spec
-from typing import Any, List
+from typing import Any, Dict, List, Union
 import copy
 
 # Third Party
@@ -72,9 +72,13 @@ class OpenaiCompletionsLM(LMGenerator):
     def __init__(
         self,
         base_url: str = None,
+        auto_chat_template: bool = False,
         **kwargs: Any,
     ):
-        super().__init__(**kwargs)
+        # only use auto_chat_template when model backend is vllm and auto_chat_template
+        auto_chat_template = base_url and auto_chat_template
+        super().__init__(auto_chat_template=auto_chat_template, **kwargs)
+
         try:
             # Third Party
             import openai  # noqa: E401
@@ -100,6 +104,8 @@ class OpenaiCompletionsLM(LMGenerator):
                 "openai", "OPENAI_API_KEY"
             )
             self.client = OpenAI(api_key=self._openai_resource.key)
+            if auto_chat_template:
+                sdg_logger.warning(f"auto_chat_template is disabled for OpenAI models")
 
     def _prepare_input(self, prompt: str):
         return prompt
@@ -193,8 +199,10 @@ class OpenaiChatCompletionsLM(OpenaiCompletionsLM):
             sdg_logger.warn(f"OpenAI Chat models only support batch size of 1")
             self._batch_size = 1
 
-    def _prepare_input(self, prompt: str):
-        return {"role": "user", "content": prompt}
+    def _prepare_input(self, prompt: Union[str, List[Dict]]):
+        if type(prompt) == str:
+            return {"role": "user", "content": prompt}
+        return prompt
 
     def _extract_output(self, resp) -> str:
         return resp.message.content
