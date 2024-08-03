@@ -1,10 +1,10 @@
 Please download the raw data from the following links.
       
-    - ATIS: [Link](https://github.com/LooperXX/AGIF/tree/master/data/ATIS)
+    - ATIS: [Link](https://github.com/LooperXX/AGIF/tree/master/data/MixATIS_clean)
 
 The raw data should be stored as 
 
-`data/api_transformation/atis/ATIS`
+`data/api_transformation/atis/MixATIS_clean`
 
 with the following paths present
 

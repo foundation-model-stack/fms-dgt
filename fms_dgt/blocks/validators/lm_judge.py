@@ -19,8 +19,8 @@ class LMJudgeValidator(BaseValidatorBlock):
             TYPE_KEY in lm_config
         ), f"Must specify {TYPE_KEY} in 'lm' field of {self.name} block"
 
-        self._llm_generator: LMGenerator = get_block(lm_config.pop(TYPE_KEY))(
-            **lm_config
+        self._llm_generator: LMGenerator = get_block(
+            lm_config.get(TYPE_KEY), **lm_config
         )
         self.blocks = [self._llm_generator]
 
