@@ -105,7 +105,7 @@ class OpenaiCompletionsLM(LMGenerator):
             )
             self.client = OpenAI(api_key=self._openai_resource.key)
             if auto_chat_template:
-                sdg_logger.warning(f"Auto chat template is disabled for OpenAI models")
+                sdg_logger.warning(f"auto_chat_template is disabled for OpenAI models")
 
     def _prepare_input(self, prompt: str):
         return prompt
