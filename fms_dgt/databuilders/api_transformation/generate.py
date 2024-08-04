@@ -196,7 +196,16 @@ class ApiSnipsAtisTransformDataBuilder(TransformationDataBuilder):
                         if name not in params_dic:
                             params_dic[name] = []
                         params_dic[name].append(val)
-                    apis.append({"API": all_intents[i], "Parameters": params_dic})
+                    params_lst = []
+                    for key, value in params_dic.items():
+                        if len(value) == 1:
+                            value = value[0]
+                        if type(value) == str:
+                            params_lst.append(f'{key} = "{value}"')
+                        else:
+                            params_lst.append(f'{key} = "{value}"')
+
+                    apis.append(f'{all_intents[i]}({", ".join(params_lst)})')
                 yield {
                     "task_name": task_name,
                     "split": split,
