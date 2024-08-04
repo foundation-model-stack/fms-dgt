@@ -128,80 +128,83 @@ class ApiSnipsAtisTransformDataBuilder(TransformationDataBuilder):
         instruction_data: List[ApiSnipsAtisTransformData],
     ) -> Iterable[ApiSnipsAtisTransformData]:
         for data in tqdm(instruction_data, "snips_atis Transformation"):
-            text = data.text
-            intents = data.intents
-            slots = data.slots
-            task_name = data.task_name
-            split = data.split
+            try:
+                text = data.text
+                intents = data.intents
+                slots = data.slots
+                task_name = data.task_name
+                split = data.split
 
-            sentence = " ".join(text).strip()
-            all_intents = intents[0].split("#")
-            if len(all_intents) == 1:
-                clauses = [sentence]
-            else:
-                clauses = split_string_on_delimiters(
-                    sentence,
-                    ["and also", "and then", ",", "and", "also"],
-                    max_splits=len(all_intents),
-                )
-                if len(clauses) != len(all_intents):
-                    clauses = split_string_on_delimiters(
-                        sentence, [",", "and then"], max_splits=len(all_intents)
-                    )
-                if len(clauses) != len(all_intents):
-                    if len(clauses) != len(all_intents):
-                        clauses = clause_parse(sentence, self._en)
-                    if len(clauses) != len(all_intents):
-                        new_clauses = []
-                        for idx, c in enumerate(clauses):
-                            id, clause = c
-                            if len(new_clauses) == 0:
-                                new_clauses.append(clause)
-                            elif new_clauses[-1].strip().endswith("and and"):
-                                new_clauses[-1] = (
-                                    new_clauses[-1].replace("and and", "and").strip()
-                                    + " "
-                                    + clause
-                                )
-                            else:
-                                new_clauses.append(clause)
-                        clauses = new_clauses
-            if len(clauses) > len(all_intents):
-                new_clauses = []
-                for c in clauses:
-                    if len(new_clauses) > 0:
-                        if len(new_clauses[-1].split(" ")) < 3:
-                            new_clauses[-1] += " " + c
-                            continue
-                        elif len(c.split(" ")) < 5:
-                            new_clauses[-1] += " " + c
-                            continue
-                    new_clauses.append(c)
-                clauses = new_clauses
-            start = 0
-            apis = []
-            for i in range(len(clauses)):
-                if type(clauses[i]) == tuple:
-                    num, clause = clauses[i]
+                sentence = " ".join(text).strip()
+                all_intents = intents[0].split("#")
+                if len(all_intents) == 1:
+                    clauses = [sentence]
                 else:
-                    clause = clauses[i]
-                num_words = len(clause.split(" "))
-                slots_arr = slots[start : start + num_words]
-                tokens = text[start : start + num_words]
-                params = parse_IOB(tokens, slots_arr)
-                start += num_words
-                params_dic = {}
-                for val, name in params:
-                    if name not in params_dic:
-                        params_dic[name] = []
-                    params_dic[name].append(val)
-                apis.append({"API": all_intents[i], "Parameters": params_dic})
-            yield {
-                "task_name": task_name,
-                "split": split,
-                "input": sentence,
-                "output": apis,
-            }
+                    clauses = split_string_on_delimiters(
+                        sentence,
+                        ["and also", "and then", ",", "and", "also"],
+                        max_splits=len(all_intents),
+                    )
+                    if len(clauses) != len(all_intents):
+                        clauses = split_string_on_delimiters(
+                            sentence, [",", "and then"], max_splits=len(all_intents)
+                        )
+                    if len(clauses) != len(all_intents):
+                        if len(clauses) != len(all_intents):
+                            clauses = clause_parse(sentence, self._en)
+                        if len(clauses) != len(all_intents):
+                            new_clauses = []
+                            for idx, c in enumerate(clauses):
+                                id, clause = c
+                                if len(new_clauses) == 0:
+                                    new_clauses.append(clause)
+                                elif new_clauses[-1].strip().endswith("and and"):
+                                    new_clauses[-1] = (
+                                        new_clauses[-1].replace("and and", "and").strip()
+                                        + " "
+                                        + clause
+                                    )
+                                else:
+                                    new_clauses.append(clause)
+                            clauses = new_clauses
+                if len(clauses) > len(all_intents):
+                    new_clauses = []
+                    for c in clauses:
+                        if len(new_clauses) > 0:
+                            if len(new_clauses[-1].split(" ")) < 3:
+                                new_clauses[-1] += " " + c
+                                continue
+                            elif len(c.split(" ")) < 5:
+                                new_clauses[-1] += " " + c
+                                continue
+                        new_clauses.append(c)
+                    clauses = new_clauses
+                start = 0
+                apis = []
+                for i in range(len(clauses)):
+                    if type(clauses[i]) == tuple:
+                        num, clause = clauses[i]
+                    else:
+                        clause = clauses[i]
+                    num_words = len(clause.split(" "))
+                    slots_arr = slots[start : start + num_words]
+                    tokens = text[start : start + num_words]
+                    params = parse_IOB(tokens, slots_arr)
+                    start += num_words
+                    params_dic = {}
+                    for val, name in params:
+                        if name not in params_dic:
+                            params_dic[name] = []
+                        params_dic[name].append(val)
+                    apis.append({"API": all_intents[i], "Parameters": params_dic})
+                yield {
+                    "task_name": task_name,
+                    "split": split,
+                    "input": sentence,
+                    "output": apis,
+                }
+            except:
+                pass
 
 
 def split_string_on_delimiters(string, delimiters, max_splits=None):
