@@ -212,7 +212,7 @@ class ApiSnipsAtisTransformDataBuilder(TransformationDataBuilder):
                     "input": sentence,
                     "output": apis,
                 }
-            except:
+            except IndexError:
                 pass
 
 
