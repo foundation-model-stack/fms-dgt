@@ -29,12 +29,7 @@ class RougeDedupValidator(BaseValidatorBlock):
 
     def tokenize(self, inp: Union[List, str]):
         if type(inp) == list:
-            tokenized = []
-            for el in inp:
-                if el not in self._cache:
-                    self._cache[el] = self.scorer._tokenizer.tokenize(el)
-                tokenized.append(self._cache[el])
-            return tokenized
+            return [self.tokenize(el) for el in inp]
         else:
             if inp not in self._cache:
                 self._cache[inp] = self.scorer._tokenizer.tokenize(inp)
@@ -44,17 +39,24 @@ class RougeDedupValidator(BaseValidatorBlock):
         self,
         inputs: DATASET_TYPE,
         *,
-        context: Optional[List[List[int]]] = None,
+        context: Optional[List[str]] = None,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[List[str]] = None,
     ):
         """Deduplicator that removes elements of `inputs` that are too rouge-similar. By default it will pick the one that is maximally dissimilar from `context` to keep"""
 
+        # tokenize context
+        context = self.tokenize(context) if context else []
+
+        tokenized = []
+        for inp in inputs:
+            (inp_str,), _ = self.get_args_kwargs(inp, arg_fields, kwarg_fields)
+            tokenized.append((self.tokenize(inp_str), inp))
+
         # first score inputs by rouge similarity to context
         ranked_inputs = []
-        for inp in inputs:
-            (new_tokens,), _ = self.get_args_kwargs(inp, arg_fields, kwarg_fields)
+        for new_tokens, inp in tokenized:
             worst_rouge_score = (
                 max(
                     map(
@@ -68,20 +70,23 @@ class RougeDedupValidator(BaseValidatorBlock):
 
             if worst_rouge_score < self._threshold or not self._filter_invalids:
                 ranked_inputs.append(
-                    (worst_rouge_score, worst_rouge_score < self._threshold, inp)
+                    (
+                        worst_rouge_score,
+                        worst_rouge_score < self._threshold,
+                        new_tokens,
+                        inp,
+                    )
                 )
 
         ranked_inputs.sort(key=lambda x: x[0])
 
         # now add
         all_tokens = []
-        for _, _, inp in ranked_inputs:
-            (new_tokens,), _ = self.get_args_kwargs(inp, arg_fields, kwarg_fields)
+        for _, _, new_tokens, inp in ranked_inputs:
             all_tokens.append(new_tokens)
 
         outputs = []
-        for i, (_, is_valid_wrt_context, inp) in enumerate(ranked_inputs):
-            (new_tokens,), _ = self.get_args_kwargs(inp, arg_fields, kwarg_fields)
+        for i, (_, is_valid_wrt_context, new_tokens, inp) in enumerate(ranked_inputs):
             # only check against elements we've already added
             check_against = all_tokens[:i]
             res = self._validate(new_tokens, check_against) and is_valid_wrt_context

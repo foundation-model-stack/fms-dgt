@@ -153,16 +153,13 @@ class ApiDataBuilder(DataBuilder):
         self, data_to_filter: List[ApiSdgData], instruction_data: List[ApiSdgData]
     ):
         # Rouge filtering
-        all_instruction_tokens = self.val2.tokenize(
-            [instr.input for instr in instruction_data]
-        )
+        all_instructions = [instr.input for instr in instruction_data]
 
         val2_inputs: List[Dict] = []
         for new_data in data_to_filter:
             # computing similarity with the pre-tokenized instructions
-            new_instruction_tokens = self.val2.tokenize(new_data.input)
             inp = {
-                "new_instruction_tokens": new_instruction_tokens,
+                "to_check": new_data.input,
                 "data": new_data,
             }
             val2_inputs.append(inp)
@@ -172,8 +169,8 @@ class ApiDataBuilder(DataBuilder):
             output["data"]
             for output in self.val2.generate(
                 val2_inputs,
-                context=all_instruction_tokens,
-                arg_fields=["new_instruction_tokens"],
+                context=all_instructions,
+                arg_fields=["to_check"],
                 result_field="output",
             )
         ]
