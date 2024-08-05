@@ -9,7 +9,7 @@ from fms_dgt.base.databuilder import DataBuilder
 from fms_dgt.base.registry import register_data_builder
 from fms_dgt.base.task import SdgTask, group_data_by_task
 from fms_dgt.blocks.generators.llm import LMGenerator
-from fms_dgt.blocks.validators.rouge import RougeValidator
+from fms_dgt.blocks.validators.rouge import RougeDedupValidator
 from fms_dgt.databuilders.simple.task import InstructLabSdgData, InstructLabSdgTask
 from fms_dgt.utils import sdg_logger
 import fms_dgt.databuilders.simple.utils as utils
@@ -25,7 +25,7 @@ class SimpleInstructDataBuilder(DataBuilder):
     llm1: LMGenerator
 
     # val1 is the validator which checks rouge score
-    val1: RougeValidator
+    val1: RougeDedupValidator
 
     def __init__(
         self,
@@ -103,25 +103,27 @@ class SimpleInstructDataBuilder(DataBuilder):
 
         # now we assess and filter with rouge
         assess_start = time.time()
-        all_instruction_tokens = self.val1.tokenize(
-            [instr.instruction for instr in instruction_data]
-        )
+        all_instructions = [instr.instruction for instr in instruction_data]
 
-        outputs: List[InstructLabSdgData] = []
+        val_inputs: List[InstructLabSdgData] = []
         for instruction_data_entry in llm_data:
             # computing similarity with the pre-tokenized instructions
-            new_instruction_tokens = self.val1.tokenize(
-                instruction_data_entry.instruction
-            )
             inp = {
-                "new_toks": new_instruction_tokens,
-                "all_toks": all_instruction_tokens,
+                "to_check": instruction_data_entry.instruction,
                 "data": instruction_data_entry,
             }
-            new_outputs = [output["data"] for output in self.val1.generate([inp])]
-            if new_outputs:
-                outputs.extend(new_outputs)
-                all_instruction_tokens.append(new_instruction_tokens)
+            val_inputs.append(inp)
+
+        # filter rouge data
+        outputs = [
+            output["data"]
+            for output in self.val1.generate(
+                val_inputs,
+                context=all_instructions,
+                arg_fields=["to_check"],
+                result_field="output",
+            )
+        ]
 
         # filter rouge failed data
 

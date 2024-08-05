@@ -10,7 +10,7 @@ from fms_dgt.base.databuilder import DataBuilder
 from fms_dgt.base.registry import register_data_builder
 from fms_dgt.base.task import SdgTask
 from fms_dgt.blocks.generators.llm import LMGenerator
-from fms_dgt.blocks.validators.rouge import RougeValidator
+from fms_dgt.blocks.validators.rouge import RougeDedupValidator
 
 
 @register_data_builder("data_builder_name")
@@ -23,7 +23,7 @@ class TemplateDataBuilder(DataBuilder):
     llm1: LMGenerator
 
     # val1 is the validator which checks rouge score
-    val1: RougeValidator
+    val1: RougeDedupValidator
 
     def __init__(
         self,
