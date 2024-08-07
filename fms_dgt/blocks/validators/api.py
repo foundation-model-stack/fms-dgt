@@ -77,7 +77,7 @@ class APIGenSpecValidator(BaseValidatorBlock):
                 [
                     k
                     for k in component.keys()
-                    if k not in ([_NAME, _ARGS] + [_LABEL] if require_nested else [])
+                    if k not in ([_NAME, _ARGS] + ([_LABEL] if require_nested else []))
                 ]
             ):
                 return False
