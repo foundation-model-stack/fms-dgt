@@ -12,6 +12,7 @@ _NAME = "name"
 _PARAM = "parameters"
 _PROPERTIES = "properties"
 _ARGS = "arguments"
+_LABEL = "label"
 _REQUIRED = "required"
 _OUTPUT_PARAM = "output_parameters"
 
@@ -72,7 +73,13 @@ class APIGenSpecValidator(BaseValidatorBlock):
         for i, component in enumerate(sep_components):
 
             # basic malformedness check
-            if any([k for k in component.keys() if k not in [_NAME, _ARGS]]):
+            if any(
+                [
+                    k
+                    for k in component.keys()
+                    if k not in ([_NAME, _ARGS] + [_LABEL] if require_nested else [])
+                ]
+            ):
                 return False
 
             if intent_only:
@@ -130,16 +137,23 @@ class APIGenSpecValidator(BaseValidatorBlock):
 
 def is_nested_match(arg_content: str, prev_components: List[Dict], api_info: Dict):
     for component in prev_components:
+
+        if _LABEL not in component:
+            continue
+
         matching_api = next(
             api for api in api_info.values() if api[_NAME] == component[_NAME]
         )
+
         if _OUTPUT_PARAM in matching_api:
             for out_param_name, out_param_info in matching_api[_OUTPUT_PARAM][
                 _PROPERTIES
             ].items():
-                nested_call = "$" + ".".join([component[_NAME], out_param_name])
+                nested_call = ".".join([component[_LABEL], out_param_name])
+
                 if nested_call == arg_content:
                     return True
+
     return False
 
 

@@ -13,6 +13,6 @@ blocks:
   - name: val2
     type: rouge_scorer
     filter: true
-    threshold: 0.6
+    threshold: 0.9
 metadata:
   version: 1.0
