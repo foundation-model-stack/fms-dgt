@@ -219,7 +219,7 @@ class SdgTask:
 
 @dataclass
 class TransformData(SdgData):
-    """This class is intended to hold the seed / machine generated instruction data for transformation tasks"""
+    """This class is intended to hold the seed / machine generated instruction data for transformation tasks. It has an additional identifier that can be used to determine whether it has been processed already"""
 
     src_id: Hashable = None
 
