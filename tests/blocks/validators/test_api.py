@@ -203,8 +203,12 @@ class TestApiValidator:
 
         # parallel multiple
         func_calls = [
-            {"name": "add", "arguments": {"n1": 3, "n2": 4}},
-            {"name": "add_event", "arguments": {"event": "$add.result"}},
+            {"name": "add", "arguments": {"n1": 3, "n2": 4}, "label": "$var1"},
+            {
+                "name": "add_event",
+                "arguments": {"event": "$var1.result"},
+                "label": "$var2",
+            },
         ]
         question = "add 3 with 4 and add an event with the result of the earlier addition to my calendar"
         api_info = get_args(func_calls)
