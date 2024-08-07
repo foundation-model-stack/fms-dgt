@@ -80,7 +80,11 @@ def import_builder(inp_dir: str, include_path: str = None) -> None:
     loaded = False
 
     # TODO: this must be generalized
-    for imp_path in ["fms_dgt.databuilders", include_path]:
+    for imp_path in [
+        "fms_dgt.databuilders.generation",
+        "fms_dgt.databuilders.transformation",
+        include_path,
+    ]:
         if imp_path is not None:
             import_path = f"{imp_path}.{inp_dir}.generate"
             # we try both, but we will overwrite with include path

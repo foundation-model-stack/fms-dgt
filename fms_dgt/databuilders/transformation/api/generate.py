@@ -10,7 +10,7 @@ from fms_dgt.base.databuilder import TransformationDataBuilder
 from fms_dgt.base.registry import register_data_builder
 from fms_dgt.base.task import SdgData, SdgTask
 from fms_dgt.blocks.generators.llm import LMGenerator
-from fms_dgt.databuilders.api_transformation.task import (
+from fms_dgt.databuilders.transformation.api.task import (
     ApiLlmTransformData,
     ApiLlmTransformTask,
     ApiSnipsAtisTransformData,
@@ -39,17 +39,13 @@ class ApiLlmTransformDataBuilder(TransformationDataBuilder):
             if d.output and "NONE(" not in d.output:
                 api_str_list.append(d.output)
                 api_str_dialog_map.setdefault(d.dialog_id, []).append(d.output)
-                dialog_info[d.dialog_id] = (
-                    d.split,
-                    d.task_name,
-                    d.speaker,
-                )
+                dialog_info[d.dialog_id] = (d.split, d.task_name, d.speaker, d.src_id)
 
         api_to_str = self.generate_llm_paraphrase(api_str_list)
 
         # reconstruct the data with llm-paraphrases
         for dialog_id, conv in api_str_dialog_map.items():
-            split, task_name, speaker = dialog_info[dialog_id]
+            split, task_name, speaker, src_id = dialog_info[dialog_id]
             input_list, output_list, api_list, intents = [], [], [], []
             for apis in conv:
                 api_list.extend(apis.split("[SEP]"))
@@ -64,7 +60,7 @@ class ApiLlmTransformDataBuilder(TransformationDataBuilder):
             for api in api_list:
                 if api in api_to_str.keys():
                     output_list.append(api)
-                    api_str = api_to_str[api]#.lower()
+                    api_str = api_to_str[api]
                     api_str = api_str + "." if not api_str.endswith(".") else api_str
                     input_list.append(api_str)
             if input_list and output_list:
@@ -76,6 +72,7 @@ class ApiLlmTransformDataBuilder(TransformationDataBuilder):
                         "task_name": task_name,
                         "input": " ".join(input_list),
                         "output": output_list,
+                        "src_id": src_id,
                     }
                 )
 
@@ -160,7 +157,9 @@ class ApiSnipsAtisTransformDataBuilder(TransformationDataBuilder):
                                     new_clauses.append(clause)
                                 elif new_clauses[-1].strip().endswith("and and"):
                                     new_clauses[-1] = (
-                                        new_clauses[-1].replace("and and", "and").strip()
+                                        new_clauses[-1]
+                                        .replace("and and", "and")
+                                        .strip()
                                         + " "
                                         + clause
                                     )

@@ -1,6 +1,6 @@
 # Standard
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, List, Mapping, Optional, TypeVar, Union
+from typing import Any, Dict, Hashable, List, Mapping, Optional, TypeVar, Union
 import abc
 import random
 
@@ -210,6 +210,63 @@ class SdgTask:
 
     def save_task(self):
         self._datastore.save_task()
+
+
+###
+# Transformation data classes
+###
+
+
+@dataclass
+class TransformData(SdgData):
+    """This class is intended to hold the seed / machine generated instruction data for transformation tasks"""
+
+    src_id: Hashable = None
+
+    @abc.abstractmethod
+    def set_src_id(self):
+        """This method is called on a seed example and sets 'src_id' to be some identifier which can be passed to data it is used to generate"""
+        pass
+
+
+class TransformTask(SdgTask):
+
+    INPUT_DATA_TYPE = TransformData
+    OUTPUT_DATA_TYPE = TransformData
+
+    def __init__(self, *args, seed_batch_size: int = 10, **kwargs):
+        super().__init__(*args, seed_batch_size=seed_batch_size, **kwargs)
+
+        self._processed_seed_data = set()
+
+        assert issubclass(self.INPUT_DATA_TYPE, TransformData) and issubclass(
+            self.OUTPUT_DATA_TYPE, TransformData
+        ), "INPUT_DATA_TYPE and OUTPUT_DATA_TYPE fields must inherit from TransformData class to be used with TransformTask"
+
+    def get_example(self) -> TransformData:
+        seed_example: TransformData = super().get_example()
+        # set src_id of seed example to be itself
+        seed_example.set_src_id()
+        return seed_example
+
+    def get_batch_examples(self) -> List[TransformData]:
+        outputs = []
+
+        # get outputs from seed data loader sequentially
+        while len(outputs) < self._seed_batch_size:
+            example = self.get_example()
+            if example is None:
+                break
+            if example.src_id not in self._processed_seed_data:
+                outputs.append(example)
+
+        return outputs
+
+    def load_data(self) -> List[TransformData]:
+        super().load_data()
+        for ex in self.machine_data:
+            ex: TransformData
+            self._processed_seed_data.add(ex.src_id)
 
 
 T = TypeVar("T")

@@ -8,13 +8,13 @@ import re
 
 # Local
 from fms_dgt.base.registry import register_datastore
-from fms_dgt.base.task import SdgData, SdgTask
+from fms_dgt.base.task import TransformData, TransformTask
 from fms_dgt.datastores.default import DefaultDatastore
 from fms_dgt.utils import sdg_logger
 
 
 @dataclass
-class ApiTransformData(SdgData):
+class ApiTransformData(TransformData):
     """This class holds api transform data"""
 
 
@@ -22,14 +22,17 @@ class ApiTransformData(SdgData):
 class ApiLlmTransformData(ApiTransformData):
     """This class is intended to hold the seed / machine generated instruction data"""
 
-    input: str
-    output: str
-    dialog_id: str
-    speaker: str
-    split: str
+    input: str = None
+    output: str = None
+    dialog_id: str = None
+    speaker: str = None
+    split: str = None
+
+    def set_src_id(self):
+        self.src_id = self.dialog_id + "||" + self.split
 
 
-class ApiLlmTransformTask(SdgTask):
+class ApiLlmTransformTask(TransformTask):
     """This class is intended to hold general task information"""
 
     INPUT_DATA_TYPE = ApiLlmTransformData
@@ -40,14 +43,17 @@ class ApiLlmTransformTask(SdgTask):
 class ApiTopv2TransformData(ApiTransformData):
     """This class is intended to hold the seed / machine generated instruction data"""
 
-    question: str
-    input_string: str
-    split: str
-    domain: str
+    question: str = None
+    input_string: str = None
+    split: str = None
+    domain: str = None
     ontologies: Optional[List] = None
 
+    def set_src_id(self):
+        self.src_id = (self.question, self.split, self.input_string)
 
-class ApiTopv2TransformTask(SdgTask):
+
+class ApiTopv2TransformTask(TransformTask):
     """This class is intended to hold general task information"""
 
     INPUT_DATA_TYPE = ApiTopv2TransformData
@@ -58,13 +64,16 @@ class ApiTopv2TransformTask(SdgTask):
 class ApiSnipsAtisTransformData(ApiTransformData):
     """This class is intended to hold the seed / machine generated instruction data"""
 
-    text: str
-    intents: str
-    slots: List
-    split: str
+    text: str = None
+    intents: str = None
+    slots: List = None
+    split: str = None
+
+    def set_src_id(self):
+        self.src_id = (self.text, self.split)
 
 
-class ApiSnipsAtisTransformTask(SdgTask):
+class ApiSnipsAtisTransformTask(TransformTask):
     """This class is intended to hold general task information"""
 
     INPUT_DATA_TYPE = ApiSnipsAtisTransformData

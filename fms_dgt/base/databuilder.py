@@ -13,7 +13,14 @@ from tqdm import tqdm
 # Local
 from fms_dgt.base.block import BaseBlock, get_row_name
 from fms_dgt.base.registry import get_block
-from fms_dgt.base.task import NAME_KEY, TYPE_KEY, SdgData, SdgTask
+from fms_dgt.base.task import (
+    NAME_KEY,
+    TYPE_KEY,
+    SdgData,
+    SdgTask,
+    TransformData,
+    TransformTask,
+)
 from fms_dgt.blocks.generators.llm import CachingLM
 from fms_dgt.utils import all_annotations, sdg_logger
 
@@ -232,6 +239,11 @@ class TransformationDataBuilder(DataBuilder):
         # main entry point to task execution
         tasks = self._tasks + []
 
+        for task in tasks:
+            assert isinstance(
+                task, TransformTask
+            ), f"Task {task.name} must inherit from TransformTask class to be used with TransformationDataBuilder"
+
         # load the LM-generated data
         for task in tasks:
             task.load_data()
@@ -247,7 +259,7 @@ class TransformationDataBuilder(DataBuilder):
         progress_bar = tqdm(total=len(tasks), desc="Running transformation tasks")
         generate_start = time.time()
 
-        filtered_data: List[SdgData] = []
+        filtered_data: List[TransformData] = []
         for generated_inst in self.call_with_task_list(tasks):
             # save incrementally
             task = next(
@@ -275,7 +287,9 @@ class TransformationDataBuilder(DataBuilder):
         generate_duration = time.time() - generate_start
         sdg_logger.info("Generation took %.2fs", generate_duration)
 
-    def call_with_task_list(self, tasks: List[SdgTask]) -> Iterable[SdgData]:
+    def call_with_task_list(
+        self, tasks: List[TransformTask]
+    ) -> Iterable[TransformData]:
         # default behavior is to simply extract the seed / machine generated data and pass to data builder
         data_pool = [e for task in tasks for e in task.get_batch_examples()]
         while data_pool:
