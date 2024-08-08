@@ -1,5 +1,4 @@
 # Standard
-from typing import List
 import argparse
 
 # Local
