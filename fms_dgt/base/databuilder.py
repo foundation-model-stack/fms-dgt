@@ -282,7 +282,7 @@ class TransformationDataBuilder(DataBuilder):
         generate_duration = time.time() - generate_start
         sdg_logger.info("Generation took %.2fs", generate_duration)
 
-    def call_with_task_list(self, tasks: List[SdgTask]) -> Iterable[SdgTask]:
+    def call_with_task_list(self, tasks: List[SdgTask]) -> Iterable[SdgData]:
         # default behavior is to simply extract the seed / machine generated data and pass to data builder
         data_pool = [e for task in tasks for e in task.get_batch_examples()]
         while data_pool:
