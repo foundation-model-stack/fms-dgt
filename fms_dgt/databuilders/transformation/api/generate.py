@@ -1,5 +1,5 @@
 # Standard
-from typing import Any, Dict, Iterable, List
+from typing import Any, Iterable, List
 import re
 
 # Third Party
@@ -8,7 +8,6 @@ from tqdm import tqdm
 # Local
 from fms_dgt.base.databuilder import TransformationDataBuilder
 from fms_dgt.base.registry import register_data_builder
-from fms_dgt.base.task import SdgData, SdgTask
 from fms_dgt.blocks.generators.llm import LMGenerator
 from fms_dgt.databuilders.transformation.api.task import (
     ApiLlmTransformData,
@@ -39,13 +38,13 @@ class ApiLlmTransformDataBuilder(TransformationDataBuilder):
             if d.output and "NONE(" not in d.output:
                 api_str_list.append(d.output)
                 api_str_dialog_map.setdefault(d.dialog_id, []).append(d.output)
-                dialog_info[d.dialog_id] = (d.split, d.task_name, d.speaker, d.src_id)
+                dialog_info[d.dialog_id] = (d.split, d.task_name, d.speaker)
 
         api_to_str = self.generate_llm_paraphrase(api_str_list)
 
         # reconstruct the data with llm-paraphrases
         for dialog_id, conv in api_str_dialog_map.items():
-            split, task_name, speaker, src_id = dialog_info[dialog_id]
+            split, task_name, speaker = dialog_info[dialog_id]
             input_list, output_list, api_list, intents = [], [], [], []
             for apis in conv:
                 api_list.extend(apis.split("[SEP]"))
@@ -72,7 +71,6 @@ class ApiLlmTransformDataBuilder(TransformationDataBuilder):
                         "task_name": task_name,
                         "input": " ".join(input_list),
                         "output": output_list,
-                        "src_id": src_id,
                     }
                 )
 
@@ -106,12 +104,6 @@ class ApiSnipsAtisTransformDataBuilder(TransformationDataBuilder):
 
     # llm1 is the main generator that will produce the synthetic examples
     llm1: LMGenerator
-
-    def call_with_task_list(self, tasks: List[SdgTask]) -> Iterable[SdgData]:
-        for task in tasks:
-            data_pool = task.get_all_seed_examples()
-            for output in self(data_pool):
-                yield output
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -277,15 +269,9 @@ class ApiTopv2TransformDataBuilder(TransformationDataBuilder):
     # llm1 is the main generator that will produce the synthetic examples
     llm1: LMGenerator
 
-    def call_with_task_list(self, tasks: List[SdgTask]) -> Iterable[SdgData]:
-        for task in tasks:
-            api_catalog = dict()
-            data_pool = task.get_all_seed_examples()
-            for output in self(data_pool, api_catalog):
-                yield output
-
     def __call__(
-        self, instruction_data: List[ApiTopv2TransformData], api_catalog: Dict
+        self,
+        instruction_data: List[ApiTopv2TransformData],
     ) -> Iterable[ApiTopv2TransformData]:
         for data in tqdm(instruction_data, "Topv2 Transformation"):
             input_string = data.input_string
@@ -325,12 +311,6 @@ class ApiTopv2TransformDataBuilder(TransformationDataBuilder):
                 api_slots_arr = [f'{slot} = "{val}"' for slot, val in api_slots.items()]
                 api = f'{intent}({", ".join(api_slots_arr)})'
                 apis_seq.append((api, input_string.index("IN:" + intent)))
-                if intent not in api_catalog:
-                    api_catalog[intent] = {"description": "", "parameters": []}
-                else:
-                    for slot_name, val in api_slots.items():
-                        if slot_name not in api_catalog[intent]["parameters"]:
-                            api_catalog[intent]["parameters"].append(slot_name)
 
             # Use re.search to find the pattern in the input string
             if len(apis_seq) > 0:

@@ -13,14 +13,7 @@ from tqdm import tqdm
 # Local
 from fms_dgt.base.block import BaseBlock, get_row_name
 from fms_dgt.base.registry import get_block
-from fms_dgt.base.task import (
-    NAME_KEY,
-    TYPE_KEY,
-    SdgData,
-    SdgTask,
-    TransformData,
-    TransformTask,
-)
+from fms_dgt.base.task import NAME_KEY, TYPE_KEY, SdgData, SdgTask, TransformTask
 from fms_dgt.blocks.generators.llm import CachingLM
 from fms_dgt.utils import all_annotations, sdg_logger
 
@@ -243,6 +236,7 @@ class TransformationDataBuilder(DataBuilder):
             assert isinstance(
                 task, TransformTask
             ), f"Task {task.name} must inherit from TransformTask class to be used with TransformationDataBuilder"
+            task.load_dataloader_state()
 
         # load the LM-generated data
         for task in tasks:
@@ -259,7 +253,7 @@ class TransformationDataBuilder(DataBuilder):
         progress_bar = tqdm(total=len(tasks), desc="Running transformation tasks")
         generate_start = time.time()
 
-        filtered_data: List[TransformData] = []
+        filtered_data: List[SdgData] = []
         for generated_inst in self.call_with_task_list(tasks):
             # save incrementally
             task = next(
@@ -267,6 +261,7 @@ class TransformationDataBuilder(DataBuilder):
             )
             task.save_data(generated_inst)
             filtered_data.append(generated_inst)
+            task.save_dataloader_state()
 
         for task in tasks:
             new_data = [
@@ -287,9 +282,7 @@ class TransformationDataBuilder(DataBuilder):
         generate_duration = time.time() - generate_start
         sdg_logger.info("Generation took %.2fs", generate_duration)
 
-    def call_with_task_list(
-        self, tasks: List[TransformTask]
-    ) -> Iterable[TransformData]:
+    def call_with_task_list(self, tasks: List[SdgTask]) -> Iterable[SdgTask]:
         # default behavior is to simply extract the seed / machine generated data and pass to data builder
         data_pool = [e for task in tasks for e in task.get_batch_examples()]
         while data_pool:

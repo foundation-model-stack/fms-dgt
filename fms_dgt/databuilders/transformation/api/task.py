@@ -8,28 +8,20 @@ import re
 
 # Local
 from fms_dgt.base.registry import register_datastore
-from fms_dgt.base.task import TransformData, TransformTask
+from fms_dgt.base.task import SdgData, TransformTask
 from fms_dgt.datastores.default import DefaultDatastore
 from fms_dgt.utils import sdg_logger
 
 
 @dataclass
-class ApiTransformData(TransformData):
-    """This class holds api transform data"""
-
-
-@dataclass
-class ApiLlmTransformData(ApiTransformData):
+class ApiLlmTransformData(SdgData):
     """This class is intended to hold the seed / machine generated instruction data"""
 
-    input: str = None
-    output: str = None
-    dialog_id: str = None
-    speaker: str = None
-    split: str = None
-
-    def set_src_id(self):
-        self.src_id = self.dialog_id + "||" + self.split
+    input: str
+    output: str
+    dialog_id: str
+    speaker: str
+    split: str
 
 
 class ApiLlmTransformTask(TransformTask):
@@ -40,17 +32,14 @@ class ApiLlmTransformTask(TransformTask):
 
 
 @dataclass
-class ApiTopv2TransformData(ApiTransformData):
+class ApiTopv2TransformData(SdgData):
     """This class is intended to hold the seed / machine generated instruction data"""
 
-    question: str = None
-    input_string: str = None
-    split: str = None
-    domain: str = None
+    question: str
+    input_string: str
+    split: str
+    domain: str
     ontologies: Optional[List] = None
-
-    def set_src_id(self):
-        self.src_id = (self.question, self.split, self.input_string)
 
 
 class ApiTopv2TransformTask(TransformTask):
@@ -61,16 +50,13 @@ class ApiTopv2TransformTask(TransformTask):
 
 
 @dataclass
-class ApiSnipsAtisTransformData(ApiTransformData):
+class ApiSnipsAtisTransformData(SdgData):
     """This class is intended to hold the seed / machine generated instruction data"""
 
-    text: str = None
-    intents: str = None
-    slots: List = None
-    split: str = None
-
-    def set_src_id(self):
-        self.src_id = (self.text, self.split)
+    text: str
+    intents: str
+    slots: List
+    split: str
 
 
 class ApiSnipsAtisTransformTask(TransformTask):
@@ -114,7 +100,7 @@ class ApiTransformDatastore(DefaultDatastore):
             output_path = os.path.join(output_dir, split, output_file)
             return super().save_data(split_data, output_path=output_path)
 
-    def load_data(self) -> List[ApiTransformData]:
+    def load_data(self) -> List[SdgData]:
         machine_examples = []
         for split in self._splits:
             output_dir, output_file = os.path.split(self.output_path)

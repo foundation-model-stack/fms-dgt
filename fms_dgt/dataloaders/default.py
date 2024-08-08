@@ -19,6 +19,13 @@ class DefaultDataloader(BaseDataloader):
         self._data = datastore.load_dataset()
         self._i = 0
 
+    def get_state(self) -> int:
+        return self._i
+
+    def set_state(self, state: int) -> None:
+        if state is not None:
+            self._i = state
+
     def __next__(self) -> Any:
         try:
             value = self._data[self._i]
