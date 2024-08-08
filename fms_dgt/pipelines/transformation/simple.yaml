@@ -2,7 +2,7 @@ name: simple_pipeline
 blocks:
   - name: pb1
     type: prompt_builder
-    prompt_path: data/pipeline/prompt.txt
+    prompt_path: data/transformation/pipeline/prompt.txt
     kwarg_fields:
       - input1
       - input2

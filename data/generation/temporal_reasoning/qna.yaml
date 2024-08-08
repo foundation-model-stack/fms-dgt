@@ -1,8 +1,8 @@
 created_by: IBM
 task_description: "To teach a language model about chronological order of time. \n"
-dataloader:
-  type: file
-  data_path: data/temporal_reasoning/additional_seed_examples.yaml
+datastore:
+  type: default
+  data_path: data/generation/temporal_reasoning/additional_seed_examples.yaml
 seed_examples:
   - answer:
       "Hello! I'm here to help you understand the order of arrival at a party.

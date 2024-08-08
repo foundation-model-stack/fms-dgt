@@ -11,16 +11,16 @@ from fms_dgt.blocks.validators.nl2sql.sql_execution_validator import (
     SQLExecutionValidator,
 )
 from fms_dgt.blocks.validators.nl2sql.sql_syntax_validator import SQLSyntaxValidator
-from fms_dgt.databuilders.nl2sql.sqlinstruct.models import (
+from fms_dgt.databuilders.generation.nl2sql.sqlinstruct.models import (
     SQLDataGenerationSchema,
     SQLTriplet,
 )
-from fms_dgt.databuilders.nl2sql.sqlinstruct.pipeline import (
+from fms_dgt.databuilders.generation.nl2sql.sqlinstruct.pipeline import (
     SQLDataGenerationPromptingPipeline,
 )
-from fms_dgt.databuilders.nl2sql.sqlinstruct.prompts import PromptFactory
-from fms_dgt.databuilders.nl2sql.task import SqlSdgData, SqlSdgTask
-from fms_dgt.databuilders.simple.task import InstructLabSdgData
+from fms_dgt.databuilders.generation.nl2sql.sqlinstruct.prompts import PromptFactory
+from fms_dgt.databuilders.generation.nl2sql.task import SqlSdgData, SqlSdgTask
+from fms_dgt.databuilders.generation.simple.task import InstructLabSdgData
 from fms_dgt.utils import sdg_logger
 
 

@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 
 # Local
 from fms_dgt.base.task import SdgData, SdgTask
-from fms_dgt.databuilders.simple.task import InstructLabSdgData
+from fms_dgt.databuilders.generation.simple.task import InstructLabSdgData
 
 
 @dataclass
