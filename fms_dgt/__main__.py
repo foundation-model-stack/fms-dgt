@@ -1,5 +1,4 @@
 # Standard
-from typing import List
 import argparse
 
 # Local
@@ -77,7 +76,6 @@ def add_builder_args(parser: argparse.ArgumentParser):
         help="Maximum number of attempts to solve tasks",
         default=DEFAULT_MAX_GEN_ATTEMPTS,
     )
-
     return group
 
 
@@ -105,12 +103,6 @@ def add_task_args(parser: argparse.ArgumentParser):
         "--restart-generation",
         action="store_true",
         help="Entirely restart instruction generation.",
-    )
-    group.add_argument(
-        "--task-batch-size",
-        type=int,
-        help="Number of seed examples to draw from a task per iteration.",
-        default=None,
     )
     return group
 

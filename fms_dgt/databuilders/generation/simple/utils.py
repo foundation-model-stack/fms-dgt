@@ -11,7 +11,7 @@ import string
 from jinja2 import Template
 
 # Local
-from fms_dgt.databuilders.simple.task import InstructLabSdgData
+from fms_dgt.databuilders.generation.simple.task import InstructLabSdgData
 from fms_dgt.utils import sdg_logger
 
 DEFAULT_PROMPT_TEMPLATE_MERLINITE = """\

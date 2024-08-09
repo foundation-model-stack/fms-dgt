@@ -8,18 +8,13 @@ import re
 
 # Local
 from fms_dgt.base.registry import register_datastore
-from fms_dgt.base.task import SdgData, SdgTask
+from fms_dgt.base.task import SdgData, TransformTask
 from fms_dgt.datastores.default import DefaultDatastore
 from fms_dgt.utils import sdg_logger
 
 
 @dataclass
-class ApiTransformData(SdgData):
-    """This class holds api transform data"""
-
-
-@dataclass
-class ApiLlmTransformData(ApiTransformData):
+class ApiLlmTransformData(SdgData):
     """This class is intended to hold the seed / machine generated instruction data"""
 
     input: str
@@ -29,7 +24,7 @@ class ApiLlmTransformData(ApiTransformData):
     split: str
 
 
-class ApiLlmTransformTask(SdgTask):
+class ApiLlmTransformTask(TransformTask):
     """This class is intended to hold general task information"""
 
     INPUT_DATA_TYPE = ApiLlmTransformData
@@ -37,7 +32,7 @@ class ApiLlmTransformTask(SdgTask):
 
 
 @dataclass
-class ApiTopv2TransformData(ApiTransformData):
+class ApiTopv2TransformData(SdgData):
     """This class is intended to hold the seed / machine generated instruction data"""
 
     question: str
@@ -47,7 +42,7 @@ class ApiTopv2TransformData(ApiTransformData):
     ontologies: Optional[List] = None
 
 
-class ApiTopv2TransformTask(SdgTask):
+class ApiTopv2TransformTask(TransformTask):
     """This class is intended to hold general task information"""
 
     INPUT_DATA_TYPE = ApiTopv2TransformData
@@ -55,7 +50,7 @@ class ApiTopv2TransformTask(SdgTask):
 
 
 @dataclass
-class ApiSnipsAtisTransformData(ApiTransformData):
+class ApiSnipsAtisTransformData(SdgData):
     """This class is intended to hold the seed / machine generated instruction data"""
 
     text: str
@@ -64,7 +59,7 @@ class ApiSnipsAtisTransformData(ApiTransformData):
     split: str
 
 
-class ApiSnipsAtisTransformTask(SdgTask):
+class ApiSnipsAtisTransformTask(TransformTask):
     """This class is intended to hold general task information"""
 
     INPUT_DATA_TYPE = ApiSnipsAtisTransformData
@@ -105,7 +100,7 @@ class ApiTransformDatastore(DefaultDatastore):
             output_path = os.path.join(output_dir, split, output_file)
             return super().save_data(split_data, output_path=output_path)
 
-    def load_data(self) -> List[ApiTransformData]:
+    def load_data(self) -> List[SdgData]:
         machine_examples = []
         for split in self._splits:
             output_dir, output_file = os.path.split(self.output_path)

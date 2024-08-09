@@ -1,5 +1,5 @@
 # Standard
-from typing import Any, List, TypeVar, Union
+from typing import Any, List, TypeVar
 import json
 import os
 
@@ -8,7 +8,7 @@ import pandas as pd
 import yaml
 
 # Local
-from fms_dgt.base.datastore import DATA_PATH_KEY, BaseDatastore
+from fms_dgt.base.datastore import BaseDatastore
 from fms_dgt.base.registry import register_datastore
 
 T = TypeVar("T")
@@ -33,10 +33,12 @@ class DefaultDatastore(BaseDatastore):
         if not os.path.exists(output_dir):
             os.makedirs(output_dir, exist_ok=True)
 
-        self._output_dir = output_dir
-        self._output_path = self._get_default_output_path(task_name, output_format)
+        self._output_dir = self._get_default_output_dir(output_dir, task_name)
+        self._output_path = os.path.join(
+            self._output_dir, "generated_instructions." + output_format
+        )
+        self._state_path = os.path.join(self._output_dir, "dataloader_state.txt")
         self._data_path = data_path
-
         self._seed_examples = seed_examples
 
         if restart_generation and os.path.exists(self.output_path):
@@ -46,11 +48,10 @@ class DefaultDatastore(BaseDatastore):
     def output_path(self) -> str:
         return self._output_path
 
-    def _get_default_output_path(self, task_name: str, output_format: str):
+    def _get_default_output_dir(self, output_dir: str, task_name: str):
         path_components = []
-        path_components.append(self._output_dir)
+        path_components.append(output_dir)
         path_components.append(task_name)
-        path_components.append("generated_instructions." + output_format)
         return os.path.join(*path_components)
 
     def save_data(
@@ -126,3 +127,15 @@ class DefaultDatastore(BaseDatastore):
 
     def save_task(self) -> None:
         pass
+
+    def load_task(self) -> Any:
+        pass
+
+    def save_state(self, state: Any) -> None:
+        with open(self._state_path, "w") as f:
+            json.dump([state], f)
+
+    def load_state(self) -> Any:
+        if os.path.exists(self._state_path):
+            with open(self._state_path, "r") as f:
+                return json.load(f)[0]

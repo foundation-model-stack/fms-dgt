@@ -10,9 +10,9 @@ from fms_dgt.base.task import group_data_by_task
 from fms_dgt.blocks.generators.llm import LMGenerator
 from fms_dgt.blocks.validators.api import APIGenSpecValidator, ApiGenSpecYesNoValidation
 from fms_dgt.blocks.validators.rouge import RougeDedupValidator
-from fms_dgt.databuilders.api.task import ApiSdgData, ApiSdgTask
+from fms_dgt.databuilders.generation.api.task import ApiSdgData, ApiSdgTask
 from fms_dgt.utils import sdg_logger
-import fms_dgt.databuilders.api.utils as api_utils
+import fms_dgt.databuilders.generation.api.utils as api_utils
 
 
 class ApiDataBuilder(DataBuilder):

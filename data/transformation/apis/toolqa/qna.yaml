@@ -2,6 +2,6 @@ created_by: IBM
 data_builder: transform_api_snips_atis
 datastore:
   type: api_topv2_transform_datastore
-  data_path: data/api_transformation/toolqa/ToolQA-main
+  data_path: data/transformation/apis/toolqa/ToolQA-main
   splits: [train, test, dev]
 task_description: ToolQA dataset transformation
