@@ -67,7 +67,19 @@ class RougeDedupValidator(BaseValidatorBlock):
                 if context
                 else 0.0
             )
-
+            rs = list(
+                map(
+                    partial(rouge_scorer._score_lcs, new_tokens),
+                    context,
+                )
+            )
+            for x in rs:
+                print("RS", x)
+            print(
+                "mRS", max(rs)
+            )  # this applies max to Score, which is a tuple, so lexicographic, so precision most important
+            print("       WRS", worst_rouge_score)  # fmeasure of max precision
+            print("proper WRS", max([x.fmeasure for x in rs]))
             if worst_rouge_score < self._threshold or not self._filter_invalids:
                 ranked_inputs.append(
                     (
