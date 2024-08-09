@@ -161,14 +161,6 @@ class SdgTask:
         except StopIteration:
             return None
 
-    def get_all_seed_examples(self) -> List[SdgData]:
-        outputs = []
-        example = self.get_example()
-        while example is not None:
-            outputs.append(example)
-            example = self.get_example()
-        return outputs
-
     def get_batch_examples(self) -> List[SdgData]:
         outputs = []
 
@@ -208,8 +200,34 @@ class SdgTask:
                 self.instantiate_output_example(**d) for d in loaded_data
             ]
 
+    def save_dataloader_state(self) -> None:
+        self._datastore.save_state(self._dataloader.get_state())
+
+    def load_dataloader_state(self) -> None:
+        self._dataloader.set_state(self._datastore.load_state())
+
     def save_task(self):
         self._datastore.save_task()
+
+    def load_task(self):
+        return self._datastore.load_task()
+
+
+###
+# Transformation data classes
+###
+
+
+class TransformTask(SdgTask):
+    def __init__(
+        self, *args, seed_batch_size: int = 10, machine_batch_size: int = 0, **kwargs
+    ):
+        super().__init__(
+            *args,
+            seed_batch_size=seed_batch_size,
+            machine_batch_size=machine_batch_size,
+            **kwargs,
+        )
 
 
 T = TypeVar("T")

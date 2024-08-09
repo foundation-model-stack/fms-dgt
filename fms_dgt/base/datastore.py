@@ -32,5 +32,21 @@ class BaseDatastore(abc.ABC):
     def save_task(
         self,
     ) -> None:
-        "Default method for saving task"
+        "Default method for saving task specification"
         raise NotImplementedError
+
+    def load_task(
+        self,
+    ) -> Any:
+        "Default method for loading task specification"
+        raise NotImplementedError
+
+    def save_state(self, state: Any) -> None:
+        "Saves a state object that can be used to restore an object (e.g., a dataloader) to a previous state"
+        pass
+
+    def load_state(
+        self,
+    ) -> Any:
+        "Loads the state object"
+        pass

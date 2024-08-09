@@ -13,7 +13,7 @@ from tqdm import tqdm
 # Local
 from fms_dgt.base.block import BaseBlock, get_row_name
 from fms_dgt.base.registry import get_block
-from fms_dgt.base.task import NAME_KEY, TYPE_KEY, SdgData, SdgTask
+from fms_dgt.base.task import NAME_KEY, TYPE_KEY, SdgData, SdgTask, TransformTask
 from fms_dgt.blocks.generators.llm import CachingLM
 from fms_dgt.utils import all_annotations, sdg_logger
 
@@ -28,7 +28,8 @@ class DataBuilderConfig(dict):
     ] = None  # by default, not used in the code. allows for users to pass arbitrary info to data builders
 
     def __post_init__(self) -> None:
-        pass
+        if self.blocks is None:
+            self.blocks = []
 
 
 class DataBuilder(ABC):
@@ -232,6 +233,12 @@ class TransformationDataBuilder(DataBuilder):
         # main entry point to task execution
         tasks = self._tasks + []
 
+        for task in tasks:
+            assert isinstance(
+                task, TransformTask
+            ), f"Task {task.name} must inherit from TransformTask class to be used with TransformationDataBuilder"
+            task.load_dataloader_state()
+
         # load the LM-generated data
         for task in tasks:
             task.load_data()
@@ -255,6 +262,7 @@ class TransformationDataBuilder(DataBuilder):
             )
             task.save_data(generated_inst)
             filtered_data.append(generated_inst)
+            task.save_dataloader_state()
 
         for task in tasks:
             new_data = [

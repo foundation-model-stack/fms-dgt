@@ -1,0 +1,7 @@
+created_by: IBM
+data_builder: transform_api_topv2
+datastore:
+  type: api_topv2_transform_datastore
+  data_path: data/transformation/apis/topv2/TOPv2_Dataset
+  splits: [train, test, dev]
+task_description: Topv2 dataset transformation
