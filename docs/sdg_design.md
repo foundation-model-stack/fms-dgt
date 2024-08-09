@@ -35,17 +35,17 @@ The data generation loop will continue to run until a set number of examples (sp
 
 ### Tasks
 
-Data files are used to instantiate data generation tasks. An example of one can be found [here](../data/writing/freeform/debate/qna.yaml) (see below for the relevant snippet).
+Data files are used to instantiate data generation tasks. An example of one can be found [here](../data/generation/logical_reasoning/causal/qna.yaml) (see below for the relevant snippet).
 
 ```yaml
 created_by: IBM Research
 data_builder: simple
 seed_examples:
-  - answer: Economist:\n"Implementing a universal basic income ..."
-    question:
-      Debate the merits and drawbacks of implementing a universal basic income
-      between an economist, a sociologist, and a policy maker.
-task_description: "Example of a task"
+  - answer: "While days tend to be longer in the summer, just because it is not 
+    summer doesn't mean days are necessarily shorter."
+    question: "If it is summer, then the days are longer. Are the days longer if 
+    it is not summer ?"
+task_description: To teach a language model about Logical Reasoning - causal relationships
 ```
 
 Our goal was to be as non-prescriptive as possible, allowing people to load their own data with their own fields without having to modify it to fit into the framework. As such, in the YAML, the only components that must **always** be specified are the `created_by`, `data_builder`, `seed_examples`, and `task_description` fields. Beyond those, there are no constraints to a data file, i.e., the designer of a task can include whatever they want here.
