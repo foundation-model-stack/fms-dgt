@@ -61,27 +61,23 @@ class RougeDedupValidator(BaseValidatorBlock):
         ranked_inputs = []
         for new_tokens, inp in tokenized:
             worst_rouge_score = (
-                (
-                    max(
-                        map(
-                            partial(rouge_scorer._score_lcs, new_tokens),
-                            context,
-                        ),
-                        key=lambda x: x.fmeasure,
-                    ).fmeasure
-                    if context
-                    else 0.0
-                )
-                if self._threshold
-                <= 1  # if threshold is greater than 1, no need to bother computing this
+                max(
+                    map(
+                        partial(rouge_scorer._score_lcs, new_tokens),
+                        context,
+                    ),
+                    key=lambda x: x.fmeasure,
+                ).fmeasure
+                if context and self._threshold <= 1
                 else -1
             )
 
-            if worst_rouge_score < self._threshold or not self._filter_invalids:
+            is_valid_wrt_context = worst_rouge_score < self._threshold
+            if is_valid_wrt_context or not self._filter_invalids:
                 ranked_inputs.append(
                     (
                         worst_rouge_score,
-                        worst_rouge_score < self._threshold,
+                        is_valid_wrt_context,
                         new_tokens,
                         inp,
                     )
