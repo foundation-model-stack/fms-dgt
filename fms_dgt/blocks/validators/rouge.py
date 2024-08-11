@@ -17,11 +17,14 @@ except ModuleNotFoundError:
 class RougeDedupValidator(BaseValidatorBlock):
     """Base Class for all Validators"""
 
-    def __init__(self, threshold: float = -1, **kwargs: Any) -> None:
+    def __init__(self, threshold: float = 1.1, **kwargs: Any) -> None:
         super().__init__(**kwargs)
+
+        if threshold is None:
+            # if threshold is set to None, we'll put it as an unreachably high value
+            threshold = 1.1
+
         self._threshold = threshold
-        if self._threshold <= 0:
-            self._threshold = None
 
         self._cache = dict()
 
@@ -58,14 +61,20 @@ class RougeDedupValidator(BaseValidatorBlock):
         ranked_inputs = []
         for new_tokens, inp in tokenized:
             worst_rouge_score = (
-                max(
-                    map(
-                        partial(rouge_scorer._score_lcs, new_tokens),
-                        context,
-                    )
-                ).fmeasure
-                if context
-                else 0.0
+                (
+                    max(
+                        map(
+                            partial(rouge_scorer._score_lcs, new_tokens),
+                            context,
+                        ),
+                        key=lambda x: x.fmeasure,
+                    ).fmeasure
+                    if context
+                    else 0.0
+                )
+                if self._threshold
+                <= 1  # if threshold is greater than 1, no need to bother computing this
+                else -1
             )
 
             if worst_rouge_score < self._threshold or not self._filter_invalids:
@@ -99,7 +108,9 @@ class RougeDedupValidator(BaseValidatorBlock):
     def _validate(self, new_tokens: List[int], check_tokens: List[List[int]]) -> bool:
         """Runs through all the validators if data list is None. Otherwise just runs through the validators specified for data in the List"""
 
-        if self._threshold is None:
+        if (
+            self._threshold > 1
+        ):  # if threshold greater than 1, no need to bother computing this
             return True
 
         if len(check_tokens) == 0:
