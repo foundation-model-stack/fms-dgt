@@ -8,8 +8,9 @@ DEFAULT_CONFIG = "config.yaml"
 DEFAULT_DATA_PATH = "data"
 MAX_CONTEXT_SIZE = 4096
 DEFAULT_NUM_OUTPUTS = 2
-DEFAULT_MAX_GEN_ATTEMPTS = 2
+DEFAULT_MAX_STALLED_ATTEMPTS = 5
 DEFAULT_NUM_PROMPT_INSTRUCTIONS = 2
+DEFAULT_MACHINE_BATCH_SIZE = 10
 DEFAULT_GENERATED_FILES_OUTPUT_DIR = "output"
 DEFAULT_CHUNK_WORD_COUNT = 1000
 
@@ -74,7 +75,12 @@ def add_builder_args(parser: argparse.ArgumentParser):
         "--max-gen-requests",
         type=int,
         help="Maximum number of attempts to solve tasks",
-        default=DEFAULT_MAX_GEN_ATTEMPTS,
+    )
+    group.add_argument(
+        "--max-stalled-requests",
+        type=int,
+        help="Maximum number of attempts allowed to solve tasks where no data is produced",
+        default=DEFAULT_MAX_STALLED_ATTEMPTS,
     )
     return group
 
@@ -97,7 +103,7 @@ def add_task_args(parser: argparse.ArgumentParser):
         "--machine-batch-size",
         type=int,
         help="Number of machine generated examples to pass from data loader to data builder.",
-        default=None,
+        default=DEFAULT_MACHINE_BATCH_SIZE,
     )
     group.add_argument(
         "--restart-generation",

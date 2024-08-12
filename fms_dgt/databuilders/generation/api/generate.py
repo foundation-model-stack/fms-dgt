@@ -1,5 +1,5 @@
 # Standard
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 import random
 import time
 
@@ -40,9 +40,21 @@ class ApiDataBuilder(DataBuilder):
     val1: APIGenSpecValidator
     val2: RougeDedupValidator
 
+    def call_with_task_list(
+        self, request_idx: int, tasks: List[ApiSdgTask]
+    ) -> Iterable[ApiSdgData]:
+        data_pool = [e for task in tasks for e in task.get_batch_examples()]
+        task_api_specifications = dict(
+            {task.name: task.all_api_specifications for task in tasks}
+        )
+        args = [request_idx, task_api_specifications, data_pool]
+        kwargs = dict()
+        return self(*args, **kwargs)
+
     def __call__(
         self,
         request_idx: int,
+        all_api_specification_groups: Dict[str, Dict],
         instruction_data: List[ApiSdgData],
     ) -> List[ApiSdgData]:
 
@@ -51,8 +63,13 @@ class ApiDataBuilder(DataBuilder):
         random.shuffle(instruction_data)
         gen_inputs: List[Dict] = []
         for task_data in group_data_by_task(instruction_data):
+            api_specification_groups = all_api_specification_groups[
+                task_data[0].task_name
+            ]
             for _ in range(self._num_base_examples):
-                prompt, new_instr = self._construct_new_data(task_data)
+                prompt, new_instr = self._construct_new_data(
+                    api_specification_groups, task_data
+                )
                 inp = {"prompt": prompt, "stop_sequences": [f"API:"], "data": new_instr}
                 gen_inputs.append(inp)
 
@@ -97,9 +114,7 @@ class ApiDataBuilder(DataBuilder):
                 new_instr.input = question
                 new_instr.output = answer
                 new_apis = {
-                    pos_func: new_instr.api_specifications[new_instr.seed_api_group][
-                        pos_func
-                    ]
+                    pos_func: new_instr.api_specifications[pos_func]
                     for pos_func in new_instr.positive_functions
                 }
 
@@ -179,10 +194,11 @@ class ApiDataBuilder(DataBuilder):
 
         return outputs, discarded
 
-    def _construct_new_data(self, task_data: List[ApiSdgData]):
+    def _construct_new_data(
+        self, api_specification_groups: Dict, task_data: List[ApiSdgData]
+    ):
         # gather ICL examples
-        base_instr = task_data[0]
-        groups = list(base_instr.api_specifications.keys())
+        groups = list(api_specification_groups.keys())
         random.shuffle(groups)
         grouped_data: List[ApiSdgData] = []
         for group in groups:
@@ -196,7 +212,7 @@ class ApiDataBuilder(DataBuilder):
         for instr in grouped_data:
             # TODO: cache string transform
             instr_api_specification = api_utils.api_spec_to_str(
-                instr.api_specifications[instr.seed_api_group],
+                instr.api_specifications,
                 instr.positive_functions,
                 instr.task_name,
             )
@@ -211,14 +227,14 @@ class ApiDataBuilder(DataBuilder):
         key_lst, key_weights = zip(
             *[
                 (k, len(v))
-                for k, v in new_instr.api_specifications.items()
+                for k, v in api_specification_groups.items()
                 # if k not in [gd.seed_api_group for gd in grouped_data]
             ]
         )
         new_group = random.choices(key_lst, weights=key_weights, k=1)[0]
         new_pos_ct = random.randint(*new_instr.func_count_bounds)
         new_pos_apis = random.sample(
-            list(new_instr.api_specifications[new_group]),
+            list(api_specification_groups[new_group]),
             k=new_pos_ct,
         )
 
@@ -227,11 +243,12 @@ class ApiDataBuilder(DataBuilder):
             new_pos_apis = [new_pos_apis[0]]
 
         new_api_specification = api_utils.api_spec_to_str(
-            new_instr.api_specifications[new_group],
+            api_specification_groups[new_group],
             new_pos_apis,
             new_instr.task_name,
         )
 
+        new_instr.api_specifications = api_specification_groups[new_group]
         new_instr.positive_functions = new_pos_apis
         new_instr.seed_api_group = new_group
 
