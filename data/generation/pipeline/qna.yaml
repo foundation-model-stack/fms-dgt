@@ -1,5 +1,5 @@
 created_by: IBM
-data_builder: simple_pipeline
+data_builder: pipeline
 seed_examples:
   - answer:
       "While days tend to be longer in the summer, just because it is not summer

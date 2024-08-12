@@ -73,9 +73,11 @@ def pattern_match(patterns, source_list):
     return sorted(list(task_names))
 
 
-def import_builder(inp_dir: str, include_path: str = None) -> None:
-    if include_path is not None:
-        include_path = include_path.replace(os.sep, ".")
+def import_builder(inp_dir: str, include_paths: str = None) -> None:
+    if include_paths is not None:
+        include_paths = [
+            include_path.replace(os.sep, ".") for include_path in include_paths
+        ]
 
     loaded = False
 
@@ -83,8 +85,7 @@ def import_builder(inp_dir: str, include_path: str = None) -> None:
     for imp_path in [
         "fms_dgt.databuilders.generation",
         "fms_dgt.databuilders.transformation",
-        include_path,
-    ]:
+    ] + include_paths:
         if imp_path is not None:
             import_path = f"{imp_path}.{inp_dir}.generate"
             # we try both, but we will overwrite with include path
@@ -97,8 +98,13 @@ def import_builder(inp_dir: str, include_path: str = None) -> None:
 
     if not loaded:
         err_str = f"No module named 'fms_dgt.databuilders.{inp_dir}.generate'"
-        if include_path is not None:
-            err_str += f" or '{include_path}.{inp_dir}.generate'"
+        if include_paths is not None:
+            err_str += "".join(
+                [
+                    f" or '{include_path}.{inp_dir}.generate'"
+                    for include_path in include_paths
+                ]
+            )
         raise ModuleNotFoundError(err_str)
 
 

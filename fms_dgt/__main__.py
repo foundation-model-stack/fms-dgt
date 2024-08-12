@@ -29,15 +29,17 @@ def get_parser() -> argparse.ArgumentParser:
 def add_base_args(parser: argparse.ArgumentParser):
     group = parser.add_argument_group("base", "General command-line arguments")
     group.add_argument(
-        "--include-builder-path",
+        "--include-builder-paths",
         "--include-bp",
         type=str,
+        nargs="*",
         metavar="BUILDER_PATH",
         help="Additional path to include if there are new data builders.",
     )
     group.add_argument(
-        "--include-config-path",
+        "--include-config-paths",
         type=str,
+        nargs="*",
         metavar="CONFIG_PATH",
         help="Additional path to include if there are overrides for data builder config files.",
     )
