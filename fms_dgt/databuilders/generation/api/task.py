@@ -23,14 +23,6 @@ class ApiSdgData(SdgData):
     single_function: bool
     require_nested: bool
 
-    def to_output_dict(self):
-        # we do this because api_specifications can be gigantic (e.g., Glaive)
-        self_copy = copy.copy(self)
-        self_copy.api_specifications = None
-        dict_form = asdict(self_copy)
-        dict_form.pop("api_specifications")
-        return dict_form
-
     def make_clear_copy(self):
         new_instr: ApiSdgData = copy.copy(self)
         (

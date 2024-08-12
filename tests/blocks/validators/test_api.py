@@ -1,12 +1,7 @@
 # Standard
-from typing import List
 import json
 
-# Third Party
-import pytest
-
 # Local
-from fms_dgt.base.instance import Instance
 from fms_dgt.blocks.validators.api import APIGenSpecValidator, ApiGenSpecYesNoValidation
 
 single_intent_kwargs = {

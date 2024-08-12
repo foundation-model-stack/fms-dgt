@@ -3,7 +3,6 @@ from typing import Dict, List, Optional
 import os
 
 # Local
-from fms_dgt.base.databuilder import DataBuilder
 from fms_dgt.base.pipeline import Pipeline
 from fms_dgt.base.registry import get_data_builder
 from fms_dgt.index import IS_DB_KEY, DataBuilderIndex

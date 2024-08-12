@@ -23,9 +23,6 @@ class SdgData(abc.ABC):
 
     task_name: str
 
-    def to_output_dict(self):
-        return asdict(self)
-
 
 class SdgTask:
     """This class is intended to hold general task information"""
@@ -190,7 +187,7 @@ class SdgTask:
         if type(new_data) != list:
             new_data: List[SdgData] = [new_data]
 
-        to_save = [d if type(d) == dict else d.to_output_dict() for d in new_data]
+        to_save = [d if type(d) == dict else asdict(d) for d in new_data]
         self._datastore.save_data(to_save)
 
     def load_data(self) -> List[SdgData]:
