@@ -74,10 +74,11 @@ def pattern_match(patterns, source_list):
 
 
 def import_builder(inp_dir: str, include_paths: str = None) -> None:
-    if include_paths is not None:
-        include_paths = [
-            include_path.replace(os.sep, ".") for include_path in include_paths
-        ]
+    include_paths = (
+        [include_path.replace(os.sep, ".") for include_path in include_paths]
+        if include_paths is not None
+        else []
+    )
 
     loaded = False
 
