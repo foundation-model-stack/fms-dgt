@@ -43,6 +43,7 @@ class DataBuilder(ABC):
         config: Union[Mapping, DataBuilderConfig] = None,
         output_dir: str = None,
         max_gen_requests: int = None,
+        max_stalled_requests: int = None,
         task_inits: dict = None,
         task_kwargs: dict = None,
         **kwargs: Any,
@@ -56,7 +57,13 @@ class DataBuilder(ABC):
             self._config = DataBuilderConfig()
 
         self._name = self.config.name
-        self._max_gen_requests = max_gen_requests
+
+        self._max_gen_requests = (
+            max_gen_requests if max_gen_requests is not None else float("inf")
+        )
+        self._max_stalled_requests = (
+            max_stalled_requests if max_stalled_requests is not None else float("inf")
+        )
 
         # initializing generators / validators
         self._init_blocks()
@@ -156,6 +163,8 @@ class DataBuilder(ABC):
         progress_bar = tqdm(total=len(tasks), desc="Running generation tasks")
         generate_start = time.time()
 
+        stalled_cts = {task.name: self._max_stalled_requests for task in tasks}
+
         request_idx = 0
         while tasks and request_idx <= self._max_gen_requests:
             request_idx += 1
@@ -176,9 +185,20 @@ class DataBuilder(ABC):
                     if get_row_name(gen_inst) == task.name
                 ]
                 task.machine_data.extend(new_data)
-                if task.is_complete():
+
+                stalled_cts[task.name] -= 1
+                if new_data:
+                    stalled_cts[task.name] = self._max_stalled_requests
+
+                if task.is_complete() or stalled_cts[task.name] <= 0:
                     completed_tasks.append(task)
                     progress_bar.update()
+                    if stalled_cts[task.name] <= 0:
+                        sdg_logger.info(
+                            "Task %s has not produced any data in the last %s attempts, terminating task",
+                            task.name,
+                            self._max_stalled_requests,
+                        )
 
             tasks = [task for task in tasks if task not in completed_tasks]
 

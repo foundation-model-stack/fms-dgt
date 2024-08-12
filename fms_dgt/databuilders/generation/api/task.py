@@ -30,7 +30,8 @@ class ApiSdgData(SdgData):
             new_instr.output,
             new_instr.positive_functions,
             new_instr.seed_api_group,
-        ) = (None, None, None, None)
+            new_instr.api_specifications,
+        ) = (None, None, None, None, None)
         return new_instr
 
 
@@ -55,11 +56,12 @@ class ApiSdgTask(SdgTask):
     ):
         super().__init__(**kwargs)
 
-        self._api_specifications = {
+        self.all_api_specifications = {
             k: v
             for k, v in api_specifications.items()
             if (not exclude_api_groups) or k not in exclude_api_groups
         }
+        self._api_specs_w_exclusions = api_specifications
         self._min_func_count = min_func_count
         self._max_func_count = max_func_count
         self._check_arg_question_overlap = check_arg_question_overlap
@@ -71,7 +73,9 @@ class ApiSdgTask(SdgTask):
     def instantiate_input_example(self, **kwargs: Any):
         return self.INPUT_DATA_TYPE(
             task_name=self.name,
-            api_specifications=self._api_specifications,
+            api_specifications=self._api_specs_w_exclusions[
+                kwargs.get("seed_api_group")
+            ],
             seed_api_group=kwargs.get("seed_api_group"),
             positive_functions=kwargs.get("positive_functions"),
             instruction=self._task_instruction,
@@ -82,12 +86,4 @@ class ApiSdgTask(SdgTask):
             require_nested=self._require_nested,
             input=kwargs.get("input"),
             output=kwargs.get("output"),
-        )
-
-    def instantiate_output_example(self, **kwargs: Any):
-        return self.OUTPUT_DATA_TYPE(
-            api_specifications=kwargs.pop(
-                "api_specifications", self._api_specifications
-            ),
-            **kwargs,
         )
