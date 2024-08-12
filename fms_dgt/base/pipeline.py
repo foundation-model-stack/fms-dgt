@@ -5,6 +5,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Union
 # Local
 from fms_dgt.base.block import DATASET_TYPE
 from fms_dgt.base.databuilder import DataBuilder, DataBuilderConfig
+from fms_dgt.base.registry import register_data_builder
 from fms_dgt.base.task import SdgTask
 from fms_dgt.blocks.compositions.sequence import BlockSequence
 from fms_dgt.utils import sdg_logger
@@ -55,6 +56,7 @@ class PipelineSdgTask(SdgTask):
             self.machine_data = loaded_data
 
 
+@register_data_builder("pipeline")
 class Pipeline(DataBuilder):
     """A pipeline is a config-based approach for constructing data for a set of tasks"""
 

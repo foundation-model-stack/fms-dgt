@@ -15,12 +15,14 @@ class DataBuilderIndex:
 
     def __init__(
         self,
-        include_builder_path: Optional[str] = None,
-        include_config_path: Optional[str] = None,
+        include_builder_paths: Optional[List[str]] = None,
+        include_config_paths: Optional[List[str]] = None,
     ) -> None:
+        include_builder_paths = include_builder_paths if include_builder_paths else []
+        include_config_paths = include_config_paths if include_config_paths else []
         self._builder_index = collections.defaultdict(list)
         self._initialize_data_builders(
-            include_paths=[include_builder_path, include_config_path]
+            include_paths=include_builder_paths + include_config_paths
         )
 
         self._all_builders = sorted(list(self._builder_index.keys()))
@@ -36,16 +38,6 @@ class DataBuilderIndex:
                 if isinstance(to_include, str):
                     to_include = [to_include]
                 all_paths.extend(to_include)
-
-        # validate paths
-        for path in all_paths:
-            path_components = path.split(os.sep)
-            assert any(
-                [comp in ["databuilders", "pipelines"] for comp in path_components]
-            ), f"Path [{path}] to directory must include either a 'databuilders' or 'pipelines' subdirectory"
-            assert not all(
-                [comp in ["databuilders", "pipelines"] for comp in path_components]
-            ), f"Path [{path}] to directory must not include both 'databuilders' and 'pipelines' subdirectories"
 
         for data_builder_dir in all_paths:
             self._get_data_builder(data_builder_dir)
@@ -121,7 +113,6 @@ class DataBuilderIndex:
                 f_builder_dir = os.path.split(root)[-1]
                 yaml_path = os.path.join(root, f)
                 config = utils.load_yaml_config(yaml_path, mode="simple")
-                is_db = "databuilders" in builder_path.split(os.sep)
 
                 # TODO: Clean this up and get rid of it, just load top two levels
                 if not "name" in config:
@@ -133,7 +124,7 @@ class DataBuilderIndex:
                     {
                         "yaml_path": yaml_path,
                         "builder_dir": f_builder_dir,
-                        IS_DB_KEY: is_db,
+                        IS_DB_KEY: builder_name != "pipeline",
                     }
                 )
 
