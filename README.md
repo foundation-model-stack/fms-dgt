@@ -71,15 +71,14 @@ When using the vLLM batched inference, you need to:
 pip install -e ".[vllm]"
 ```
 
-#### Data Prep Kit
+**Note:** vLLM [requires Linux OS and CUDA](https://docs.vllm.ai/en/latest/getting_started/installation.html#requirements).
+
+#### IBM Data Prep Kit 
 
 When using the postprocessing pipeline supported by Data Prep Kit (DPK), you need to install:
-
 ```command
 pip install -e ".[dpk]"
 ```
-
-**Note:** vLLM [requires Linux OS and CUDA](https://docs.vllm.ai/en/latest/getting_started/installation.html#requirements).
 
 ### Testing out the Framework
 
@@ -92,19 +91,18 @@ In this example, we will use the preloaded data files as the seed data to to gen
 The default data builder is set to run with the GenAI api unless overridden. We thus only need to run the following command (run from the root of the repository) to execute data generation with GenAI:
 
 ```command
-python -m fms_dgt.__main__ --data-paths ./data/generation/logical_reasoning/causal/qna.yaml
+python -m fms_dgt.__main__ --data-paths ./data/logical_reasoning/causal/qna.yaml
 ```
 
 Alternatively, you can also use the CLI
 
 ```command
-fms_dgt --data-paths ./data/generation/logical_reasoning/causal/qna.yaml
+fms_dgt --data-paths ./data/logical_reasoning/causal/qna.yaml
 ```
 
 If you want to pass multiple data paths, you can do so
-
 ```command
-fms_dgt --data-paths ./data/generation/logical_reasoning/causal ./data/writing/freeform
+fms_dgt --data-paths ./data/logical_reasoning/causal ./data/writing/freeform
 ```
 
 #### Testing with vLLM
@@ -112,7 +110,7 @@ fms_dgt --data-paths ./data/generation/logical_reasoning/causal ./data/writing/f
 For convenience, we have provided an additional configuration file that can be modified to test out using a local model with vLLM. First, open [the config file](./configs/demo.yaml) and update the model field `model_id_or_path` to substitute the `<local-path-to-model>` variable with the path of a model that has been downloaded locally.
 
 ```command
-python -m fms_dgt.__main__ --data-paths ./data/generation/logical_reasoning/causal/qna.yaml --include-config-path ./configs/demo.yaml
+python -m fms_dgt.__main__ --data-paths ./data/logical_reasoning/causal/qna.yaml --include-config-path ./configs/demo.yaml
 ```
 
 **Note:** vLLM [requires Linux OS and CUDA](https://docs.vllm.ai/en/latest/getting_started/installation.html#requirements).
@@ -121,7 +119,7 @@ python -m fms_dgt.__main__ --data-paths ./data/generation/logical_reasoning/caus
 
 The generated data will be output to the following directory: `output/causal/data->logical_reasoning->causal/generated_instructions.json`
 
-This example uses the `SimpleInstructDataBuilder` as defined in `./fms_dgt/databuilders/generation/simple/`. For more information on data builders and other components of Scalable SDG, take a look at the [SDG Design](./docs/sdg_design.md) doc.
+This example uses the `SimpleInstructDataBuilder` as defined in `./fms_dgt/databuilders/simple/`. For more information on data builders and other components of Scalable SDG, take a look at the [SDG Design](./docs/sdg_design.md) doc.
 
 ## Contributing
 
