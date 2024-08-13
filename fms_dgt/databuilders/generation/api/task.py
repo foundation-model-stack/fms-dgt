@@ -34,6 +34,11 @@ class ApiSdgData(SdgData):
         ) = (None, None, None, None, None)
         return new_instr
 
+    def to_output_dict(self):
+        output = asdict(self)
+        output["api_specifications"] = None
+        return output
+
 
 class ApiSdgTask(SdgTask):
     """This class is intended to hold general task information"""
@@ -86,4 +91,13 @@ class ApiSdgTask(SdgTask):
             require_nested=self._require_nested,
             input=kwargs.get("input"),
             output=kwargs.get("output"),
+        )
+
+    def instantiate_output_example(self, **kwargs: Any):
+        kwargs.pop("api_specifications", None)
+        return self.OUTPUT_DATA_TYPE(
+            api_specifications=self._api_specs_w_exclusions[
+                kwargs.get("seed_api_group")
+            ],
+            **kwargs,
         )

@@ -16,6 +16,7 @@ from fms_dgt.databuilders.transformation.api.task import (
     ApiSnipsAtisTransformTask,
     ApiTopv2TransformData,
     ApiTopv2TransformTask,
+    ApiTransformData,
 )
 
 
@@ -31,20 +32,25 @@ class ApiLlmTransformDataBuilder(TransformationDataBuilder):
     def __call__(
         self,
         instruction_data: List[ApiLlmTransformData],
-    ) -> Iterable[ApiLlmTransformData]:
+    ) -> Iterable[ApiTransformData]:
 
         api_str_list, api_str_dialog_map, dialog_info = [], {}, {}
         for d in tqdm(instruction_data, desc="API Transformation"):
             if d.output and "NONE(" not in d.output:
                 api_str_list.append(d.output)
                 api_str_dialog_map.setdefault(d.dialog_id, []).append(d.output)
-                dialog_info[d.dialog_id] = (d.split, d.task_name, d.speaker)
+                dialog_info[d.dialog_id] = (
+                    d.split,
+                    d.task_name,
+                    d.speaker,
+                    d.api_specification,
+                )
 
         api_to_str = self.generate_llm_paraphrase(api_str_list)
 
         # reconstruct the data with llm-paraphrases
         for dialog_id, conv in api_str_dialog_map.items():
-            split, task_name, speaker = dialog_info[dialog_id]
+            split, task_name, speaker, api_specification = dialog_info[dialog_id]
             input_list, output_list, api_list, intents = [], [], [], []
             for apis in conv:
                 api_list.extend(apis.split("[SEP]"))
@@ -63,14 +69,13 @@ class ApiLlmTransformDataBuilder(TransformationDataBuilder):
                     api_str = api_str + "." if not api_str.endswith(".") else api_str
                     input_list.append(api_str)
             if input_list and output_list:
-                yield ApiLlmTransformData(
+                yield ApiTransformData(
                     **{
-                        "speaker": speaker,
-                        "dialog_id": dialog_id,
                         "split": split,
                         "task_name": task_name,
                         "input": " ".join(input_list),
                         "output": output_list,
+                        "api_specification": api_specification,
                     }
                 )
 
@@ -81,7 +86,7 @@ class ApiLlmTransformDataBuilder(TransformationDataBuilder):
         ]  # flatten
         api_to_str = {}
         prompts = []
-        for api in single_api_str_list:
+        for api in set(single_api_str_list):
             # output_string = f"intent: {api}"
             output_string = api
             prompt = (
@@ -115,7 +120,7 @@ class ApiSnipsAtisTransformDataBuilder(TransformationDataBuilder):
     def __call__(
         self,
         instruction_data: List[ApiSnipsAtisTransformData],
-    ) -> Iterable[ApiSnipsAtisTransformData]:
+    ) -> Iterable[ApiTransformData]:
         for data in tqdm(instruction_data, "snips_atis Transformation"):
             try:
                 text = data.text
@@ -123,6 +128,7 @@ class ApiSnipsAtisTransformDataBuilder(TransformationDataBuilder):
                 slots = data.slots
                 task_name = data.task_name
                 split = data.split
+                api_specification = data.api_specification
 
                 sentence = " ".join(text).strip()
                 all_intents = intents[0].split("#")
@@ -197,12 +203,15 @@ class ApiSnipsAtisTransformDataBuilder(TransformationDataBuilder):
                             params_lst.append(f'{key} = "{value}"')
 
                     apis.append(f'{all_intents[i]}({", ".join(params_lst)})')
-                yield {
-                    "task_name": task_name,
-                    "split": split,
-                    "input": sentence,
-                    "output": apis,
-                }
+                yield ApiTransformData(
+                    **{
+                        "task_name": task_name,
+                        "split": split,
+                        "input": sentence,
+                        "output": apis,
+                        "api_specification": api_specification,
+                    }
+                )
             except IndexError:
                 pass
 
@@ -272,7 +281,7 @@ class ApiTopv2TransformDataBuilder(TransformationDataBuilder):
     def __call__(
         self,
         instruction_data: List[ApiTopv2TransformData],
-    ) -> Iterable[ApiTopv2TransformData]:
+    ) -> Iterable[ApiTransformData]:
         for data in tqdm(instruction_data, "Topv2 Transformation"):
             input_string = data.input_string
             ontologies = data.ontologies
@@ -280,6 +289,7 @@ class ApiTopv2TransformDataBuilder(TransformationDataBuilder):
             split = data.split
             question = data.question
             domain = data.domain
+            api_specification = data.api_specification
 
             matches_2 = extract_slots(input_string)
             # Print the extracted slot information
@@ -319,13 +329,15 @@ class ApiTopv2TransformDataBuilder(TransformationDataBuilder):
                 for api in ordered_seq:
                     only_apis.append(api[0])
 
-                yield {
-                    "task_name": task_name,
-                    "split": split,
-                    "domain": domain,
-                    "input": question,
-                    "output": only_apis,
-                }
+                yield ApiTransformData(
+                    **{
+                        "task_name": task_name,
+                        "split": split,
+                        "input": question,
+                        "output": only_apis,
+                        "api_specification": api_specification,
+                    }
+                )
 
 
 def extract_slots(input_string):

@@ -8,62 +8,94 @@ import re
 
 # Local
 from fms_dgt.base.registry import register_datastore
-from fms_dgt.base.task import SdgData, TransformTask
+from fms_dgt.base.task import SdgData, SdgTask, TransformTask
 from fms_dgt.datastores.default import DefaultDatastore
 from fms_dgt.utils import sdg_logger
 
 
 @dataclass
-class ApiLlmTransformData(SdgData):
-    """This class is intended to hold the seed / machine generated instruction data"""
+class ApiTransformData(SdgData):
 
     input: str
     output: str
-    dialog_id: str
-    speaker: str
+    api_specification: dict
     split: str
 
 
-class ApiLlmTransformTask(TransformTask):
-    """This class is intended to hold general task information"""
+class ApiTransformTask(TransformTask):
 
-    INPUT_DATA_TYPE = ApiLlmTransformData
-    OUTPUT_DATA_TYPE = ApiLlmTransformData
+    INPUT_DATA_TYPE = ApiTransformData
+    OUTPUT_DATA_TYPE = ApiTransformData
+
+    def __init__(
+        self,
+        *args,
+        seed_api_group: str = None,
+        api_specifications: Dict = None,
+        **kwargs,
+    ):
+        super().__init__(
+            *args,
+            **kwargs,
+        )
+
+        self._seed_api_group = seed_api_group
+        self._api_specifications = api_specifications
+
+    def instantiate_input_example(self, **kwargs: Any):
+        return self.INPUT_DATA_TYPE(
+            task_name=self.name,
+            input=kwargs.pop("input", None),
+            output=kwargs.pop("output", None),
+            split=kwargs.pop("split", None),
+            api_specification=self._api_specifications.get(self._seed_api_group, None),
+            **kwargs,
+        )
 
 
 @dataclass
-class ApiTopv2TransformData(SdgData):
+class ApiLlmTransformData(ApiTransformData):
+    """This class is intended to hold the seed / machine generated instruction data"""
+
+    dialog_id: str
+    speaker: str
+
+
+class ApiLlmTransformTask(ApiTransformTask):
+    """This class is intended to hold general task information"""
+
+    INPUT_DATA_TYPE = ApiLlmTransformData
+
+
+@dataclass
+class ApiTopv2TransformData(ApiTransformData):
     """This class is intended to hold the seed / machine generated instruction data"""
 
     question: str
     input_string: str
-    split: str
     domain: str
     ontologies: Optional[List] = None
 
 
-class ApiTopv2TransformTask(TransformTask):
+class ApiTopv2TransformTask(ApiTransformTask):
     """This class is intended to hold general task information"""
 
     INPUT_DATA_TYPE = ApiTopv2TransformData
-    OUTPUT_DATA_TYPE = dict
 
 
 @dataclass
-class ApiSnipsAtisTransformData(SdgData):
+class ApiSnipsAtisTransformData(ApiTransformData):
     """This class is intended to hold the seed / machine generated instruction data"""
 
     text: str
     intents: str
     slots: List
-    split: str
 
 
-class ApiSnipsAtisTransformTask(TransformTask):
+class ApiSnipsAtisTransformTask(ApiTransformTask):
     """This class is intended to hold general task information"""
 
     INPUT_DATA_TYPE = ApiSnipsAtisTransformData
-    OUTPUT_DATA_TYPE = ApiSnipsAtisTransformData
 
 
 ###
@@ -78,7 +110,6 @@ class ApiTransformDatastore(DefaultDatastore):
         self,
         data_path: str = None,
         splits: List[str] = None,
-        restart_generation: bool = False,
         extract_fn: Callable = None,
         **kwargs: Any,
     ) -> None:
@@ -86,28 +117,6 @@ class ApiTransformDatastore(DefaultDatastore):
         self._data_path = data_path
         self._splits = splits
         self._extract_fn = extract_fn
-
-        for split in self._splits:
-            output_dir, output_file = os.path.split(self.output_path)
-            output_path = os.path.join(output_dir, split, output_file)
-            if restart_generation and os.path.exists(output_path):
-                os.remove(output_path)
-
-    def save_data(self, new_data: List[Dict]) -> None:
-        for split in self._splits:
-            split_data = [data for data in new_data if data["split"] == split]
-            output_dir, output_file = os.path.split(self.output_path)
-            output_path = os.path.join(output_dir, split, output_file)
-            return super().save_data(split_data, output_path=output_path)
-
-    def load_data(self) -> List[SdgData]:
-        machine_examples = []
-        for split in self._splits:
-            output_dir, output_file = os.path.split(self.output_path)
-            output_path = os.path.join(output_dir, split, output_file)
-            if os.path.exists(output_path):
-                machine_examples.extend(super().load_data(output_path=output_path))
-        return machine_examples
 
     def load_dataset(self) -> List[Dict]:
         raw_data = []
@@ -135,15 +144,6 @@ class ApiLlmTransformDatastore(ApiTransformDatastore):
 class ApiTopv2TransformDatastore(ApiTransformDatastore):
     """Api transform datastore"""
 
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        # always restart for heuristic-based transforms since it's so fast
-        for split in self._splits:
-            output_dir, output_file = os.path.split(self.output_path)
-            output_path = os.path.join(output_dir, split, output_file)
-            if os.path.exists(output_path):
-                os.remove(output_path)
-
     def load_dataset(self) -> List[Dict]:
         raw_data = extract_raw_topv2_data(self._data_path)
         return raw_data
@@ -155,12 +155,6 @@ class ApiSnipsAtisTransformDatastore(ApiTransformDatastore):
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(extract_fn=extract_raw_snips_atis_data, **kwargs)
-        # always restart for heuristic-based transforms since it's so fast
-        for split in self._splits:
-            output_dir, output_file = os.path.split(self.output_path)
-            output_path = os.path.join(output_dir, split, output_file)
-            if os.path.exists(output_path):
-                os.remove(output_path)
 
 
 def extract_raw_snips_atis_data(fpath: str):

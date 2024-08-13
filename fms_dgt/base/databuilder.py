@@ -147,7 +147,7 @@ class DataBuilder(ABC):
 
         # load the LM-generated data
         for task in tasks:
-            task.load_data()
+            task.load_intermediate_data()
             if task.machine_data:
                 sdg_logger.debug(
                     "Loaded %s machine-generated data", len(task.machine_data)
@@ -175,7 +175,7 @@ class DataBuilder(ABC):
                 task = next(
                     task for task in tasks if get_row_name(generated_inst) == task.name
                 )
-                task.save_data(generated_inst)
+                task.save_intermediate_data(generated_inst)
                 filtered_data.append(generated_inst)
 
             for task in tasks:
@@ -216,6 +216,9 @@ class DataBuilder(ABC):
         sdg_logger.info("Launch postprocessing")
         self.execute_postprocessing()
         sdg_logger.info("Postprocessing completed")
+
+        for task in completed_tasks:
+            task.save_instruction_data()
 
     def execute_postprocessing(self):
         pass
@@ -259,14 +262,6 @@ class TransformationDataBuilder(DataBuilder):
             ), f"Task {task.name} must inherit from TransformTask class to be used with TransformationDataBuilder"
             task.load_dataloader_state()
 
-        # load the LM-generated data
-        for task in tasks:
-            task.load_data()
-            if task.machine_data:
-                sdg_logger.debug(
-                    "Loaded %s machine-generated data", len(task.machine_data)
-                )
-
         # save task details for incomplete tasks
         for task in tasks:
             task.save_task()
@@ -280,7 +275,7 @@ class TransformationDataBuilder(DataBuilder):
             task = next(
                 task for task in tasks if get_row_name(generated_inst) == task.name
             )
-            task.save_data(generated_inst)
+            task.save_intermediate_data(generated_inst)
             filtered_data.append(generated_inst)
             task.save_dataloader_state()
 
@@ -302,6 +297,9 @@ class TransformationDataBuilder(DataBuilder):
 
         generate_duration = time.time() - generate_start
         sdg_logger.info("Generation took %.2fs", generate_duration)
+
+        for task in tasks:
+            task.save_instruction_data()
 
     def call_with_task_list(self, tasks: List[SdgTask]) -> Iterable[SdgData]:
         # default behavior is to simply extract the seed / machine generated data and pass to data builder
