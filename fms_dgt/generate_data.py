@@ -16,11 +16,12 @@ def generate_data(
     output_dir: str,
     task_kwargs: Dict,
     builder_kwargs: Dict,
-    include_data_path: Optional[str] = None,
     include_config_paths: Optional[List[str]] = None,
     include_builder_paths: Optional[List[str]] = None,
-    restart_generation: bool = False,
 ):
+    include_data_path: Optional[str] = None
+    restart_generation: bool = False
+
     # TODO: better naming convention...
     names = []
     for data_path in data_paths:
@@ -46,13 +47,21 @@ def generate_data(
     )
     builder_names = builder_index.match_builders(builder_list)
     sdg_logger.debug("All builders: %s", builder_names)
-    for builder in [
-        builder for builder in builder_list if builder not in builder_names
-    ]:
-        if os.path.isfile(builder):
-            config = utils.load_yaml_config(builder)
-            builder_names.append(config)
+    builder_missing = set()
+    for builder in builder_list:
+        if builder not in builder_names:
+            if os.path.isfile(builder):
+                config = utils.load_yaml_config(builder)
+                builder_names.append(config)
+            else:
+                builder_missing.add(builder)
 
+    if builder_missing:
+        missing = ", ".join(builder_missing)
+        print("This test works")
+        print(ValueError(f"Builder specifications not found: [{missing}]"))
+
+    # this doesn't detect e.g. "simple*", leading to a crash
     builder_missing = set(
         [
             builder
