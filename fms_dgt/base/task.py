@@ -157,6 +157,16 @@ class SdgTask:
     def instantiate_output_example(self, **kwargs: Any):
         return self.OUTPUT_DATA_TYPE(**kwargs)
 
+    def instantiate_instruction(self, data: OUTPUT_DATA_TYPE):
+        data = asdict(data)
+        output = dict(self._instruction_format)
+        for k in output.keys():
+            for ds_k, ds_v in data.items():
+                inp_key = "{{" + ds_k + "}}"
+                if inp_key in output[k]:
+                    output[k] = output[k].replace(inp_key, str(ds_v))
+        return output
+
     def get_example(self) -> SdgData:
         try:
             return self.instantiate_input_example(**next(self._dataloader))
@@ -203,19 +213,11 @@ class SdgTask:
             ]
 
     def save_instruction_data(self) -> None:
-        def to_instruction(d: Dict):
-            output = dict(self._instruction_format)
-            for k in output.keys():
-                for ds_k, ds_v in d.items():
-                    inp_key = "{{" + ds_k + "}}"
-                    if inp_key in output[k]:
-                        output[k] = output[k].replace(inp_key, str(ds_v))
-            return output
-
         if self._instruction_format:
             for d in self._datastore.load_data():
-                d = asdict(self.instantiate_output_example(**d))
-                instruction = to_instruction(d)
+                instruction = self.instantiate_instruction(
+                    self.instantiate_output_example(**d)
+                )
                 self._datastore.save_instruction_data([instruction])
 
     def save_dataloader_state(self) -> None:

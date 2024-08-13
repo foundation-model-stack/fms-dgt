@@ -1,5 +1,5 @@
 # Standard
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any, Callable, Dict, List, Optional
 import csv
 import json
@@ -8,7 +8,7 @@ import re
 
 # Local
 from fms_dgt.base.registry import register_datastore
-from fms_dgt.base.task import SdgData, SdgTask, TransformTask
+from fms_dgt.base.task import SdgData, TransformTask
 from fms_dgt.datastores.default import DefaultDatastore
 from fms_dgt.utils import sdg_logger
 
@@ -18,7 +18,7 @@ class ApiTransformData(SdgData):
 
     input: str
     output: str
-    api_specification: dict
+    seed_api_group: str
     split: str
 
 
@@ -48,9 +48,22 @@ class ApiTransformTask(TransformTask):
             input=kwargs.pop("input", None),
             output=kwargs.pop("output", None),
             split=kwargs.pop("split", None),
-            api_specification=self._api_specifications.get(self._seed_api_group, None),
+            seed_api_group=self._seed_api_group,
             **kwargs,
         )
+
+    def instantiate_instruction(self, data: ApiTransformData):
+        data_items = list(asdict(data).items())
+        data_items.append(
+            ("api_specifications", self._api_specifications.get(data.seed_api_group))
+        )
+        output = dict(self._instruction_format)
+        for k in output.keys():
+            for ds_k, ds_v in data_items:
+                inp_key = "{{" + ds_k + "}}"
+                if inp_key in output[k]:
+                    output[k] = output[k].replace(inp_key, str(ds_v))
+        return output
 
 
 @dataclass

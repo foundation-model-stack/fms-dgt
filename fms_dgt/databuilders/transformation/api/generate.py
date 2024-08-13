@@ -42,15 +42,14 @@ class ApiLlmTransformDataBuilder(TransformationDataBuilder):
                 dialog_info[d.dialog_id] = (
                     d.split,
                     d.task_name,
-                    d.speaker,
-                    d.api_specification,
+                    d.seed_api_group,
                 )
 
         api_to_str = self.generate_llm_paraphrase(api_str_list)
 
         # reconstruct the data with llm-paraphrases
         for dialog_id, conv in api_str_dialog_map.items():
-            split, task_name, speaker, api_specification = dialog_info[dialog_id]
+            split, task_name, seed_api_group = dialog_info[dialog_id]
             input_list, output_list, api_list, intents = [], [], [], []
             for apis in conv:
                 api_list.extend(apis.split("[SEP]"))
@@ -75,7 +74,7 @@ class ApiLlmTransformDataBuilder(TransformationDataBuilder):
                         "task_name": task_name,
                         "input": " ".join(input_list),
                         "output": output_list,
-                        "api_specification": api_specification,
+                        "seed_api_group": seed_api_group,
                     }
                 )
 
@@ -128,7 +127,7 @@ class ApiSnipsAtisTransformDataBuilder(TransformationDataBuilder):
                 slots = data.slots
                 task_name = data.task_name
                 split = data.split
-                api_specification = data.api_specification
+                seed_api_group = data.seed_api_group
 
                 sentence = " ".join(text).strip()
                 all_intents = intents[0].split("#")
@@ -209,7 +208,7 @@ class ApiSnipsAtisTransformDataBuilder(TransformationDataBuilder):
                         "split": split,
                         "input": sentence,
                         "output": apis,
-                        "api_specification": api_specification,
+                        "seed_api_group": seed_api_group,
                     }
                 )
             except IndexError:
@@ -288,8 +287,7 @@ class ApiTopv2TransformDataBuilder(TransformationDataBuilder):
             task_name = data.task_name
             split = data.split
             question = data.question
-            domain = data.domain
-            api_specification = data.api_specification
+            seed_api_group = data.seed_api_group
 
             matches_2 = extract_slots(input_string)
             # Print the extracted slot information
@@ -335,7 +333,7 @@ class ApiTopv2TransformDataBuilder(TransformationDataBuilder):
                         "split": split,
                         "input": question,
                         "output": only_apis,
-                        "api_specification": api_specification,
+                        "seed_api_group": seed_api_group,
                     }
                 )
 
