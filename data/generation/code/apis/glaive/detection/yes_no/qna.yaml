@@ -2,7 +2,7 @@ created_by: IBM
 task_description: API Detection
 data_builder: api_yes_no_detection
 instruction_format:
-  input: 'SYSTEM: You are a helpful assistant with access to the following function calls. Your task is to produce a sequence of function calls necessary to generate response to the user utterance. Use the following function calls as required and return only function "name" with empty "arguments" dictionary in your response.\n<|function_call_library|>\n{{api_specifications}}\n\nUSER: {{input}}\nASSISTANT: '
+  input: "SYSTEM: You are a helpful assistant with access to the following function calls. Your task is to produce a sequence of function calls necessary to generate response to the user utterance. Use the following function calls as required and return only function \"name\" with empty \"arguments\" dictionary in your response.\n<|function_call_library|>\n{{api_specifications}}\n\nUSER: {{input}}\nASSISTANT: "
   output: "{{output}}"
 task_instruction: "You are given a list of APIs below followed by a Query. Your task is determine whether we need any of the APIs from the list to execute the Query. If an API is relevant, please output 'YES'. If no API is relevant, please output 'NO'."
 min_func_count: 1
