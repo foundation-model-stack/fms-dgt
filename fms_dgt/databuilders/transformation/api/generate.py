@@ -79,7 +79,6 @@ class ApiLlmTransformDataBuilder(TransformationDataBuilder):
                     }
                 )
 
-    import re
 
     def parse_function_call(self, function_call):
         pattern = re.compile(r'(\w+)\(([^)]*)\)')
