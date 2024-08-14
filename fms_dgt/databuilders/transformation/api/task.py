@@ -55,18 +55,21 @@ class ApiTransformTask(TransformTask):
 
     def instantiate_instruction(self, data: ApiTransformData):
         api_specs = self._api_specifications.get(data.seed_api_group)
-        positive_functions = [
-            k["name"] for k in data.output
-        ]  # {v for k, v in data.output.items() if k == "name"}
-        keep_apis = (
-            random.sample(
-                list(api_specs.keys()),
-                k=min(len(api_specs), 10),
+        if api_specs:
+            positive_functions = [
+                k["name"] for k in data.output
+            ]  # {v for k, v in data.output.items() if k == "name"}
+            keep_apis = (
+                random.sample(
+                    list(api_specs.keys()),
+                    k=min(len(api_specs), 10),
+                )
+                + positive_functions
             )
-            + positive_functions
-        )
-        random.shuffle(keep_apis)
-        api_specs = "\n".join([json.dumps(api_specs[k]) for k in keep_apis])
+            random.shuffle(keep_apis)
+            api_specs = "\n".join([json.dumps(api_specs[k]) for k in keep_apis])
+        else:
+            api_specs = ""
         data_items = list(asdict(data).items())
         data_items.append(("api_specifications", api_specs))
         output = dict(self._instruction_format)
