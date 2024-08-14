@@ -213,12 +213,14 @@ class SdgTask:
             ]
 
     def save_instruction_data(self) -> None:
-        if self._instruction_format:
-            for d in self._datastore.load_data():
-                instruction = self.instantiate_instruction(
-                    self.instantiate_output_example(**d)
-                )
-                self._datastore.save_instruction_data([instruction])
+        if self._instruction_format is not None:
+            loaded_data = self._datastore.load_data()
+            if loaded_data:
+                for d in loaded_data:
+                    instruction = self.instantiate_instruction(
+                        self.instantiate_output_example(**d)
+                    )
+                    self._datastore.save_instruction_data([instruction])
 
     def save_dataloader_state(self) -> None:
         self._datastore.save_state(self._dataloader.get_state())
