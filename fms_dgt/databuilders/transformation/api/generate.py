@@ -79,22 +79,21 @@ class ApiLlmTransformDataBuilder(TransformationDataBuilder):
                     }
                 )
 
-
     def parse_function_call(self, function_call):
-        pattern = re.compile(r'(\w+)\(([^)]*)\)')
+        pattern = re.compile(r"(\w+)\(([^)]*)\)")
         match = pattern.search(function_call)
         function_name = match.group(1)
         arguments_str = match.group(2)
 
-        arguments = [arg.strip() for arg in arguments_str.split(';')]
+        arguments = [arg.strip() for arg in arguments_str.split(";")]
         arguments_dict = {}
         for arg in arguments:
-            key, value = map(str.strip, arg.split('=', 1))
+            key, value = map(str.strip, arg.split("=", 1))
             if value.startswith('"') and value.endswith('"'):
                 value = value[1:-1]
-            if value == 'True':
+            if value == "True":
                 value = True
-            elif value == 'False':
+            elif value == "False":
                 value = False
             arguments_dict[key] = value
 
@@ -211,11 +210,11 @@ class ApiSnipsAtisTransformDataBuilder(TransformationDataBuilder):
                     start += num_words
                     params_dic = {}
                     for val, name in params:
-                        if name in params_dic: #list
+                        if name in params_dic:  # list
                             if type(params_dic[name]) == list:
                                 params_dic[name].append(val)
-                            else: #str
-                                prev_elem =  params_dic[name]
+                            else:  # str
+                                prev_elem = params_dic[name]
                                 params_dic[name] = [prev_elem]
                                 params_dic[name].append(val)
 
@@ -229,10 +228,7 @@ class ApiSnipsAtisTransformDataBuilder(TransformationDataBuilder):
                     #         params_lst.append(f'{key} = "{value}"')
                     #     else:
                     #         params_lst.append(f'{key} = "{value}"')
-                    api = {
-                        "name": all_intents[i],
-                        "arguments": params_dic
-                    }
+                    api = {"name": all_intents[i], "arguments": params_dic}
                     # apis.append(f'{all_intents[i]}({", ".join(params_lst)})')
                     apis.append(api)
 
@@ -352,10 +348,7 @@ class ApiTopv2TransformDataBuilder(TransformationDataBuilder):
                     api_slots[slot] = slt_val
                 api_slots_arr = [f'{slot} = "{val}"' for slot, val in api_slots.items()]
                 # api = f'{intent}({", ".join(api_slots_arr)})'
-                api = {
-                    "name": intent,
-                    "arguments": api_slots
-                }
+                api = {"name": intent, "arguments": api_slots}
                 apis_seq.append((api, input_string.index("IN:" + intent)))
 
             # Use re.search to find the pattern in the input string
