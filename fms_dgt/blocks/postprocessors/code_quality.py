@@ -1,20 +1,25 @@
-# Local
-from fms_dgt.base.block import BaseBlock, DATASET_TYPE
-from fms_dgt.base.registry import register_block
+# Standard
 from typing import Any, Dict, List, Optional, Union
+
+# Local
+from fms_dgt.base.block import DATASET_TYPE, BaseBlock
+from fms_dgt.base.registry import register_block
+
 
 @register_block("code_quality")
 class CodeQualityPostprocessing(BaseBlock):
     """Base Class for all Postprocessors"""
 
-    def __init__(self,
-                 input_folder_path: str,
-                 output_folder_path: str,
-                 hf_token: str,
-                 contents_column_name: str = "contents",
-                 language_column_name: str = "language",
-                 tokenizer: str = "codeparrot/codeparrot",
-                 **kwargs: Any) -> None:
+    def __init__(
+        self,
+        input_folder_path: str,
+        output_folder_path: str,
+        hf_token: str,
+        contents_column_name: str = "contents",
+        language_column_name: str = "language",
+        tokenizer: str = "codeparrot/codeparrot",
+        **kwargs: Any,
+    ) -> None:
         super().__init__(**kwargs)
         self.input_folder_path = input_folder_path
         self.output_folder_path = output_folder_path
@@ -24,8 +29,10 @@ class CodeQualityPostprocessing(BaseBlock):
         self.hf_token = hf_token
 
     def code_quality(self, input_params: dict):
+        # Standard
         import sys
 
+        # Third Party
         from code_quality_transform import CodeQualityTransformConfiguration
         from data_processing.runtime.pure_python import PythonTransformLauncher
         from data_processing.utils import ParamsUtils
@@ -45,24 +52,30 @@ class CodeQualityPostprocessing(BaseBlock):
         }
         sys.argv = ParamsUtils.dict_to_req(d=params)
         # create launcher
-        launcher = PythonTransformLauncher(runtime_config=CodeQualityTransformConfiguration())
+        launcher = PythonTransformLauncher(
+            runtime_config=CodeQualityTransformConfiguration()
+        )
         # launch
         launcher.launch()
 
-    def codequality_embeddable(self,
-            runtime_code_location: str = "{'github': 'github', 'commit_hash': '12345', 'path': 'path'}",
-            runtime_pipeline_id: str = "pipeline_id",
-            runtime_job_id: str = "job_id",
+    def codequality_embeddable(
+        self,
+        runtime_code_location: str = "{'github': 'github', 'commit_hash': '12345', 'path': 'path'}",
+        runtime_pipeline_id: str = "pipeline_id",
+        runtime_job_id: str = "job_id",
     ):
         args = locals()
         args.pop("self")
         code_quality_task = self.code_quality(input_params=args)
 
-    def generate(self, inputs: DATASET_TYPE,
+    def generate(
+        self,
+        inputs: DATASET_TYPE,
         *,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
-        result_field: Optional[List[str]] = None,):
+        result_field: Optional[List[str]] = None,
+    ):
 
         self._postprocess()
 
@@ -71,4 +84,3 @@ class CodeQualityPostprocessing(BaseBlock):
     def _postprocess(self) -> bool:
         self.codequality_embeddable()
         return True
-
