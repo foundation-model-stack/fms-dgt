@@ -119,7 +119,7 @@ python -m fms_dgt.__main__ --data-paths ./data/generation/logical_reasoning/caus
 
 #### Examine Outputs
 
-The generated data will be output to the following directory: `output/causal/data->logical_reasoning->causal/generated_instructions.json`
+The generated data will be output to the following directory: `output/causal/data__logical_reasoning__causal/generated_instructions.json`
 
 This example uses the `SimpleInstructDataBuilder` as defined in `./fms_dgt/databuilders/generation/simple/`. For more information on data builders and other components of Scalable SDG, take a look at the [SDG Design](./docs/sdg_design.md) doc.
 

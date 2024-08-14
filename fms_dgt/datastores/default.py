@@ -58,7 +58,7 @@ class DefaultDatastore(BaseDatastore):
     def _get_default_output_dir(self, output_dir: str, task_name: str):
         path_components = []
         path_components.append(output_dir)
-        path_components.append(task_name)
+        path_components.append(task_name.replace("->", "__"))
         return os.path.join(*path_components)
 
     def save_data(

@@ -22,7 +22,7 @@ dependencies = [
     "rouge-score>=0.0.4",
     "scikit-learn>=0.24.1",
     "sqlitedict",
-    "torch>=2.2",
+    "torch>=2.3",
     "tqdm-multiprocess",
     "transformers>=4.1",
     "tabulate>=0.9",
