@@ -50,3 +50,7 @@ class BaseDatastore(abc.ABC):
     ) -> Any:
         "Loads the state object"
         pass
+
+    def save_instruction_data(self, new_data: List[T]) -> None:
+        "Saves instruction data to specified location"
+        pass

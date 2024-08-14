@@ -14,10 +14,12 @@ class DefaultDataloader(BaseDataloader):
     def __init__(
         self,
         datastore: BaseDatastore = None,
+        loop_over_data: bool = True,
     ) -> None:
         super().__init__()
         self._data = datastore.load_dataset()
         self._i = 0
+        self._loop_over_data = loop_over_data
 
     def get_state(self) -> int:
         return self._i
@@ -33,5 +35,6 @@ class DefaultDataloader(BaseDataloader):
             return value
         except IndexError:
             # reset cycle
-            self._i = 0
+            if self._loop_over_data:
+                self._i = 0
             raise StopIteration

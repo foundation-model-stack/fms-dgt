@@ -1,6 +1,9 @@
 created_by: IBM
 task_description: API Parallel Single Sequencing
 data_builder: api_function_checking
+instruction_format:
+  input: 'SYSTEM: You are a helpful assistant with access to the following function calls. Your task is to produce a sequence of function calls necessary to generate response to the user utterance. Use the following function calls as required and return only function "name" with empty "arguments" dictionary in your response.\n<|function_call_library|>\n{{api_specifications}}\n\nUSER: {{input}}\nASSISTANT: '
+  output: "{{output}}"
 task_instruction: "You are given an API followed by a Query. Your task is to generate a Query that can be solved with a repeated sequence of calls to the provided API. You must invoke the API two to four times."
 min_func_count: 2
 max_func_count: 4

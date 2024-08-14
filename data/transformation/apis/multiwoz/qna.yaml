@@ -1,7 +1,13 @@
 created_by: IBM
 data_builder: transform_api_llm
+instruction_format:
+  input: 'SYSTEM: You are a helpful assistant with access to the following function calls. Your task is to produce a sequence of function calls necessary to generate response to the user utterance. Use the following function calls as required and return only function "name" with empty "arguments" dictionary in your response.\n<|function_call_library|>\n{{api_specifications}}\n\nUSER: {{input}}\nASSISTANT: '
+  output: "{{output}}"
 datastore:
   type: api_llm_transform_datastore
   data_path: data/transformation/apis/multiwoz/MultiWOZ_2.2
-  splits: [train, test, dev]
+  splits: [train, dev] # [train, test, dev]
 task_description: MultiWoz dataset transformation
+seed_api_group: multiwoz
+include:
+  - ../base_apis.yaml

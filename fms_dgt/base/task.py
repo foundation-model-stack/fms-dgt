@@ -23,6 +23,9 @@ class SdgData(abc.ABC):
 
     task_name: str
 
+    def to_output_dict(self):
+        return asdict(self)
+
 
 class SdgTask:
     """This class is intended to hold general task information"""
@@ -38,6 +41,7 @@ class SdgTask:
         task_description: str,
         created_by: str,
         data_builder: str,
+        instruction_format: Optional[Dict[str, str]] = None,
         output_dir: Optional[str] = "output",
         output_format: Optional[str] = "jsonl",
         datastore: Optional[Dict] = None,
@@ -62,6 +66,7 @@ class SdgTask:
         self._num_outputs_to_generate = num_outputs_to_generate
         self._output_format = output_format
         self._output_dir = output_dir
+        self._instruction_format = instruction_format
 
         # dataloader params
         self._dataloader_cfg = dataloader
@@ -152,6 +157,16 @@ class SdgTask:
     def instantiate_output_example(self, **kwargs: Any):
         return self.OUTPUT_DATA_TYPE(**kwargs)
 
+    def instantiate_instruction(self, data: OUTPUT_DATA_TYPE):
+        data = asdict(data)
+        output = dict(self._instruction_format)
+        for k in output.keys():
+            for ds_k, ds_v in data.items():
+                inp_key = "{{" + ds_k + "}}"
+                if inp_key in output[k]:
+                    output[k] = output[k].replace(inp_key, str(ds_v))
+        return output
+
     def get_example(self) -> SdgData:
         try:
             return self.instantiate_input_example(**next(self._dataloader))
@@ -180,28 +195,37 @@ class SdgTask:
     def is_complete(self):
         return len(self.machine_data) > self.num_outputs_to_generate
 
-    def save_data(
+    def save_intermediate_data(
         self,
         new_data: Union[SdgData, List[SdgData]],
     ) -> None:
         if type(new_data) != list:
             new_data: List[SdgData] = [new_data]
 
-        to_save = [d if type(d) == dict else asdict(d) for d in new_data]
+        to_save = [d if type(d) == dict else d.to_output_dict() for d in new_data]
         self._datastore.save_data(to_save)
 
-    def load_data(self) -> List[SdgData]:
+    def load_intermediate_data(self) -> List[SdgData]:
         loaded_data = self._datastore.load_data()
         if loaded_data:
             self.machine_data = [
                 self.instantiate_output_example(**d) for d in loaded_data
             ]
 
+    def save_instruction_data(self) -> None:
+        if self._instruction_format:
+            for d in self._datastore.load_data():
+                instruction = self.instantiate_instruction(
+                    self.instantiate_output_example(**d)
+                )
+                self._datastore.save_instruction_data([instruction])
+
     def save_dataloader_state(self) -> None:
         self._datastore.save_state(self._dataloader.get_state())
 
     def load_dataloader_state(self) -> None:
-        self._dataloader.set_state(self._datastore.load_state())
+        if not self._restart_generation:
+            self._dataloader.set_state(self._datastore.load_state())
 
     def save_task(self):
         self._datastore.save_task()
@@ -225,6 +249,14 @@ class TransformTask(SdgTask):
             machine_batch_size=machine_batch_size,
             **kwargs,
         )
+
+    def init_dataloader(self):
+        if self._dataloader_cfg is None:
+            self._dataloader = DefaultDataloader(
+                datastore=self._datastore, loop_over_data=False
+            )
+        else:
+            super().init_dataloader()
 
 
 T = TypeVar("T")

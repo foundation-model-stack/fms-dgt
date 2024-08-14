@@ -37,12 +37,19 @@ class DefaultDatastore(BaseDatastore):
         self._output_path = os.path.join(
             self._output_dir, "generated_instructions." + output_format
         )
+        self._instruction_output_path = os.path.join(
+            self._output_dir, "formatted_instructions." + output_format
+        )
         self._state_path = os.path.join(self._output_dir, "dataloader_state.txt")
         self._data_path = data_path
         self._seed_examples = seed_examples
 
         if restart_generation and os.path.exists(self.output_path):
             os.remove(self.output_path)
+
+        # always delete instruction output path because it's regenerated from machine_data
+        if os.path.exists(self._instruction_output_path):
+            os.remove(self._instruction_output_path)
 
     @property
     def output_path(self) -> str:
@@ -139,3 +146,7 @@ class DefaultDatastore(BaseDatastore):
         if os.path.exists(self._state_path):
             with open(self._state_path, "r") as f:
                 return json.load(f)[0]
+
+    def save_instruction_data(self, new_data: List[T]) -> None:
+        "Saves instruction data to specified location"
+        self.save_data(new_data=new_data, output_path=self._instruction_output_path)
