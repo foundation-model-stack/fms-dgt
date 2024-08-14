@@ -212,19 +212,31 @@ class ApiSnipsAtisTransformDataBuilder(TransformationDataBuilder):
                     start += num_words
                     params_dic = {}
                     for val, name in params:
-                        if name not in params_dic:
-                            params_dic[name] = []
-                        params_dic[name].append(val)
-                    params_lst = []
-                    for key, value in params_dic.items():
-                        if len(value) == 1:
-                            value = value[0]
-                        if type(value) == str:
-                            params_lst.append(f'{key} = "{value}"')
-                        else:
-                            params_lst.append(f'{key} = "{value}"')
+                        if name in params_dic: #list
+                            if type(params_dic[name]) == list:
+                                params_dic[name].append(val)
+                            else: #str
+                                prev_elem =  params_dic[name]
+                                params_dic[name] = [prev_elem]
+                                params_dic[name].append(val)
 
-                    apis.append(f'{all_intents[i]}({", ".join(params_lst)})')
+                        else:
+                            params_dic[name] = val
+                    # params_lst = []
+                    # for key, value in params_dic.items():
+                    #     if len(value) == 1:
+                    #         value = value[0]
+                    #     if type(value) == str:
+                    #         params_lst.append(f'{key} = "{value}"')
+                    #     else:
+                    #         params_lst.append(f'{key} = "{value}"')
+                    api = {
+                        "name": all_intents[i],
+                        "arguments": params_dic
+                    }
+                    # apis.append(f'{all_intents[i]}({", ".join(params_lst)})')
+                    apis.append(api)
+
                 yield ApiTransformData(
                     **{
                         "task_name": task_name,
