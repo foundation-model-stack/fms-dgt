@@ -4,6 +4,7 @@ from typing import Any, Callable, Dict, List, Optional
 import csv
 import json
 import os
+import random
 import re
 
 # Local
@@ -53,10 +54,21 @@ class ApiTransformTask(TransformTask):
         )
 
     def instantiate_instruction(self, data: ApiTransformData):
-        data_items = list(asdict(data).items())
-        data_items.append(
-            ("api_specifications", self._api_specifications.get(data.seed_api_group))
+        api_specs = self._api_specifications.get(data.seed_api_group)
+        positive_functions = [
+            k["name"] for k in data.output
+        ]  # {v for k, v in data.output.items() if k == "name"}
+        keep_apis = (
+            random.sample(
+                list(api_specs.keys()),
+                k=min(len(api_specs), 10),
+            )
+            + positive_functions
         )
+        random.shuffle(keep_apis)
+        api_specs = "\n".join([json.dumps(api_specs[k]) for k in keep_apis])
+        data_items = list(asdict(data).items())
+        data_items.append(("api_specifications", api_specs))
         output = dict(self._instruction_format)
         for k in output.keys():
             for ds_k, ds_v in data_items:

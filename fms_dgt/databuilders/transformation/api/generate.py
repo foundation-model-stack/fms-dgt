@@ -63,7 +63,8 @@ class ApiLlmTransformDataBuilder(TransformationDataBuilder):
             ]  # take the longest string of intents (more slots).
             for api in api_list:
                 if api in api_to_str.keys():
-                    output_list.append(api)
+                    api_dic = self.parse_function_call(api)
+                    output_list.append(api_dic)
                     api_str = api_to_str[api]
                     api_str = api_str + "." if not api_str.endswith(".") else api_str
                     input_list.append(api_str)
@@ -77,6 +78,26 @@ class ApiLlmTransformDataBuilder(TransformationDataBuilder):
                         "seed_api_group": seed_api_group,
                     }
                 )
+
+    def parse_function_call(self, function_call):
+        pattern = re.compile(r"(\w+)\(([^)]*)\)")
+        match = pattern.search(function_call)
+        function_name = match.group(1)
+        arguments_str = match.group(2)
+
+        arguments = [arg.strip() for arg in arguments_str.split(";")]
+        arguments_dict = {}
+        for arg in arguments:
+            key, value = map(str.strip, arg.split("=", 1))
+            if value.startswith('"') and value.endswith('"'):
+                value = value[1:-1]
+            if value == "True":
+                value = True
+            elif value == "False":
+                value = False
+            arguments_dict[key] = value
+
+        return {"name": function_name, "arguments": arguments_dict}
 
     def generate_llm_paraphrase(self, api_str_list):
         single_api_str_list = [api.split("[SEP]") for api in api_str_list]
@@ -189,19 +210,28 @@ class ApiSnipsAtisTransformDataBuilder(TransformationDataBuilder):
                     start += num_words
                     params_dic = {}
                     for val, name in params:
-                        if name not in params_dic:
-                            params_dic[name] = []
-                        params_dic[name].append(val)
-                    params_lst = []
-                    for key, value in params_dic.items():
-                        if len(value) == 1:
-                            value = value[0]
-                        if type(value) == str:
-                            params_lst.append(f'{key} = "{value}"')
-                        else:
-                            params_lst.append(f'{key} = "{value}"')
+                        if name in params_dic:  # list
+                            if type(params_dic[name]) == list:
+                                params_dic[name].append(val)
+                            else:  # str
+                                prev_elem = params_dic[name]
+                                params_dic[name] = [prev_elem]
+                                params_dic[name].append(val)
 
-                    apis.append(f'{all_intents[i]}({", ".join(params_lst)})')
+                        else:
+                            params_dic[name] = val
+                    # params_lst = []
+                    # for key, value in params_dic.items():
+                    #     if len(value) == 1:
+                    #         value = value[0]
+                    #     if type(value) == str:
+                    #         params_lst.append(f'{key} = "{value}"')
+                    #     else:
+                    #         params_lst.append(f'{key} = "{value}"')
+                    api = {"name": all_intents[i], "arguments": params_dic}
+                    # apis.append(f'{all_intents[i]}({", ".join(params_lst)})')
+                    apis.append(api)
+
                 yield ApiTransformData(
                     **{
                         "task_name": task_name,
@@ -317,7 +347,8 @@ class ApiTopv2TransformDataBuilder(TransformationDataBuilder):
                     slot_info["SL:" + slot] = slot_info["SL:" + slot][1:]
                     api_slots[slot] = slt_val
                 api_slots_arr = [f'{slot} = "{val}"' for slot, val in api_slots.items()]
-                api = f'{intent}({", ".join(api_slots_arr)})'
+                # api = f'{intent}({", ".join(api_slots_arr)})'
+                api = {"name": intent, "arguments": api_slots}
                 apis_seq.append((api, input_string.index("IN:" + intent)))
 
             # Use re.search to find the pattern in the input string
