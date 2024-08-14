@@ -5,7 +5,7 @@ import copy
 
 # Local
 from fms_dgt.base.task import SdgData, SdgTask
-
+import random
 
 @dataclass
 class ApiSdgData(SdgData):
@@ -101,3 +101,19 @@ class ApiSdgTask(SdgTask):
             ],
             **kwargs,
         )
+
+    def instantiate_instruction(self, data: ApiSdgData):
+        keep_apis = (
+                random.sample(
+                    data.api_specifications.keys(),
+                    k=min(len(data.api_specifications), 10),
+                )
+                + data.positive_functions
+        )
+        random.shuffle(keep_apis)
+        data_copy = copy.copy(data)
+        # data_copy.api_specifications = {
+        #     k: data.api_specifications[k] for k in keep_apis
+        # }
+        data_copy.api_specifications = '\n'.join([ data.api_specifications[k] for k in keep_apis])
+        return super().instantiate_instruction(data_copy)

@@ -11,7 +11,7 @@ from fms_dgt.base.registry import register_datastore
 from fms_dgt.base.task import SdgData, TransformTask
 from fms_dgt.datastores.default import DefaultDatastore
 from fms_dgt.utils import sdg_logger
-
+import random
 
 @dataclass
 class ApiTransformData(SdgData):
@@ -53,10 +53,19 @@ class ApiTransformTask(TransformTask):
         )
 
     def instantiate_instruction(self, data: ApiTransformData):
-        data_items = list(asdict(data).items())
-        data_items.append(
-            ("api_specifications", self._api_specifications.get(data.seed_api_group))
+        api_specs = self._api_specifications.get(data.seed_api_group)
+        positive_functions = [k["name"] for k in data.output] # {v for k, v in data.output.items() if k == "name"}
+        keep_apis = (
+            random.sample(
+                list(api_specs.keys()),
+                k=min(len(api_specs), 10),
+            )
+            + positive_functions
         )
+        random.shuffle(keep_apis)
+        api_specs = '\n'.join([json.dumps(api_specs[k]) for k in keep_apis])
+        data_items = list(asdict(data).items())
+        data_items.append(("api_specifications", api_specs))
         output = dict(self._instruction_format)
         for k in output.keys():
             for ds_k, ds_v in data_items:
