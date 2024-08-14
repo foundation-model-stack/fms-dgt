@@ -63,7 +63,8 @@ class ApiLlmTransformDataBuilder(TransformationDataBuilder):
             ]  # take the longest string of intents (more slots).
             for api in api_list:
                 if api in api_to_str.keys():
-                    output_list.append(api)
+                    api_dic = self.parse_function_call(api)
+                    output_list.append(api_dic)
                     api_str = api_to_str[api]
                     api_str = api_str + "." if not api_str.endswith(".") else api_str
                     input_list.append(api_str)
@@ -77,6 +78,28 @@ class ApiLlmTransformDataBuilder(TransformationDataBuilder):
                         "seed_api_group": seed_api_group,
                     }
                 )
+
+    import re
+
+    def parse_function_call(self, function_call):
+        pattern = re.compile(r'(\w+)\(([^)]*)\)')
+        match = pattern.search(function_call)
+        function_name = match.group(1)
+        arguments_str = match.group(2)
+
+        arguments = [arg.strip() for arg in arguments_str.split(';')]
+        arguments_dict = {}
+        for arg in arguments:
+            key, value = map(str.strip, arg.split('=', 1))
+            if value.startswith('"') and value.endswith('"'):
+                value = value[1:-1]
+            if value == 'True':
+                value = True
+            elif value == 'False':
+                value = False
+            arguments_dict[key] = value
+
+        return {"name": function_name, "arguments": arguments_dict}
 
     def generate_llm_paraphrase(self, api_str_list):
         single_api_str_list = [api.split("[SEP]") for api in api_str_list]
