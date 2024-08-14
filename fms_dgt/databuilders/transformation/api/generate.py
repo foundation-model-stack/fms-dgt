@@ -340,7 +340,11 @@ class ApiTopv2TransformDataBuilder(TransformationDataBuilder):
                     slot_info["SL:" + slot] = slot_info["SL:" + slot][1:]
                     api_slots[slot] = slt_val
                 api_slots_arr = [f'{slot} = "{val}"' for slot, val in api_slots.items()]
-                api = f'{intent}({", ".join(api_slots_arr)})'
+                # api = f'{intent}({", ".join(api_slots_arr)})'
+                api = {
+                    "name": intent,
+                    "arguments": api_slots
+                }
                 apis_seq.append((api, input_string.index("IN:" + intent)))
 
             # Use re.search to find the pattern in the input string
