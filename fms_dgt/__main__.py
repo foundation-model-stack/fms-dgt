@@ -5,7 +5,6 @@ import argparse
 from fms_dgt.generate_data import generate_data
 
 DEFAULT_CONFIG = "config.yaml"
-DEFAULT_DATA_PATH = "data"
 MAX_CONTEXT_SIZE = 4096
 DEFAULT_NUM_OUTPUTS = 2
 DEFAULT_MAX_STALLED_ATTEMPTS = 5
@@ -37,17 +36,15 @@ def add_base_args(parser: argparse.ArgumentParser):
         help="Additional path to include if there are new data builders.",
     )
     group.add_argument(
-        "--include-config-paths",
+        "--config-path",
         type=str,
-        nargs="*",
         metavar="CONFIG_PATH",
-        help="Additional path to include if there are overrides for data builder config files.",
+        help="Path that specifies both data builder configs and tasks.",
     )
     group.add_argument(
         "--data-paths",
         type=str,
-        nargs="+",
-        default=DEFAULT_DATA_PATH,
+        nargs="*",
         help="One or more paths to local data.",
     )
     group.add_argument(

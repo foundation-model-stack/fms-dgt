@@ -1,7 +1,7 @@
 # Standard
 from collections import ChainMap
 from pathlib import Path
-from typing import Any, Callable, List, TypeVar
+from typing import Any, Callable, Dict, List, TypeVar
 import collections
 import copy
 import fnmatch
@@ -218,57 +218,6 @@ def load_yaml_config(yaml_path=None, yaml_config=None, yaml_dir=None, mode="full
     return yaml_config
 
 
-def group(arr, fn):
-    res = collections.defaultdict(list)
-
-    for ob in arr:
-        res[fn(ob)].append(ob)
-
-    return list(res.values())
-
-
-class Reorderer:
-    def __init__(self, arr: List[Any], fn: Callable) -> None:
-        """Reorder an array according to some function
-
-        Args:
-            arr (List[Any]): The initial array
-            fn (Callable[[Any], Any]): A function to determine the priority of elements
-        """
-        self.size = len(arr)
-        arr = list(enumerate(arr))
-        arr.sort(key=lambda x: fn(x[1]))
-        self.arr = arr
-
-    def get_reordered(self):
-        """Gets the reordered array
-
-        Returns:
-            List[Any]: The reordered array
-        """
-        return [x[1] for x in self.arr]
-
-    def get_original(self, newarr):
-        """Restores the original order of a new array based on the old array's order
-
-        Args:
-            newarr (List[Any]): The array to be restored
-
-        Returns:
-            List[Any]: The array restored to the original order
-        """
-        res = [None] * self.size
-        cov = [False] * self.size
-
-        for (ind, _), v in zip(self.arr, newarr):
-            res[ind] = v
-            cov[ind] = True
-
-        assert all(cov)
-
-        return res
-
-
 T = TypeVar("T")
 
 
@@ -342,7 +291,7 @@ def read_data_file(file_path: str):
         return task
 
 
-def read_data(data, include_data_path=None):
+def read_data(data):
     tasks = []
     if os.path.isfile(data):  # data is file
         task = read_data_file(data)
@@ -357,44 +306,29 @@ def read_data(data, include_data_path=None):
                     if data:
                         tasks.append(data)
 
-    if include_data_path is not None:
-        tasks = override_data_configs(include_data_path, tasks)
-
     return tasks
 
 
-def override_data_configs(include_data_path, tasks):
-    override_with = read_data_override_files(include_data_path)
-    assert all(
-        ["data_path" in ow for ow in override_with]
-    ), f"Must specify data path to override in files!"
-    # general precedence will be for subsets to be overwritten first
-    override_with = sorted(override_with, key=lambda x: len(x["data_path"]))
-    for ow in override_with:
-        assert (
-            "data_path" in ow
-        ), f"Must specify data path to override in file: {ow['file_path']}"
-        tax_path = ow["data_path"]
-        ow = {k: v for k, v in ow.items() if k not in ["file_path", "data_path"]}
-        for i in range(len(tasks)):
-            if tasks[i]["data_path"].startswith(tax_path):
-                tasks[i] = merge_dictionaries(tasks[i], ow)
-    return tasks
+def load_joint_config(yaml_path: str):
 
+    with open(yaml_path, "r") as f:
+        config: dict = yaml.full_load(f)
 
-def read_data_override_files(data):
-    overrides = []
-    assert os.path.exists(data), f"Path to override data files does not exist: {data}"
-    if os.path.isfile(data):
-        config = load_yaml_config(data)
-        config["file_path"] = data
-        overrides.append(config)
-    else:
-        for dir, subdirs, files in os.walk(data):
-            for file_name in files:
-                if file_name == "qna.yaml":
-                    file_path = os.path.join(dir, file_name)
-                    config = load_yaml_config(file_path)
-                    config["file_path"] = file_path
-                    overrides.append(config)
-    return overrides
+    data_paths, config_overrides = [], []
+    for k, v in config.items():
+        if k == "databuilders":
+            if type(v) != dict:
+                raise ValueError(
+                    f"'databuilders' field in config must be provided as a dictionary where keys are the names of databuilders to override"
+                )
+            config_overrides = v
+        elif k == "tasks":
+            if type(v) != list:
+                raise ValueError(f"'tasks' field in config must be provided as a list")
+            data_paths = v
+        else:
+            raise ValueError(
+                f"Config must only specify 'databuilders' and 'tasks' fields"
+            )
+
+    return data_paths, config_overrides

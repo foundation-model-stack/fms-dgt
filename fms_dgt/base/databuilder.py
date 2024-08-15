@@ -152,6 +152,7 @@ class DataBuilder(ABC):
                 sdg_logger.debug(
                     "Loaded %s machine-generated data", len(task.machine_data)
                 )
+            task.load_dataloader_state()
 
         completed_tasks = [task for task in tasks if task.is_complete()]
         tasks = [task for task in tasks if task not in completed_tasks]
@@ -177,6 +178,7 @@ class DataBuilder(ABC):
                 )
                 task.save_intermediate_data(generated_inst)
                 filtered_data.append(generated_inst)
+                task.save_dataloader_state()
 
             for task in tasks:
                 new_data = [
