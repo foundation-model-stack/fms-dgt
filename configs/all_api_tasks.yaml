@@ -1,0 +1,16 @@
+databuilders:
+  api_function_checking:
+    blocks:
+      - name: llm1
+        type: genai
+        temperature: 0.5
+        model_id_or_path: mistralai/mixtral-8x7b-instruct-v01
+      - name: val2
+        filter: true
+        threshold: 0.9
+tasks:
+  - data/generation/code/apis/glaive/detection/multiple_apis/qna.yaml
+  - data/generation/code/apis/glaive/detection/single_api/qna.yaml
+  - data/generation/code/apis/glaive/detection/yes_no/qna.yaml
+  - data/generation/code/apis/glaive/sequencing/parallel_multiple/qna.yaml
+  - data/generation/code/apis/glaive/sequencing/parallel_single/qna.yaml

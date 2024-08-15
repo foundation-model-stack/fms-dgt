@@ -113,8 +113,12 @@ def get_block(block_name, *args: Any, **kwargs: Any):
             ret_block = CachingLM(ret_block, kwargs.get("lm_cache"))
         return ret_block
     except KeyError:
+        known_keys = ", ".join(
+            list(BLOCK_REGISTRY.keys())
+            + list(_REGISTRATION_MODULE_MAP["register_block"])
+        )
         raise ValueError(
-            f"Attempted to load block '{block_name}', but no block for this name found! Supported block names: {', '.join(BLOCK_REGISTRY.keys())}"
+            f"Attempted to load block '{block_name}', but no block for this name found! Supported block names: {known_keys}"
         )
 
 
@@ -148,8 +152,12 @@ def get_resource(resource_name, *args: Any, **kwargs: Any):
     try:
         resource: BaseResource = RESOURCE_REGISTRY[resource_name](*args, **kwargs)
     except KeyError:
+        known_keys = ", ".join(
+            list(RESOURCE_REGISTRY.keys())
+            + list(_REGISTRATION_MODULE_MAP["register_resource"])
+        )
         raise ValueError(
-            f"Attempted to load resource '{resource_name}', but no resource for this name found! Supported resource names: {', '.join(RESOURCE_REGISTRY.keys())}"
+            f"Attempted to load resource '{resource_name}', but no resource for this name found! Supported resource names: {known_keys}"
         )
     if resource.id not in RESOURCE_OBJECTS:
         RESOURCE_OBJECTS[resource.id] = resource
@@ -211,8 +219,12 @@ def get_dataloader(dataloader_name, *args: Any, **kwargs: Any):
     try:
         return DATALOADER_REGISTRY[dataloader_name](*args, **kwargs)
     except KeyError:
+        known_keys = ", ".join(
+            list(DATALOADER_REGISTRY.keys())
+            + list(_REGISTRATION_MODULE_MAP["register_dataloader"])
+        )
         raise ValueError(
-            f"Attempted to load dataloader '{dataloader_name}', but no dataloader for this name found! Supported dataloader names: {', '.join(DATALOADER_REGISTRY.keys())}"
+            f"Attempted to load dataloader '{dataloader_name}', but no dataloader for this name found! Supported dataloader names: {known_keys}"
         )
 
 
@@ -245,8 +257,12 @@ def get_datastore(datastore_name, *args: Any, **kwargs: Any):
     try:
         return DATASTORE_REGISTRY[datastore_name](*args, **kwargs)
     except KeyError:
+        known_keys = ", ".join(
+            list(DATASTORE_REGISTRY.keys())
+            + list(_REGISTRATION_MODULE_MAP["register_datastore"])
+        )
         raise ValueError(
-            f"Attempted to load datastore '{datastore_name}', but no datastore for this name found! Supported datastore names: {', '.join(DATASTORE_REGISTRY.keys())}"
+            f"Attempted to load datastore '{datastore_name}', but no datastore for this name found! Supported datastore names: {known_keys}"
         )
 
 
