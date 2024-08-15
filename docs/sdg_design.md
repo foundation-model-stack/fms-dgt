@@ -41,9 +41,9 @@ Data files are used to instantiate data generation tasks. An example of one can 
 created_by: IBM Research
 data_builder: simple
 seed_examples:
-  - answer: "While days tend to be longer in the summer, just because it is not 
+  - answer: "While days tend to be longer in the summer, just because it is not
     summer doesn't mean days are necessarily shorter."
-    question: "If it is summer, then the days are longer. Are the days longer if 
+    question: "If it is summer, then the days are longer. Are the days longer if
     it is not summer ?"
 task_description: To teach a language model about Logical Reasoning - causal relationships
 ```
@@ -188,15 +188,11 @@ The interfaces are as follows:
 
 - `generate_data()`: Generate synthentic data
   - `data_paths` (str): One or more paths to data directory (or data files), this is where all task data will be loaded from
-  - `num_outputs_to_generate` (int): Number of outputs to generate
-  - `num_prompt_instructions` (int): Number of prompt instructions to generate
-  - `max_gen_requests` (int): How many iterations of generation should be attempted
-  - `output_dir` (str): Path to output generated data
-  - `lm_cache` (str): Use db cache for LM generation at location (or create one at that location if a cache does not exist)
-  - `include_data_path` (str): Path to specify data overrides
+  - `output_dir` (str): Output directory to write to
+  - `task_kwargs` (dict): Dictionary to be passed to each task object as kwargs
+  - `builder_kwargs` (dict): Dictionary to be passed to each data builder object as kwargs
+  - `config_path` (list[str]): Path to config file which specifies data builder settings and task paths
   - `include_builder_path` (str): Path to specify data builder config overrides
-  - `prompt_file_path` (str): Optional path to a prompt file (optional, used for some databuilders)
-  - `console_output` (bool, default=True): Print certain logging messages to console
   - `restart_generation` (bool, default=False): Erase existing synthetic data for specified task and restart generation from scratch
 
 To call this from the command line use the \_\_main\_\_.py file, e.g.,
@@ -227,16 +223,13 @@ from fms_dgt.generate_data import generate_data
 
 
 generate_data(
-    num_outputs_to_generate=2,
-    num_prompt_instructions=2,
-    data_paths=["data"],
-    max_gen_requests=2,
     output_dir="output",
-    lm_cache=None,
-    include_data_path=None,
-    include_builder_path=None,
-    prompt_file_path="prompt.txt",
-    restart_generation=True,
+    task_kwargs=dict(),
+    builder_kwargs=dict(),
+    data_paths=["data"],
+    config_path=None,
+    include_builder_paths=None,
+    restart_generation=False,
 )
 ```
 
