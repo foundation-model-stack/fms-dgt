@@ -224,7 +224,7 @@ class DataBuilder(ABC):
     def execute_postprocessing(self):
         pass
 
-    def finalize_tasks(tasks: List[SdgTask]):
+    def finalize_tasks(self, tasks: List[SdgTask]):
         for task in tasks:
             task.save_instruction_data()
             task.save_log_data()
