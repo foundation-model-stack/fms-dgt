@@ -10,10 +10,10 @@ class BaseDataloader(abc.ABC):
         super().__init__()
 
     def get_state(self) -> Any:
-        raise NotImplementedError
+        pass
 
     def set_state(self, state: Any) -> None:
-        raise NotImplementedError
+        pass
 
     @abc.abstractmethod
     def __next__(self) -> Any:
