@@ -219,11 +219,15 @@ class DataBuilder(ABC):
         self.execute_postprocessing()
         sdg_logger.info("Postprocessing completed")
 
-        for task in completed_tasks:
-            task.save_instruction_data()
+        self.finalize_tasks(completed_tasks)
 
     def execute_postprocessing(self):
         pass
+
+    def finalize_tasks(tasks: List[SdgTask]):
+        for task in tasks:
+            task.save_instruction_data()
+            task.save_log_data()
 
     def call_with_task_list(
         self, request_idx: int, tasks: List[SdgTask]
@@ -300,8 +304,7 @@ class TransformationDataBuilder(DataBuilder):
         generate_duration = time.time() - generate_start
         sdg_logger.info("Generation took %.2fs", generate_duration)
 
-        for task in tasks:
-            task.save_instruction_data()
+        self.finalize_tasks(tasks)
 
     def call_with_task_list(self, tasks: List[SdgTask]) -> Iterable[SdgData]:
         # default behavior is to simply extract the seed / machine generated data and pass to data builder
