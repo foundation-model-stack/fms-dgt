@@ -54,3 +54,7 @@ class BaseDatastore(abc.ABC):
     def save_instruction_data(self, new_data: List[T]) -> None:
         "Saves instruction data to specified location"
         pass
+
+    def save_log_data(self, **kwargs):
+        "Saves data regarding run information"
+        pass

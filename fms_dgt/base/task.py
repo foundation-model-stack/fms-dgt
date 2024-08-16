@@ -235,6 +235,9 @@ class SdgTask:
     def load_task(self):
         return self._datastore.load_task()
 
+    def save_log_data(self):
+        return self._datastore.save_log_data()
+
 
 ###
 # Transformation data classes
