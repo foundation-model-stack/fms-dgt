@@ -90,4 +90,4 @@ class MultiTargetDatastore(BaseDatastore):
 
     def save_log_data(self, **kwargs):
         for datastore in self._datastores:
-            datastore.save_instruction_data(**kwargs)
+            datastore.save_log_data(**kwargs)
