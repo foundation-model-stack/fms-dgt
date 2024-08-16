@@ -87,3 +87,7 @@ class MultiTargetDatastore(BaseDatastore):
         "Saves instruction data to specified location"
         for datastore in self._datastores:
             datastore.save_instruction_data(new_data)
+
+    def save_log_data(self, **kwargs):
+        for datastore in self._datastores:
+            datastore.save_instruction_data(**kwargs)
