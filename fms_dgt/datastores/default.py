@@ -45,7 +45,7 @@ class DefaultDatastore(BaseDatastore):
         )
         self._state_path = os.path.join(self._output_dir, "dataloader_state.txt")
         self._dataset_path = data_path
-        self._dataset_split = data_split or dict()
+        self._dataset_split = data_split
         self._seed_examples = seed_examples or []
 
         if restart_generation and os.path.exists(self.output_path):
