@@ -114,7 +114,7 @@ class DefaultDatastore(BaseDatastore):
             else:
                 raise ValueError(f"Unhandled data path input {self._dataset_path}")
 
-            seed_data = _add_list_to_dataset(data, seed_data)
+            seed_data = _extend_w_seed_data(data, seed_data)
 
         return seed_data
 
@@ -189,7 +189,7 @@ def _read_huggingface(dataset_path: str, split: str):
     return data
 
 
-def _add_list_to_dataset(dataset: DATASET_TYPE, seed_data: List):
+def _extend_w_seed_data(dataset: DATASET_TYPE, seed_data: List):
     if seed_data:
         if type(dataset) == list:
             dataset = dataset + seed_data
