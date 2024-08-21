@@ -4,10 +4,12 @@ import json
 import os
 
 # Third Party
+import datasets
 import pandas as pd
 import yaml
 
 # Local
+from fms_dgt.base.block import DATASET_TYPE
 from fms_dgt.base.datastore import BaseDatastore
 from fms_dgt.base.registry import register_datastore
 
@@ -26,6 +28,7 @@ class DefaultDatastore(BaseDatastore):
         restart_generation: bool = False,
         seed_examples: List[T] = None,
         data_path: str = None,
+        data_split: str = "train",
         **kwargs,
     ) -> None:
         super().__init__()
@@ -41,8 +44,9 @@ class DefaultDatastore(BaseDatastore):
             self._output_dir, "formatted_instructions." + output_format
         )
         self._state_path = os.path.join(self._output_dir, "dataloader_state.txt")
-        self._data_path = data_path
-        self._seed_examples = seed_examples
+        self._dataset_path = data_path
+        self._dataset_split = data_split or dict()
+        self._seed_examples = seed_examples or []
 
         if restart_generation and os.path.exists(self.output_path):
             os.remove(self.output_path)
@@ -71,17 +75,9 @@ class DefaultDatastore(BaseDatastore):
         output_format = os.path.splitext(output_path)[-1]
 
         if output_format == ".jsonl":
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            with open(output_path, "a") as f:
-                for d in new_data:
-                    f.write(json.dumps(d) + "\n")
+            _write_json(new_data, output_path)
         elif output_format == ".parquet":
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            pd.DataFrame(new_data).to_parquet(
-                output_path,
-                engine="fastparquet",
-                append=os.path.isfile(output_path),
-            )
+            _write_parquet(new_data, output_path)
         else:
             raise ValueError(f"Unhandled output format: {output_format}")
 
@@ -94,43 +90,47 @@ class DefaultDatastore(BaseDatastore):
 
         output_format = os.path.splitext(output_path)[-1]
         if output_format == ".jsonl":
-            with open(output_path, "r") as f:
-                try:
-                    machine_data = [json.loads(l.strip()) for l in f.readlines()]
-                except ValueError:
-                    machine_data = []
+            machine_data = _read_json(output_path)
         elif output_format == ".parquet":
-            machine_data = (
-                pd.read_parquet(output_path, engine="fastparquet")
-                .apply(dict, axis=1)
-                .to_list()
-            )
+            machine_data = _read_parquet(output_path)
         else:
             raise ValueError(f"Unhandled output format: {output_format}")
 
         return machine_data
 
     def load_dataset(self) -> List[T]:
-        seed_examples = self._seed_examples
+        def add_seed_data(dataset: DATASET_TYPE, seed_data: List):
+            if seed_data:
+                if type(dataset) == list:
+                    dataset = dataset + seed_data
+                elif type(dataset) == datasets.Dataset:
+                    seed_dataset = datasets.Dataset.from_pandas(
+                        pd.DataFrame(data=seed_data)
+                    )
+                    dataset = datasets.concatenate_datasets([dataset, seed_dataset])
+                else:
+                    raise ValueError(
+                        f"Data used for default 'load_dataset' method must be one of {DATASET_TYPE}!"
+                    )
+            return dataset
 
-        if self._seed_examples is None:
-            seed_examples = []
+        seed_data = self._seed_examples
 
-        if self._data_path is not None:
-            if self._data_path.endswith(".json"):
-                with open(self._data_path, "r") as f:
-                    data = json.load(f)
-            elif self._data_path.endswith(".yaml"):
-                with open(self._data_path, "r") as f:
-                    data = list(yaml.safe_load(f))
+        if self._dataset_path is not None:
+            if type(self._dataset_path) == str and self._dataset_path.endswith(".json"):
+                data = _read_json(self._dataset_path)
+            elif type(self._dataset_path) == str and self._dataset_path.endswith(
+                ".yaml"
+            ):
+                data = _read_yaml(self._dataset_path)
+            elif type(self._dataset_path) == list or os.path.isdir(self._dataset_path):
+                data = _read_huggingface(self._dataset_path, self._dataset_split)
+            else:
+                raise ValueError(f"Unhandled data path input {self._dataset_path}")
 
-            assert (
-                type(data) == list
-            ), "Data used for default 'load_dataset' method must be a list!"
+            seed_data = add_seed_data(data, seed_data)
 
-            seed_examples = seed_examples + data
-
-        return seed_examples
+        return seed_data
 
     def save_task(self) -> None:
         pass
@@ -150,3 +150,54 @@ class DefaultDatastore(BaseDatastore):
     def save_instruction_data(self, new_data: List[T]) -> None:
         "Saves instruction data to specified location"
         self.save_data(new_data=new_data, output_path=self._instruction_output_path)
+
+
+###
+# Utilities
+###
+
+
+def _write_json(new_data: List[T], output_path: str):
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "a") as f:
+        for d in new_data:
+            f.write(json.dumps(d) + "\n")
+
+
+def _write_parquet(new_data: List[T], output_path: str):
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    pd.DataFrame(new_data).to_parquet(
+        output_path,
+        engine="fastparquet",
+        append=os.path.isfile(output_path),
+    )
+
+
+def _read_json(output_path: str):
+    with open(output_path, "r") as f:
+        try:
+            machine_data = [json.loads(l.strip()) for l in f.readlines()]
+        except ValueError:
+            machine_data = []
+    return machine_data
+
+
+def _read_parquet(output_path: str):
+    machine_data = (
+        pd.read_parquet(output_path, engine="fastparquet").apply(dict, axis=1).to_list()
+    )
+    return machine_data
+
+
+def _read_yaml(output_path: str):
+    with open(output_path, "r") as f:
+        machine_data = list(yaml.safe_load(f))
+    return machine_data
+
+
+def _read_huggingface(dataset_path: str, split: str):
+    dataset_args = dataset_path if type(dataset_path) == list else [dataset_path]
+    data = datasets.load_dataset(*dataset_args)
+    if split:
+        data = data[split]
+    return data

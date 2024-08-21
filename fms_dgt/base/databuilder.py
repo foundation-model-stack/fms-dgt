@@ -41,7 +41,6 @@ class DataBuilder(ABC):
     def __init__(
         self,
         config: Union[Mapping, DataBuilderConfig] = None,
-        output_dir: str = None,
         max_gen_requests: int = None,
         max_stalled_requests: int = None,
         task_inits: dict = None,
@@ -68,21 +67,9 @@ class DataBuilder(ABC):
         # initializing generators / validators
         self._init_blocks()
 
-        # TODO: Data loader goes here
-        self._tasks: List[SdgTask] = [
-            self.TASK_TYPE(
-                output_dir=output_dir, builder_cfg=config, **task_init, **task_kwargs
-            )
-            for task_init in task_inits
-        ]
-        #
+        # initialize tasks
+        self._init_tasks(task_inits, task_kwargs)
 
-        date_suffix = (
-            datetime.now().replace(microsecond=0).isoformat().replace(":", "_")
-        )
-        self._output_file_discarded = os.path.join(
-            output_dir, f"discarded_{self.config.name}_{date_suffix}.log"
-        )
         self.kwargs = kwargs
 
     @property
@@ -140,6 +127,12 @@ class DataBuilder(ABC):
             ), f"Type of retrieved object {obj.__class__} for {obj_name} does not match type {obj_type} specified in DataBuilder {self.__class__}"
 
             setattr(self, obj_name, obj)
+
+    def _init_tasks(self, task_inits: dict, task_kwargs: dict):
+        self._tasks: List[SdgTask] = [
+            self.TASK_TYPE(builder_cfg=self._config, **task_init, **task_kwargs)
+            for task_init in task_inits
+        ]
 
     def execute_tasks(self):
         # main entry point to task execution

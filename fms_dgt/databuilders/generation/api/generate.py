@@ -43,6 +43,7 @@ class ApiDataBuilder(DataBuilder):
     def call_with_task_list(
         self, request_idx: int, tasks: List[ApiSdgTask]
     ) -> Iterable[ApiSdgData]:
+
         data_pool = [e for task in tasks for e in task.get_batch_examples()]
         task_api_specifications = dict(
             {task.name: task.all_api_specifications for task in tasks}
