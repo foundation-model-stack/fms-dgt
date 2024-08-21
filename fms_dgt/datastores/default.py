@@ -120,7 +120,7 @@ class DefaultDatastore(BaseDatastore):
             elif os.path.isdir(self._dataset_path):
                 data = _read_huggingface([self._dataset_path], self._dataset_split)
             else:
-                raise ValueError(f"Unhandled data path input {self._dataset_path}")
+                raise ValueError(f"Unhandled data path input [{self._dataset_path}]")
         elif self._hf_args:
             data = _read_huggingface(self._hf_args, self._dataset_split)
         else:
