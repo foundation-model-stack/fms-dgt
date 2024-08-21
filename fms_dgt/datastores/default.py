@@ -28,6 +28,7 @@ class DefaultDatastore(BaseDatastore):
         restart_generation: bool = False,
         seed_examples: List[T] = None,
         data_path: str = None,
+        hf_path: List = None,
         data_split: str = "train",
         **kwargs,
     ) -> None:
@@ -45,8 +46,16 @@ class DefaultDatastore(BaseDatastore):
         )
         self._state_path = os.path.join(self._output_dir, "dataloader_state.txt")
         self._dataset_path = data_path
+        self._hf_args = hf_path
+        if type(self._hf_args) == str:
+            self._hf_args = [self._hf_args]
         self._dataset_split = data_split
         self._seed_examples = seed_examples or []
+
+        if self._dataset_path and self._hf_args:
+            raise ValueError(
+                "Cannot set both 'data_path' and 'hf_args' in datastore config"
+            )
 
         if restart_generation and os.path.exists(self.output_path):
             os.remove(self.output_path)
@@ -101,20 +110,23 @@ class DefaultDatastore(BaseDatastore):
     def load_dataset(self) -> List[T]:
 
         seed_data = self._seed_examples
+        data = []
 
         if self._dataset_path is not None:
-            if type(self._dataset_path) == str and self._dataset_path.endswith(".json"):
+            if self._dataset_path.endswith(".json"):
                 data = _read_json(self._dataset_path)
-            elif type(self._dataset_path) == str and self._dataset_path.endswith(
-                ".yaml"
-            ):
+            elif self._dataset_path.endswith(".yaml"):
                 data = _read_yaml(self._dataset_path)
-            elif type(self._dataset_path) == list or os.path.isdir(self._dataset_path):
-                data = _read_huggingface(self._dataset_path, self._dataset_split)
+            elif os.path.isdir(self._dataset_path):
+                data = _read_huggingface([self._dataset_path], self._dataset_split)
             else:
                 raise ValueError(f"Unhandled data path input {self._dataset_path}")
+        elif self._hf_args:
+            data = _read_huggingface(self._hf_args, self._dataset_split)
+        else:
+            raise ValueError(f"Expected one of 'data_path' or 'hf_args' to be set")
 
-            seed_data = _extend_w_seed_data(data, seed_data)
+        seed_data = _add_seed_data(data, seed_data)
 
         return seed_data
 
@@ -181,15 +193,14 @@ def _read_yaml(output_path: str):
     return machine_data
 
 
-def _read_huggingface(dataset_path: str, split: str):
-    dataset_args = dataset_path if type(dataset_path) == list else [dataset_path]
+def _read_huggingface(dataset_args: List[str], split: str):
     data = datasets.load_dataset(*dataset_args)
     if split:
         data = data[split]
     return data
 
 
-def _extend_w_seed_data(dataset: DATASET_TYPE, seed_data: List):
+def _add_seed_data(dataset: DATASET_TYPE, seed_data: List):
     if seed_data:
         if type(dataset) == list:
             dataset = dataset + seed_data
