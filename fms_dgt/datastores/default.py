@@ -99,20 +99,6 @@ class DefaultDatastore(BaseDatastore):
         return machine_data
 
     def load_dataset(self) -> List[T]:
-        def add_seed_data(dataset: DATASET_TYPE, seed_data: List):
-            if seed_data:
-                if type(dataset) == list:
-                    dataset = dataset + seed_data
-                elif type(dataset) == datasets.Dataset:
-                    seed_dataset = datasets.Dataset.from_pandas(
-                        pd.DataFrame(data=seed_data)
-                    )
-                    dataset = datasets.concatenate_datasets([dataset, seed_dataset])
-                else:
-                    raise ValueError(
-                        f"Data used for default 'load_dataset' method must be one of {DATASET_TYPE}!"
-                    )
-            return dataset
 
         seed_data = self._seed_examples
 
@@ -128,7 +114,7 @@ class DefaultDatastore(BaseDatastore):
             else:
                 raise ValueError(f"Unhandled data path input {self._dataset_path}")
 
-            seed_data = add_seed_data(data, seed_data)
+            seed_data = _add_list_to_dataset(data, seed_data)
 
         return seed_data
 
@@ -201,3 +187,17 @@ def _read_huggingface(dataset_path: str, split: str):
     if split:
         data = data[split]
     return data
+
+
+def _add_list_to_dataset(dataset: DATASET_TYPE, seed_data: List):
+    if seed_data:
+        if type(dataset) == list:
+            dataset = dataset + seed_data
+        elif type(dataset) == datasets.Dataset:
+            seed_dataset = datasets.Dataset.from_pandas(pd.DataFrame(data=seed_data))
+            dataset = datasets.concatenate_datasets([dataset, seed_dataset])
+        else:
+            raise ValueError(
+                f"Data used for default 'load_dataset' method must be one of {DATASET_TYPE}!"
+            )
+    return dataset
