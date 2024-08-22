@@ -130,7 +130,7 @@ class DataBuilder(ABC):
 
     def _init_tasks(self, task_inits: dict, task_kwargs: dict):
         self._tasks: List[SdgTask] = [
-            self.TASK_TYPE(builder_cfg=self._config, **task_init, **task_kwargs)
+            self.TASK_TYPE(builder_cfg=self._config, **{**task_init, **task_kwargs})
             for task_init in task_inits
         ]
 
