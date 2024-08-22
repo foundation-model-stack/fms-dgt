@@ -112,7 +112,7 @@ class DefaultDatastore(BaseDatastore):
         seed_data = self._seed_examples
         data = []
 
-        if self._dataset_path is not None:
+        if self._dataset_path:
             if self._dataset_path.endswith(".json"):
                 data = _read_json(self._dataset_path)
             elif self._dataset_path.endswith(".yaml"):
@@ -123,8 +123,6 @@ class DefaultDatastore(BaseDatastore):
                 raise ValueError(f"Unhandled data path input [{self._dataset_path}]")
         elif self._hf_args:
             data = _read_huggingface(self._hf_args, self._dataset_split)
-        else:
-            raise ValueError(f"Expected one of 'data_path' or 'hf_args' to be set")
 
         seed_data = _add_seed_data(data, seed_data)
 
