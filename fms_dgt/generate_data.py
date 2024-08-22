@@ -12,7 +12,6 @@ sdg_logger = utils.sdg_logger
 
 
 def generate_data(
-    output_dir: str,
     task_kwargs: Dict,
     builder_kwargs: Dict,
     data_paths: Optional[List[str]] = None,
@@ -21,26 +20,19 @@ def generate_data(
     restart_generation: bool = False,
 ):
 
-    if data_paths and config_path:
-        raise ValueError(
-            f"Specify only one of ['data-paths', 'config-path'] in the arguments, not both"
-        )
+    data_paths = data_paths or []
+    config_overrides = None
 
     if config_path:
-        data_paths, config_overrides = utils.load_joint_config(config_path)
-    elif data_paths:
-        data_paths, config_overrides = data_paths, None
-    else:
+        addlt_data_paths, config_overrides = utils.load_joint_config(config_path)
+        data_paths.extend(addlt_data_paths)
+
+    if not data_paths and not config_path:
         raise ValueError(
             f"One of ['data-paths', 'config-path'] must be provided in the arguments"
         )
 
-    # TODO: better naming convention...
-    names = []
-    for data_path in data_paths:
-        names.append(utils.get_data_path_name(data_path))
-    name = "_AND_".join(names)
-    output_dir = os.path.join(output_dir, name)
+    data_paths = list(set(data_paths))
 
     # check data_path first then seed_tasks_path
     # throw an error if both not found
@@ -86,7 +78,6 @@ def generate_data(
 
         all_builder_kwargs = {
             "config": builder_cfg,
-            "output_dir": output_dir,
             "restart_generation": restart_generation,
             "task_inits": [
                 task_init

@@ -47,12 +47,6 @@ def add_base_args(parser: argparse.ArgumentParser):
         nargs="*",
         help="One or more paths to local data.",
     )
-    group.add_argument(
-        "--output-dir",
-        type=str,
-        default=DEFAULT_GENERATED_FILES_OUTPUT_DIR,
-        help="Path to output generated files.",
-    )
     return group
 
 
@@ -108,6 +102,12 @@ def add_task_args(parser: argparse.ArgumentParser):
         "--restart-generation",
         action="store_true",
         help="Entirely restart instruction generation.",
+    )
+    group.add_argument(
+        "--output-dir",
+        type=str,
+        default=DEFAULT_GENERATED_FILES_OUTPUT_DIR,
+        help="Path to output generated files.",
     )
     return group
 

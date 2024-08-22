@@ -1,8 +1,7 @@
 # Standard
 from collections import ChainMap
 from pathlib import Path
-from typing import Any, Callable, Dict, List, TypeVar
-import collections
+from typing import Any, List, TypeVar
 import copy
 import fnmatch
 import importlib.util
