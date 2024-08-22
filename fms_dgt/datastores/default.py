@@ -117,6 +117,8 @@ class DefaultDatastore(BaseDatastore):
                 data = _read_json(self._dataset_path)
             elif self._dataset_path.endswith(".yaml"):
                 data = _read_yaml(self._dataset_path)
+            elif self._dataset_path.endswith(".parquet"):
+                data = _read_parquet(self._dataset_path)
             elif os.path.isdir(self._dataset_path):
                 data = _read_huggingface([self._dataset_path], self._dataset_split)
             else:
