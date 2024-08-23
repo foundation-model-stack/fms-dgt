@@ -54,6 +54,27 @@ class SdgTask:
         seed_examples: Optional[List[Any]] = None,
         num_outputs_to_generate: Optional[int] = None,
     ):
+        """Initializes the Task object
+
+        Args:
+            name (str): The name of the Task object.
+            task_description (str): A description of the SDG task is designed to solve.
+            created_by (str): The name of the individual / group who created the code assistant.
+            data_builder (str): The name of the data builder that should be used to process this task.
+
+            instruction_format (Optional[Dict[str, str]]): A dictionary template that can be used to translate intermediate data objects to instruction-tuning pairs
+            output_dir (Optional[str]): The directory where the generated outputs will be saved.
+            output_format (Optional[str]): The format of the file where generated outputs are saved.
+            datastore (Optional[Dict]): A dictionary containing the configuration for the datastore.
+            restart_generation (Optional[bool]): A boolean indicating whether to restart generation from scratch.
+            builder_cfg (Optional[Mapping]): A dictionary containing the configuration for the data builder.
+            file_path (Optional[str]): The path to the task file.
+            dataloader (Optional[Dict]): A dictionary containing the configuration for the dataloader.
+            seed_batch_size (Optional[int]): The batch size used for seed examples.
+            machine_batch_size (Optional[int]): The batch size used for machine examples.
+            seed_examples (Optional[List[Any]]): A list of seed examples.
+            num_outputs_to_generate (Optional[int]): The number of outputs to generate.
+        """
 
         self._name = name
         self._task_description = task_description
@@ -212,7 +233,7 @@ class SdgTask:
                 self.instantiate_output_example(**d) for d in loaded_data
             ]
 
-    def save_instruction_data(self) -> None:
+    def save_final_data(self) -> None:
         if self._instruction_format is not None:
             loaded_data = self._datastore.load_data()
             if loaded_data:

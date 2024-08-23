@@ -1,6 +1,3 @@
-# Standard
-from typing import Dict
-
 # Local
 from fms_dgt.base.registry import register_resource
 from fms_dgt.base.resource import BaseResource
