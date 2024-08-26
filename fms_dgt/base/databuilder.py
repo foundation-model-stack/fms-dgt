@@ -49,7 +49,7 @@ class DataBuilder(ABC):
         task_kwargs: dict = None,
         **kwargs: Any,
     ) -> None:
-        """_summary_
+        """Initializes data builder object.
 
         Args:
             config (Union[Mapping, DataBuilderConfig], optional): Config specifying all databuilder settings.
