@@ -36,7 +36,7 @@ class DataBuilderConfig(dict):
 
 
 class DataBuilder(ABC):
-    """A data builder represents ae means of constructing data for a set of tasks"""
+    """A data builder represents a means of constructing data for a set of tasks"""
 
     VERSION: Optional[Union[int, str]] = None
     TASK_TYPE: SdgTask = SdgTask
