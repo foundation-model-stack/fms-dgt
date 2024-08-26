@@ -23,7 +23,12 @@ class SdgData(abc.ABC):
 
     task_name: str
 
-    def to_output_dict(self):
+    def to_output_dict(self) -> Dict:
+        """Returns output dictionary representation of dataclass. Designed to be overridden with custom logic.
+
+        Returns:
+            Dict: Dictionary representation of dataclass
+        """
         return asdict(self)
 
 
@@ -61,7 +66,6 @@ class SdgTask:
             task_description (str): A description of the SDG task is designed to solve.
             created_by (str): The name of the individual / group who created the code assistant.
             data_builder (str): The name of the data builder that should be used to process this task.
-
             instruction_format (Optional[Dict[str, str]]): A dictionary template that can be used to translate intermediate data objects to instruction-tuning pairs
             output_dir (Optional[str]): The directory where the generated outputs will be saved.
             output_format (Optional[str]): The format of the file where generated outputs are saved.
@@ -116,7 +120,9 @@ class SdgTask:
         self.init_datastore()
         self.init_dataloader()
 
-    def init_datastore(self):
+    def init_datastore(self) -> None:
+        """Initialize datastore object for storing all SDG data."""
+
         ds_kwargs = {
             "task_name": self._name,
             "data_builder": self._data_builder,
@@ -141,6 +147,8 @@ class SdgTask:
             )
 
     def init_dataloader(self):
+        """Initialize the dataloader that passes all examples to SDG process."""
+
         if self._dataloader_cfg is None:
             self._dataloader = DefaultDataloader(datastore=self._datastore)
         else:
@@ -155,30 +163,56 @@ class SdgTask:
             )
 
     @property
-    def name(self):
+    def name(self) -> str:
+        """Returns name of task.
+
+        Returns:
+            str: Name of task
+        """
         return self._name
 
     @property
-    def task_description(self):
+    def task_description(self) -> str:
+        """Returns the task description.
+
+        Returns:
+            str: Task description
+        """
         return self._task_description
 
-    @property
-    def data_builder(self):
-        return self._data_builder
+    def instantiate_input_example(self, **kwargs: Any) -> INPUT_DATA_TYPE:
+        """Instantiate an input example for this task. Designed to be overridden with custom initialization.
 
-    @property
-    def num_outputs_to_generate(self):
-        return self._num_outputs_to_generate
+        Args:
+            kwargs (Dict, optional): Kwargs used to instantiate an input example object.
 
-    def instantiate_input_example(self, **kwargs: Any):
+        Returns:
+            INPUT_DATA_TYPE: An instance of INPUT_DATA_TYPE.
+        """
         return self.INPUT_DATA_TYPE(
             task_name=kwargs.pop("task_name", self._name), **kwargs
         )
 
-    def instantiate_output_example(self, **kwargs: Any):
+    def instantiate_output_example(self, **kwargs: Any) -> OUTPUT_DATA_TYPE:
+        """Instantiate an output example for this task. Designed to be overridden with custom initialization.
+
+        Args:
+            kwargs (Dict, optional): Kwargs used to instantiate an output example object.
+
+        Returns:
+            OUTPUT_DATA_TYPE: An instance of OUTPUT_DATA_TYPE.
+        """
         return self.OUTPUT_DATA_TYPE(**kwargs)
 
-    def instantiate_instruction(self, data: OUTPUT_DATA_TYPE):
+    def instantiate_instruction(self, data: OUTPUT_DATA_TYPE) -> Dict:
+        """Instantiates an instruction-tuning pair from output data instance.
+
+        Args:
+            data (OUTPUT_DATA_TYPE): Data to be converted to instruction-tuning pair.
+
+        Returns:
+            Dict: Dictionary representing an instruction-tuning pair.
+        """
         data = asdict(data)
         output = dict(self._instruction_format)
         for k in output.keys():
@@ -189,12 +223,22 @@ class SdgTask:
         return output
 
     def get_example(self) -> SdgData:
+        """Returns single example from dataloader.
+
+        Returns:
+            SdgData: Example to be used for SDG.
+        """
         try:
             return self.instantiate_input_example(**next(self._dataloader))
         except StopIteration:
             return None
 
     def get_batch_examples(self) -> List[SdgData]:
+        """Returns batch of examples from dataloader. Mixes examples from seed data and machine-generated data.
+
+        Returns:
+            List[SdgData]: List of examples to be used by SDG process.
+        """
         outputs = []
 
         # get outputs from seed data loader sequentially
@@ -213,13 +257,23 @@ class SdgTask:
 
         return outputs
 
-    def is_complete(self):
-        return len(self.machine_data) > self.num_outputs_to_generate
+    def is_complete(self) -> bool:
+        """Indicates whether SDG task has completed.
+
+        Returns:
+            bool: Whether task is complete or not.
+        """
+        return len(self.machine_data) > self._num_outputs_to_generate
 
     def save_intermediate_data(
         self,
         new_data: Union[SdgData, List[SdgData]],
     ) -> None:
+        """Saves intermediate data produced during SDG (useful for checkpointing).
+
+        Args:
+            new_data (Union[SdgData, List[SdgData]]): List of SdgData to save.
+        """
         if type(new_data) != list:
             new_data: List[SdgData] = [new_data]
 
@@ -227,6 +281,11 @@ class SdgTask:
         self._datastore.save_data(to_save)
 
     def load_intermediate_data(self) -> List[SdgData]:
+        """Loads intermediate data produced during SDG (will be used to resume SDG).
+
+        Returns:
+            List[SdgData]: List of SdgData that has been loaded
+        """
         loaded_data = self._datastore.load_data()
         if loaded_data:
             self.machine_data = [
@@ -234,6 +293,7 @@ class SdgTask:
             ]
 
     def save_final_data(self) -> None:
+        """Saves final instruction-tuning data that can be used directly for training."""
         if self._instruction_format is not None:
             loaded_data = self._datastore.load_data()
             if loaded_data:
@@ -244,19 +304,24 @@ class SdgTask:
                     self._datastore.save_instruction_data([instruction])
 
     def save_dataloader_state(self) -> None:
+        """Saves state of data loader to enable resumption of SDG process later on."""
         self._datastore.save_state(self._dataloader.get_state())
 
     def load_dataloader_state(self) -> None:
+        """Loads state of data loader to enable resumption of SDG process."""
         if not self._restart_generation:
             self._dataloader.set_state(self._datastore.load_state())
 
-    def save_task(self):
+    def save_task(self) -> None:
+        """Saves task specification to datastore."""
         self._datastore.save_task()
 
-    def load_task(self):
+    def load_task(self) -> Any:
+        """Loads task specification from datastore."""
         return self._datastore.load_task()
 
-    def save_log_data(self):
+    def save_log_data(self) -> None:
+        """Saves any Logging information to the datastore."""
         return self._datastore.save_log_data()
 
 
@@ -266,6 +331,8 @@ class SdgTask:
 
 
 class TransformTask(SdgTask):
+    """TransformTask is a subclass of SdgTask that has default values that are more conducive to transformation tasks."""
+
     def __init__(
         self, *args, seed_batch_size: int = 10, machine_batch_size: int = 0, **kwargs
     ):
@@ -277,6 +344,7 @@ class TransformTask(SdgTask):
         )
 
     def init_dataloader(self):
+        """Initializes dataloader object for transform tasks."""
         if self._dataloader_cfg is None:
             self._dataloader = DefaultDataloader(
                 datastore=self._datastore, loop_over_data=False
@@ -289,4 +357,12 @@ T = TypeVar("T")
 
 
 def group_data_by_task(data_list: List[T]) -> List[List[T]]:
+    """Utility function that groups input data by task name.
+
+    Args:
+        data_list (List[T]): List of SdgData to group into tasks
+
+    Returns:
+        List[List[T]]: SdgData that has been grouped into tasks
+    """
     return group_data_by_attribute(data_list, "task_name")
