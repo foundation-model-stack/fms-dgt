@@ -15,11 +15,20 @@ def generate_data(
     task_kwargs: Dict,
     builder_kwargs: Dict,
     data_paths: Optional[List[str]] = None,
-    config_path: Optional[List[str]] = None,
+    config_path: Optional[str] = None,
     include_builder_paths: Optional[List[str]] = None,
     restart_generation: bool = False,
 ):
+    """Generate data for a set of tasks using their respective data builders
 
+    Args:
+        task_kwargs (Dict): A dictionary of keyword arguments to pass to each task.
+        builder_kwargs (Dict): A dictionary of keyword arguments to pass to each data builder.
+        data_paths (Optional[List[str]], optional): A list of paths to data files.
+        config_path (Optional[str], optional): A path to a configuration file.
+        include_builder_paths (Optional[List[str]], optional): A list of paths to search for data builders.
+        restart_generation (bool, optional): Whether to restart data generation from scratch.
+    """
     data_paths = data_paths or []
     config_overrides = None
 
@@ -79,12 +88,11 @@ def generate_data(
         all_builder_kwargs = {
             "config": builder_cfg,
             "restart_generation": restart_generation,
-            "task_inits": [
-                task_init
+            "task_kwargs": [
+                {**task_init, **task_kwargs}
                 for task_init in task_inits
                 if task_init["data_builder"] == builder_name
             ],
-            "task_kwargs": task_kwargs,
             **builder_kwargs,
         }
 
@@ -93,7 +101,7 @@ def generate_data(
             data_builder: DataBuilder = get_data_builder(
                 builder_name, **all_builder_kwargs
             )
-        except ValueError as e:
+        except KeyError as e:
             if f"Attempted to load data builder '{builder_name}'" in str(e):
                 utils.import_builder(
                     original_builder_info["builder_dir"],
