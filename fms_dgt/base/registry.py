@@ -107,19 +107,21 @@ def register_block(*names):
 def get_block(block_name, *args: Any, **kwargs: Any):
     if block_name not in BLOCK_REGISTRY:
         _dynamic_registration_import("register_block", block_name)
-    try:
-        ret_block = BLOCK_REGISTRY[block_name](*args, **kwargs)
-        if isinstance(ret_block, LMGenerator) and "lm_cache" in kwargs:
-            ret_block = CachingLM(ret_block, kwargs.get("lm_cache"))
-        return ret_block
-    except KeyError:
-        known_keys = ", ".join(
-            list(BLOCK_REGISTRY.keys())
-            + list(_REGISTRATION_MODULE_MAP["register_block"])
-        )
-        raise ValueError(
+
+    known_keys = list(BLOCK_REGISTRY.keys()) + list(
+        _REGISTRATION_MODULE_MAP.get("register_block", [])
+    )
+    if block_name not in known_keys:
+        known_keys = ", ".join(known_keys)
+        raise KeyError(
             f"Attempted to load block '{block_name}', but no block for this name found! Supported block names: {known_keys}"
         )
+
+    ret_block = BLOCK_REGISTRY[block_name](*args, **kwargs)
+    if isinstance(ret_block, LMGenerator) and "lm_cache" in kwargs:
+        ret_block = CachingLM(ret_block, kwargs.get("lm_cache"))
+
+    return ret_block
 
 
 RESOURCE_REGISTRY = {}
@@ -149,16 +151,19 @@ def register_resource(*names):
 def get_resource(resource_name, *args: Any, **kwargs: Any):
     if resource_name not in RESOURCE_REGISTRY:
         _dynamic_registration_import("register_resource", resource_name)
-    try:
-        resource: BaseResource = RESOURCE_REGISTRY[resource_name](*args, **kwargs)
-    except KeyError:
-        known_keys = ", ".join(
-            list(RESOURCE_REGISTRY.keys())
-            + list(_REGISTRATION_MODULE_MAP["register_resource"])
-        )
-        raise ValueError(
+
+    known_keys = list(RESOURCE_REGISTRY.keys()) + list(
+        _REGISTRATION_MODULE_MAP.get("register_resource", [])
+    )
+
+    if resource_name not in known_keys:
+        known_keys = ", ".join(known_keys)
+        raise KeyError(
             f"Attempted to load resource '{resource_name}', but no resource for this name found! Supported resource names: {known_keys}"
         )
+
+    resource: BaseResource = RESOURCE_REGISTRY[resource_name](*args, **kwargs)
+
     if resource.id not in RESOURCE_OBJECTS:
         RESOURCE_OBJECTS[resource.id] = resource
     return RESOURCE_OBJECTS[resource.id]
@@ -182,12 +187,11 @@ def register_data_builder(name):
 
 
 def get_data_builder(name, *args: Any, **kwargs: Any):
-    try:
-        return DATABUILDER_REGISTRY[name](*args, **kwargs)
-    except KeyError:
-        raise ValueError(
+    if name not in DATABUILDER_REGISTRY:
+        raise KeyError(
             f"Attempted to load data builder '{name}', but no data builder for this name found! Supported data builder names: {', '.join(DATABUILDER_REGISTRY.keys())}"
         )
+    return DATABUILDER_REGISTRY[name](*args, **kwargs)
 
 
 DATALOADER_REGISTRY = {}
@@ -216,16 +220,17 @@ def register_dataloader(*names):
 def get_dataloader(dataloader_name, *args: Any, **kwargs: Any):
     if dataloader_name not in DATALOADER_REGISTRY:
         _dynamic_registration_import("register_dataloader", dataloader_name)
-    try:
-        return DATALOADER_REGISTRY[dataloader_name](*args, **kwargs)
-    except KeyError:
-        known_keys = ", ".join(
-            list(DATALOADER_REGISTRY.keys())
-            + list(_REGISTRATION_MODULE_MAP["register_dataloader"])
-        )
-        raise ValueError(
+
+    known_keys = list(DATALOADER_REGISTRY.keys()) + list(
+        _REGISTRATION_MODULE_MAP.get("register_dataloader", [])
+    )
+    if dataloader_name not in known_keys:
+        known_keys = ", ".join(known_keys)
+        raise KeyError(
             f"Attempted to load dataloader '{dataloader_name}', but no dataloader for this name found! Supported dataloader names: {known_keys}"
         )
+
+    return DATALOADER_REGISTRY[dataloader_name](*args, **kwargs)
 
 
 DATASTORE_REGISTRY = {}
@@ -254,16 +259,17 @@ def register_datastore(*names):
 def get_datastore(datastore_name, *args: Any, **kwargs: Any):
     if datastore_name not in DATASTORE_REGISTRY:
         _dynamic_registration_import("register_datastore", datastore_name)
-    try:
-        return DATASTORE_REGISTRY[datastore_name](*args, **kwargs)
-    except KeyError:
-        known_keys = ", ".join(
-            list(DATASTORE_REGISTRY.keys())
-            + list(_REGISTRATION_MODULE_MAP["register_datastore"])
-        )
-        raise ValueError(
+
+    known_keys = list(DATASTORE_REGISTRY.keys()) + list(
+        _REGISTRATION_MODULE_MAP.get("register_datastore", [])
+    )
+    if datastore_name not in known_keys:
+        known_keys = ", ".join(known_keys)
+        raise KeyError(
             f"Attempted to load datastore '{datastore_name}', but no datastore for this name found! Supported datastore names: {known_keys}"
         )
+
+    return DATASTORE_REGISTRY[datastore_name](*args, **kwargs)
 
 
 TASK_REGISTRY = {}
@@ -284,9 +290,8 @@ def register_task(name):
 
 
 def get_task(name, *args: Any, **kwargs: Any):
-    try:
-        return TASK_REGISTRY[name](*args, **kwargs)
-    except KeyError:
-        raise ValueError(
+    if name not in TASK_REGISTRY:
+        raise KeyError(
             f"Attempted to load task '{name}', but no task for this name found! Supported task names: {', '.join(TASK_REGISTRY.keys())}"
         )
+    return TASK_REGISTRY[name](*args, **kwargs)
