@@ -1,6 +1,4 @@
 # Standard
-from concurrent.futures import ThreadPoolExecutor
-import asyncio
 import os
 
 # Third Party
