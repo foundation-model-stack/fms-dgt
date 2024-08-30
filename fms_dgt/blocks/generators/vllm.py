@@ -15,11 +15,14 @@ from importlib.metadata import version
 from importlib.util import find_spec
 from typing import Any, List, Literal, Optional, Tuple
 import copy
+import gc
 
 # Third Party
 from more_itertools import distribute
 from packaging.version import parse as parse_version
 from tqdm import tqdm
+from vllm.model_executor.parallel_utils.parallel_state import destroy_model_parallel
+import torch
 
 # Local
 from fms_dgt.base.instance import Instance
@@ -106,7 +109,7 @@ class vLLMGenerator(LMGenerator):
         self._prefix_token_id = prefix_token_id
 
         if self.data_parallel_size <= 1:
-            self.model = LLM(**self.model_args)
+            self.init_model()
         else:
             assert parse_version(version("vllm")) < parse_version(
                 "0.3.3"
@@ -468,3 +471,16 @@ class vLLMGenerator(LMGenerator):
                 f"Expected `kwargs` to be of type `dict` but got {gen_kwargs}"
             )
         return kwargs
+
+    def init_model(self, model_id_or_path: str = None):
+        model_args = dict(self.model_args)
+        if model_id_or_path is not None:
+            model_args["model"] = model_id_or_path
+        self.model = LLM(**model_args)
+
+    def release_model(self):
+        destroy_model_parallel()
+        del self.model
+        gc.collect()
+        torch.cuda.empty_cache()
+        torch.distributed.destroy_process_group()

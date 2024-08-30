@@ -57,6 +57,7 @@ sentencepiece = ["sentencepiece>=0.1.98"]
 sql = ["pydantic>=2.4.2", "pydantic-settings>=2.0.3", "pyyaml>=6.0.1", "sqlglot==23.11.2"]
 testing = ["pytest", "pytest-cov", "pytest-xdist"]
 vllm = ["vllm>=0.3.2", "xformers==0.0.26.post1", "flash-attn>=2.5.8"]
+trainer = ["deepspeed"]
 dpk =  [
         "dpk_docid_transform_ray @ git+https://github.com/IBM/data-prep-kit.git#subdirectory=transforms/universal/doc_id/ray",
         "dpk_ededup_transform_python @ git+https://github.com/IBM/data-prep-kit.git#subdirectory=transforms/universal/ededup/python",

@@ -180,6 +180,10 @@ class SdgTask:
         """
         return self._task_description
 
+    @property
+    def datastore(self):
+        return self._datastore
+
     def instantiate_input_example(self, **kwargs: Any) -> INPUT_DATA_TYPE:
         """Instantiate an input example for this task. Designed to be overridden with custom initialization.
 
