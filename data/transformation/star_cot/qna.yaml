@@ -1,0 +1,5 @@
+created_by: IBM
+data_builder: star_transform
+datastore:
+  hf_args: ['gsm8k', 'main']
+task_description: To teach a language model to automatically generate chain-of-thought examples

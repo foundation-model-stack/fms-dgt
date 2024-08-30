@@ -226,6 +226,12 @@ class LMGenerator(BaseBlock):
 
         return inp_args, inp_kwargs
 
+    def init_model(self, *args: Any, **kwargs: Any):
+        pass
+
+    def release_model(self):
+        pass
+
 
 ### SQLite-based caching of LM responses
 def hash_args(attr, request):

@@ -13,7 +13,7 @@ from fms_dgt.base.block import BaseBlock, get_row_name
 from fms_dgt.base.registry import get_block
 from fms_dgt.base.task import NAME_KEY, TYPE_KEY, SdgData, SdgTask, TransformTask
 from fms_dgt.blocks.generators.llm import CachingLM
-from fms_dgt.utils import all_annotations, sdg_logger
+from fms_dgt.utils import all_annotations, init_dataclass_from_dict, sdg_logger
 
 
 @dataclass
@@ -57,13 +57,7 @@ class DataBuilder(ABC):
             max_stalled_requests (int, optional): Maximum number of data generation loop iterations that do not return new data before terminating.
             task_kwargs (List[dict], optional): List of task_kwargs for each task to be executed by this data builder.
         """
-
-        if isinstance(config, DataBuilderConfig):
-            self._config = config
-        elif config is not None:
-            self._config = DataBuilderConfig(**config)
-        else:
-            self._config = DataBuilderConfig()
+        self._config = init_dataclass_from_dict(config, DataBuilderConfig)
 
         self._name = self.config.name
 
