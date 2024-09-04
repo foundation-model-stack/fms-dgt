@@ -6,7 +6,7 @@ blocks:
     temperature: 0.5
     max_new_tokens: 1024
     min_new_tokens: 1
-    model_id_or_path: mistralai/mixtral-8x7b-instruct-v01
+    model_id_or_path: /dccstor/cfm-tst/fms-sdg/.cache/huggingface/hub/models--mistralai--Mistral-7B-Instruct-v0.1/snapshots/2dcff66eac0c01dc50e4c41eea959968232187fe
     stop_sequences:
       - "Input:"
     arg_fields:

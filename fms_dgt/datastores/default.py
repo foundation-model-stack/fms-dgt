@@ -28,7 +28,7 @@ class DefaultDatastore(BaseDatastore):
         restart_generation: bool = False,
         seed_examples: List[T] = None,
         data_path: str = None,
-        hf_path: List = None,
+        hf_args_or_path: List = None,
         data_split: str = "train",
         **kwargs,
     ) -> None:
@@ -46,7 +46,7 @@ class DefaultDatastore(BaseDatastore):
         )
         self._state_path = os.path.join(self._output_dir, "dataloader_state.txt")
         self._dataset_path = data_path
-        self._hf_args = hf_path
+        self._hf_args = hf_args_or_path
         if type(self._hf_args) == str:
             self._hf_args = [self._hf_args]
         self._dataset_split = data_split

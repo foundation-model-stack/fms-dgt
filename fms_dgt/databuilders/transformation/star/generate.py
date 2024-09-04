@@ -1,6 +1,7 @@
 # Standard
-from typing import Dict, List
-import time
+from typing import Dict, Iterable, List
+import os
+import shutil
 
 # Third Party
 from tqdm import tqdm, trange
@@ -9,11 +10,22 @@ from tqdm import tqdm, trange
 from fms_dgt.base.block import BaseValidatorBlock
 from fms_dgt.base.databuilder import TransformationDataBuilder
 from fms_dgt.base.registry import register_data_builder
-from fms_dgt.base.task import SdgData, SdgTask
-from fms_dgt.base.trainer import Trainer
 from fms_dgt.blocks.generators.llm import LMGenerator
-from fms_dgt.databuilders.transformation.star.task import BootstrapTransformTask
-from fms_dgt.utils import sdg_logger
+from fms_dgt.databuilders.transformation.star.task import (
+    BootstrapInputData,
+    BootstrapOutputData,
+    BootstrapTransformTask,
+)
+from fms_dgt.trainers.deepspeed import DeepspeedTrainer
+
+_PROMPT = """You are an intelligent tutoring assistant that helps students with math homework. Given a question and its answer, explain how to solve the question step-by-step to achieve the answer. When you are explaining the answer to the student, please preface your explanation with "Let's think step-by-step."
+
+Here are some examples:
+
+Question: 
+Answer: 
+Explanation: Let's think step-by-step. 
+""".strip()
 
 
 @register_data_builder("star_transform")
@@ -35,17 +47,6 @@ class StarTransformDataBuilder(TransformationDataBuilder):
         self._task_kwargs = task_kwargs
         self._max_iters = max_iters
 
-    def _init_tasks(self, all_task_kwargs: List[dict]):
-        """Initializes the tasks for this data builder
-
-        Args:
-            all_task_kwargs (List[dict]): List of task_kwargs for each task to be executed by this data builder
-        """
-        self._tasks: List[SdgTask] = [
-            self.TASK_TYPE(builder_cfg=self._config, **task_kwargs)
-            for task_kwargs in all_task_kwargs
-        ]
-
     def execute_tasks(self):
         """Main entry point for task execution."""
 
@@ -61,51 +62,83 @@ class StarTransformDataBuilder(TransformationDataBuilder):
             task = BootstrapTransformTask(iteration=iteration, **task_kwargs)
             task.save_task()
 
+            # initialize model
+            if iteration == 0:
+                model_id_or_path = self.llm1.model_id_or_path
+                assert os.path.exists(model_id_or_path), f"Must use a local model!"
+                if os.path.exists(task.prev_model):
+                    shutil.rmtree(task.prev_model)
+                shutil.copytree(model_id_or_path, task.prev_model)
+
             # annotation of dataset
             self._annotate(task)
 
-            trainer = Trainer(
+            # train model
+            trainer = DeepspeedTrainer(
+                model_id_or_path=task.prev_model,
                 output_dir=task.curr_model_dir,
                 datastore=task._datastore,
-                **self._trainer_cfg,
+                trainer_args=self._trainer_cfg,
             )
             trainer.train()
+            trainer.release_model()
+
+            # reload model with newly created
+            if iteration != self._max_iters - 1:
+                self.llm1.init_model(task.curr_model_dir)
 
     def _annotate(self, task: BootstrapTransformTask):
 
         # resume from annotation
+        task.load_intermediate_data()
+
+        # resume from annotation
         task.load_dataloader_state()
 
-        self.llm1.init_model(task.prev_model_dir)
+        # generate_start = time.time()
 
-        generate_start = time.time()
+        # new_data: List[SdgData] = []
+        # for generated_inst in self.call_with_task_list([task]):
+        #     task.save_intermediate_data(generated_inst)
+        #     new_data.append(generated_inst)
+        #     task.save_dataloader_state()
 
-        new_data: List[SdgData] = []
-        for generated_inst in self.call_with_task_list([task]):
-            task.save_intermediate_data(generated_inst)
-            new_data.append(generated_inst)
-            task.save_dataloader_state()
-
-        generate_duration = time.time() - generate_start
-        sdg_logger.info(
-            "Generation took %.2fs, generated %s data",
-            generate_duration,
-            len(task.machine_data),
-        )
+        # generate_duration = time.time() - generate_start
+        # sdg_logger.info(
+        #     "Generation took %.2fs, generated %s data",
+        #     generate_duration,
+        #     len(task.machine_data),
+        # )
 
         self.llm1.release_model()
 
     def __call__(
         self,
-        instruction_data: List[SdgData],
-    ) -> List[SdgData]:
-        """Contains the main logic of a data builder. Takes in a list of data objects to be used as seed data and returns a list of data objects that reflect new instances
+        input_data: List[BootstrapInputData],
+    ) -> Iterable[BootstrapOutputData]:
 
-        Args:
-            request_idx (int): The iteration of `execute_tasks` this method was called at
-            instruction_data (List[SdgData]): List of data objects to be used as seed data
+        llm_inputs = []
+        for qa_pair in tqdm(input_data, desc="Data Transformation"):
+            # NOTE: since we have obtained this from huggingface, the actual answer is marked by "... #### <number>", so we'll extract that here
 
-        Returns:
-            List[SdgData]: List of new data objects that can be used for instruction-tuning
-        """
-        raise NotImplementedError
+            new_inp = _PROMPT.replace("", qa_pair.question).replace("", qa_pair.answer)
+            llm_inputs.append(
+                {"prompt": new_inp, "stop_sequences": ["Question:"], "data": qa_pair}
+            )
+
+        # NOTE: unlike in the other tutorials, we have provided 'arg_fields' / 'kwarg_fields' / 'result_field' in the data builder's config, thus we do not need to specify them here
+        llm_outputs = self.llm1.generate(llm_inputs)
+
+        for output in llm_outputs:
+            orig_qa: BootstrapInputData = output["data"]
+            # NOTE: we don't do any validation of the generated 'thought', however, in general that would be a good idea
+            thought = output["result"].strip()
+            # NOTE: here we yield from the data builder so that the data is saved immediately
+            yield BootstrapOutputData(
+                **{
+                    "task_name": orig_qa.task_name,
+                    "input": orig_qa.question,
+                    "output": orig_qa.answer,
+                    "thought": thought,
+                }
+            )

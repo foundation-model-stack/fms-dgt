@@ -72,7 +72,8 @@ class DataBuilder(ABC):
         self._init_blocks()
 
         # initialize tasks
-        self._init_tasks(task_kwargs)
+        if task_kwargs is not None:
+            self._init_tasks(task_kwargs)
 
         self.kwargs = kwargs
 

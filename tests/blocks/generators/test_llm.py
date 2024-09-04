@@ -6,6 +6,7 @@ import time
 
 # Third Party
 import pytest
+import torch
 
 # Local
 from fms_dgt.base.registry import get_block
@@ -249,6 +250,47 @@ class TestLlmGeneration:
                 inp["prompt"] == inputs_copy[i]["prompt"]
             ), f"Input list has been rearranged at index {i}"
             assert isinstance(inp["output"], str)
+
+    def test_vllm_free_model_memory(self):
+        model_cfg = dict(GREEDY_VLLM_CFG)
+        model_cfg["type"] = "vllm"
+        model_cfg["tensor_parallel_size"] = 1
+        model_cfg["model_id_or_path"] = "ibm-granite/granite-8b-code-instruct"
+        model_type = model_cfg.get("type")
+
+        # first we test generation
+        inputs: List[Dict] = []
+        for prompt in PROMPTS[:3]:
+            inp = {"prompt": prompt}
+            inputs.append(inp)
+
+        lm: LMGenerator = get_block(model_type, name=f"test_{model_type}", **model_cfg)
+        lm1_outputs = lm.generate(
+            copy.deepcopy(inputs), arg_fields=["prompt"], result_field="output"
+        )
+
+        # check memory, release, and reinitialize
+        before_mem = torch.cuda.memory_allocated() / 1024 / 1024 / 1024
+        lm.release_model()
+        after_mem = torch.cuda.memory_allocated() / 1024 / 1024 / 1024
+        lm.init_model()
+
+        assert (
+            before_mem > after_mem * 10
+        ), f"Expected more of a difference in memory usage after model memory released: {before_mem} GB vs {after_mem} GB"
+
+        lm2_outputs = lm.generate(
+            copy.deepcopy(inputs), arg_fields=["prompt"], result_field="output"
+        )
+
+        for i, inp in enumerate(lm1_outputs):
+            assert (
+                inp["prompt"] == lm2_outputs[i]["prompt"]
+            ), f"Input list has been rearranged at index {i}"
+            assert (
+                isinstance(inp["output"], str)
+                and inp["output"] == lm2_outputs[i]["output"]
+            )
 
 
 class TestLlmPrompting:

@@ -14,6 +14,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 from importlib.metadata import version
 from importlib.util import find_spec
 from typing import Any, List, Literal, Optional, Tuple
+import contextlib
 import copy
 import gc
 
@@ -21,8 +22,12 @@ import gc
 from more_itertools import distribute
 from packaging.version import parse as parse_version
 from tqdm import tqdm
-from vllm.model_executor.parallel_utils.parallel_state import destroy_model_parallel
+from vllm.distributed.parallel_state import (
+    destroy_distributed_environment,
+    destroy_model_parallel,
+)
 import torch
+import torch.distributed
 
 # Local
 from fms_dgt.base.instance import Instance
@@ -480,7 +485,8 @@ class vLLMGenerator(LMGenerator):
 
     def release_model(self):
         destroy_model_parallel()
+        destroy_distributed_environment()
+        del self.model.llm_engine.model_executor
         del self.model
         gc.collect()
         torch.cuda.empty_cache()
-        torch.distributed.destroy_process_group()
