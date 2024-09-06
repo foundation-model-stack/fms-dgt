@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import os
 
 # Local
-from fms_dgt.base.task import SdgData, TransformTask
+from fms_dgt.base.task import InputOutputData, SdgData, TransformTask
 from fms_dgt.datastores.default import DefaultDatastore
 
 
@@ -12,21 +12,12 @@ class BootstrapInputData(SdgData):
 
     question: str
     answer: str
-    thought: str = None
-
-
-@dataclass
-class BootstrapOutputData(SdgData):
-
-    input: str
-    output: str
-    thought: str = None
 
 
 class BootstrapTransformTask(TransformTask):
 
     INPUT_DATA_TYPE = BootstrapInputData
-    OUTPUT_DATA_TYPE = BootstrapOutputData
+    OUTPUT_DATA_TYPE = InputOutputData
 
     def __init__(
         self,
@@ -36,8 +27,10 @@ class BootstrapTransformTask(TransformTask):
         output_dir: str = None,
         **kwargs,
     ):
-        curr_output_dir = os.path.join(output_dir, name, f"iter_{iteration+1}")
-        prev_output_dir = os.path.join(output_dir, name, f"iter_{iteration}")
+        curr_output_dir = os.path.join(output_dir, name, f"iter_{iteration}")
+        prev_output_dir = os.path.join(
+            output_dir, name, f"iter_{(iteration - 1 if iteration else 'init')}"
+        )
         self._curr_model_dir = os.path.join(curr_output_dir, "models")
         self._prev_model_dir = os.path.join(prev_output_dir, "models")
 

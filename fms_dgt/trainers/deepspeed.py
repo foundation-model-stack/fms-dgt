@@ -1,7 +1,9 @@
 # Standard
-from dataclasses import dataclass
-from typing import Dict, Union
+from dataclasses import asdict
+from typing import Dict, List
 import gc
+import json
+import os
 import shutil
 
 # Third Party
@@ -11,84 +13,8 @@ import torch
 import transformers
 
 # Local
-from fms_dgt.base.datastore import BaseDatastore
+from fms_dgt.base.task import InputOutputData
 from fms_dgt.base.trainer import BaseTrainer
-from fms_dgt.dataloaders.default import DefaultDataloader
-from fms_dgt.utils import init_dataclass_from_dict
-
-###
-# Data classes with arguments go first
-###
-
-
-@dataclass
-class SchedulerArgs:
-    type: str = "WarmupLR"
-    params: dict = None
-
-    def __post_init__(self):
-        if self.params is None:
-            self.parms = {
-                "warmup_min_lr": 0,
-                "warmup_max_lr": 0.001,
-                "warmup_num_steps": 1000,
-            }
-
-
-@dataclass
-class OptimizationArgs:
-
-    type: str = "Adam"
-    params: dict = None
-
-    def __post_init__(self) -> None:
-        if self.params is None:
-            self.params = {
-                "lr": 0.001,
-                "betas": [0.8, 0.999],
-                "eps": 1e-8,
-                "weight_decay": 3e-7,
-            }
-
-
-@dataclass
-class FP16Args:
-    enabled: bool = False
-
-
-@dataclass
-class BFloat16Args:
-    enabled: bool = True
-
-
-@dataclass
-class OptimizerArgs:
-    type: str = "Adam"
-    params: dict = None
-
-    def __post_init__(self):
-        if self.params is None:
-            self.params = {"lr": 0.00015}
-
-
-@dataclass
-class TrainerArgs:
-    train_micro_batch_size_per_gpu: int = 8
-    gradient_accumulation_steps: int = 1
-    optim_args: OptimizerArgs = None
-    fp16_args: FP16Args = None
-    bfloat16_args: BFloat16Args = None
-    scheduler_args: SchedulerArgs = None
-    zero_optimization: bool = True
-
-    def __post_init__(self):
-        self.optim_args = init_dataclass_from_dict(self.optim_args, OptimizationArgs)
-        self.fp16_args = init_dataclass_from_dict(self.fp16_args, FP16Args)
-        self.bfloat16_args = init_dataclass_from_dict(self.bfloat16_args, BFloat16Args)
-        self.scheduler_args = init_dataclass_from_dict(
-            self.scheduler_args, SchedulerArgs
-        )
-
 
 ###
 # Trainer itself
@@ -100,20 +26,13 @@ class DeepspeedTrainer(BaseTrainer):
         self,
         model_id_or_path: str,
         output_dir: str,
-        datastore: BaseDatastore,
-        trainer_args: Union[TrainerArgs, Dict] = None,
+        data: List[InputOutputData],
+        config_path: str,
         restart: bool = False,
     ):
         self._model_id_or_path = model_id_or_path
-        print(self._model_id_or_path)
-        input()
-        self._trainer_args = init_dataclass_from_dict(trainer_args, TrainerArgs)
-        self._datastore = datastore
-        self._dataloader = DataLoader(
-            self._datastore.load_data(),
-            batch_size=trainer_args.train_micro_batch_size_per_gpu,
-            shuffle=True,
-        )
+        self._config_path = config_path
+        self._data = [d.input + d.output for d in data]
 
         self._output_dir = output_dir
         self._restart = restart
@@ -122,31 +41,55 @@ class DeepspeedTrainer(BaseTrainer):
 
         self._is_distributed = False
 
-    def _init_training(self):
+        with open(self._config_path, "r") as f:
+            config = json.load(f)
+            self._save_steps = config["save_steps"]
+
+    @property
+    def trained_model_path(self):
+        return os.path.join(self._output_dir, "last")
+
+    def train(self):
+        def collate_fn(batch):
+            tokenized = [tokenizer(b).input_ids for b in batch]
+            batch_data = {k: v.to("cuda") for k, v in data_collator(tokenized).items()}
+            return batch_data
+
+        if self._is_distributed:
+            deepspeed.init_distributed()
 
         model = transformers.AutoModelForCausalLM.from_pretrained(
             self._model_id_or_path,
             torch_dtype=torch.bfloat16,
             trust_remote_code=True,
         )
+        tokenizer = transformers.AutoTokenizer.from_pretrained(self._model_id_or_path)
+        if tokenizer.pad_token is None:
+            tokenizer.add_special_tokens({"pad_token": "[PAD_TOK]"})
+            model.resize_token_embeddings(len(tokenizer))
 
-        model_engine, optimizer, _, _ = deepspeed.initialize(
-            args=self._trainer_args,
-            model=model,
+        model_engine, _, _, _ = deepspeed.initialize(
+            config=self._config_path, model=model, model_parameters=model.parameters()
+        )
+        model_engine: deepspeed.DeepSpeedEngine
+
+        data_collator = transformers.DataCollatorForLanguageModeling(
+            tokenizer, mlm=False, return_tensors="pt"
         )
 
-        return model_engine, optimizer
+        dataloader = DataLoader(
+            self._data,
+            batch_size=model_engine.train_batch_size(),
+            shuffle=True,
+            collate_fn=collate_fn,
+        )
 
-    def train(self):
+        model_engine.train()
 
-        if self._is_distributed:
-            deepspeed.init_distributed()
+        for step, batch in enumerate(dataloader):
 
-        model_engine, optimizer = self._init_training()
-
-        for step, batch in enumerate(self._dataloader):
             # forward() method
-            loss = model_engine(batch)
+            loss = model_engine(**batch).loss
 
             # runs backpropagation
             model_engine.backward(loss)
@@ -155,18 +98,13 @@ class DeepspeedTrainer(BaseTrainer):
             model_engine.step()
 
             # save checkpoint
-            if step % args.save_interval:
-                client_sd["step"] = step
-                ckpt_id = loss.item()
-                model_engine.save_checkpoint(
-                    args.save_dir, ckpt_id, client_sd=client_sd
-                )
-                self.save_dataloader_state()
+            if step % self._save_steps == 0:
+                ckpt_id = f"chkpt_{self._save_steps}"
+                model_engine.save_checkpoint(self._output_dir, ckpt_id)
 
-    def init_model(self):
-        self.model = LLM(**self.model_args)
+        model_engine.save_checkpoint(*os.path.split(self.trained_model_path))
 
-    def release_model(self):
-        del self.model
+        # free model memory
+        del model_engine
         gc.collect()
         torch.cuda.empty_cache()

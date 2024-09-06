@@ -42,6 +42,22 @@ class BaseDatastore(abc.ABC):
         """
         raise NotImplementedError
 
+    def save_instruction_data(self, new_data: List[T]) -> None:
+        """Saves instruction data to specified location
+
+        Args:
+            new_data (List[T]): List of data to save
+        """
+        pass
+
+    def load_instruction_data(self) -> List[T]:
+        """Loads instruction data from specified location
+
+        Returns:
+            A list of generated data of type T.
+        """
+        pass
+
     def save_task(
         self,
     ) -> None:
@@ -73,14 +89,6 @@ class BaseDatastore(abc.ABC):
 
         Returns:
             Any: State object
-        """
-        pass
-
-    def save_instruction_data(self, new_data: List[T]) -> None:
-        """Saves instruction data to specified location
-
-        Args:
-            new_data (List[T]): List of data to save
         """
         pass
 

@@ -149,6 +149,10 @@ class DefaultDatastore(BaseDatastore):
         "Saves instruction data to specified location"
         self.save_data(new_data=new_data, output_path=self._instruction_output_path)
 
+    def load_instruction_data(self) -> List[T]:
+        "Loads instruction data from specified location"
+        return self.load_data(output_path=self._instruction_output_path)
+
 
 ###
 # Utilities

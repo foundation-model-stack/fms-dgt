@@ -32,6 +32,14 @@ class SdgData(abc.ABC):
         return asdict(self)
 
 
+@dataclass
+class InputOutputData(SdgData):
+    """This class is intended to hold data that can directly be used for tuning a model"""
+
+    input: str
+    output: str
+
+
 class SdgTask:
     """This class is intended to hold general task information"""
 
@@ -208,7 +216,7 @@ class SdgTask:
         """
         return self.OUTPUT_DATA_TYPE(**kwargs)
 
-    def instantiate_instruction(self, data: OUTPUT_DATA_TYPE) -> Dict:
+    def instantiate_instruction(self, data: OUTPUT_DATA_TYPE) -> InputOutputData:
         """Instantiates an instruction-tuning pair from output data instance.
 
         Args:
@@ -217,6 +225,9 @@ class SdgTask:
         Returns:
             Dict: Dictionary representing an instruction-tuning pair.
         """
+        if type(data) == InputOutputData:
+            return data.to_output_dict()
+
         data = asdict(data)
         output = dict(self._instruction_format)
         for k in output.keys():
@@ -224,7 +235,7 @@ class SdgTask:
                 inp_key = "{{" + ds_k + "}}"
                 if inp_key in output[k]:
                     output[k] = output[k].replace(inp_key, str(ds_v))
-        return output
+        return InputOutputData(**output).to_output_dict()
 
     def get_example(self) -> SdgData:
         """Returns single example from dataloader.
@@ -298,7 +309,10 @@ class SdgTask:
 
     def save_final_data(self) -> None:
         """Saves final instruction-tuning data that can be used directly for training."""
-        if self._instruction_format is not None:
+        if (
+            self._instruction_format is not None
+            or self.OUTPUT_DATA_TYPE == InputOutputData
+        ):
             loaded_data = self._datastore.load_data()
             if loaded_data:
                 for d in loaded_data:
@@ -306,6 +320,13 @@ class SdgTask:
                         self.instantiate_output_example(**d)
                     )
                     self._datastore.save_instruction_data([instruction])
+
+    def load_final_data(self) -> List[InputOutputData]:
+        loaded_data = self._datastore.load_instruction_data()
+        loaded_data = (
+            [InputOutputData(**instr) for instr in loaded_data] if loaded_data else []
+        )
+        return loaded_data
 
     def save_dataloader_state(self) -> None:
         """Saves state of data loader to enable resumption of SDG process later on."""
