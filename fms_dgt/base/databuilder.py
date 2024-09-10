@@ -159,8 +159,7 @@ class DataBuilder(ABC):
             all_task_kwargs (List[dict]): List of task_kwargs for each task to be executed by this data builder
         """
         self._tasks: List[SdgTask] = [
-            self.TASK_TYPE(builder_cfg=self._config, **task_kwargs)
-            for task_kwargs in all_task_kwargs
+            self.TASK_TYPE(**task_kwargs) for task_kwargs in all_task_kwargs
         ]
 
     def execute_tasks(self):
