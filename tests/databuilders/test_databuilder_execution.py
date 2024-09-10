@@ -24,7 +24,10 @@ to_execute = [
     #
     # api function calling
     #
-    # ("api", ""),
+    (
+        "api",
+        f"--data-paths {os.path.join(_BASE_REPO_PATH, 'data/generation/code/apis/glaive/sequencing/parallel_multiple/qna.yaml')} --num-outputs-to-generate 1 --output-dir {_OUTPUT_DIR}",
+    ),
     #
     # nl2sql
     #
