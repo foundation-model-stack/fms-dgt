@@ -31,7 +31,10 @@ to_execute = [
     #
     # nl2sql
     #
-    # ("nl2sql", ""),
+    (
+        "nl2sql",
+        f"--data-paths {os.path.join(_BASE_REPO_PATH, 'data/generation/code/sql/nl2sql/orders/qna.yaml')} --num-outputs-to-generate 1 --output-dir {_OUTPUT_DIR}",
+    ),
 ]
 
 
