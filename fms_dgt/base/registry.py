@@ -12,18 +12,22 @@ from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
 from fms_dgt.utils import dynamic_import
 
 # TODO: better strategy needed, but this will eliminate some of the confusing errors people get when registering a new class.
+_REPO_DIR = os.path.split(os.path.split(os.path.dirname(os.path.abspath(__file__)))[0])[
+    0
+]
+
 REGISTRATION_SEARCHABLE_DIRECTORIES = [
-    os.path.join("fms_dgt", "blocks"),
-    os.path.join("fms_dgt", "dataloaders"),
-    os.path.join("fms_dgt", "datastores"),
+    (_REPO_DIR, os.path.join("fms_dgt", "blocks")),
+    (_REPO_DIR, os.path.join("fms_dgt", "dataloaders")),
+    (_REPO_DIR, os.path.join("fms_dgt", "datastores")),
 ]
 _ADDED_REGISTRATION_DIRECTORIES = set()
 _REGISTRATION_MODULE_MAP = {}
 
 
-def add_directory_to_registration(search_dir: str):
+def add_directory_to_registration(base_dir, search_dir):
     if search_dir not in REGISTRATION_SEARCHABLE_DIRECTORIES:
-        REGISTRATION_SEARCHABLE_DIRECTORIES.append(search_dir)
+        REGISTRATION_SEARCHABLE_DIRECTORIES.append((base_dir, search_dir))
 
 
 def _build_importable_registration_map(registration_func: str):
@@ -45,15 +49,19 @@ def _build_importable_registration_map(registration_func: str):
     if registration_func not in _REGISTRATION_MODULE_MAP:
         _REGISTRATION_MODULE_MAP[registration_func] = dict()
 
-    for search_dir in REGISTRATION_SEARCHABLE_DIRECTORIES:
+    for base_dir, search_dir in REGISTRATION_SEARCHABLE_DIRECTORIES:
         if (search_dir, registration_func) in _ADDED_REGISTRATION_DIRECTORIES:
             continue
         _ADDED_REGISTRATION_DIRECTORIES.add((search_dir, registration_func))
-        for dirpath, _, filenames in os.walk(search_dir):
+        for dirpath, _, filenames in os.walk(os.path.join(base_dir, search_dir)):
             for filename in filenames:
                 filepath = os.path.join(dirpath, filename)
                 if filepath.endswith(".py"):
-                    import_path = filepath.replace(os.sep, ".")[:-3]
+                    import_path = filepath.replace(base_dir, "").replace(os.sep, ".")[
+                        :-3
+                    ]
+                    if import_path.startswith("."):
+                        import_path = import_path[1:]
                     with open(filepath, "r") as f:
                         class_names = extract_registered_classes(f.read())
                         for class_name in class_names:
