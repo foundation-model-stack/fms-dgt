@@ -17,7 +17,6 @@ def generate_data(
     data_paths: Optional[List[str]] = None,
     config_path: Optional[str] = None,
     include_builder_paths: Optional[List[str]] = None,
-    restart_generation: bool = False,
 ):
     """Generate data for a set of tasks using their respective data builders
 
@@ -27,7 +26,6 @@ def generate_data(
         data_paths (Optional[List[str]], optional): A list of paths to data files.
         config_path (Optional[str], optional): A path to a configuration file.
         include_builder_paths (Optional[List[str]], optional): A list of paths to search for data builders.
-        restart_generation (bool, optional): Whether to restart data generation from scratch.
     """
     data_paths = data_paths or []
     config_overrides = None
@@ -87,7 +85,6 @@ def generate_data(
 
         all_builder_kwargs = {
             "config": builder_cfg,
-            "restart_generation": restart_generation,
             "task_kwargs": [
                 {**task_init, **task_kwargs}
                 for task_init in task_inits
