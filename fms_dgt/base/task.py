@@ -52,6 +52,7 @@ class SdgTask:
         datastore: Optional[Dict] = None,
         restart_generation: Optional[bool] = False,
         builder_cfg: Optional[Mapping] = None,
+        builder_dir: Optional[str] = None,
         file_path: Optional[str] = None,
         dataloader: Optional[Dict] = None,
         seed_batch_size: Optional[int] = None,
@@ -87,6 +88,7 @@ class SdgTask:
         self._restart_generation = restart_generation
         self._file_path = file_path
         self._builder_cfg = builder_cfg
+        self._builder_dir = builder_dir
         self._seed_examples = seed_examples
         self._num_outputs_to_generate = num_outputs_to_generate
         self._output_format = output_format
@@ -129,6 +131,7 @@ class SdgTask:
             "restart_generation": self._restart_generation,
             "file_path": self._file_path,
             "builder_cfg": self._builder_cfg,
+            "builder_dir": self._builder_dir,
             "seed_examples": self._seed_examples,
             "output_dir": self._output_dir,
             "output_format": self._output_format,

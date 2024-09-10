@@ -1,10 +1,11 @@
 # Standard
 from collections import ChainMap
 from pathlib import Path
-from typing import Any, List, TypeVar
+from typing import Any, Dict, List, TypeVar, Union
 import copy
 import fnmatch
 import importlib.util
+import json
 import logging
 import os
 
@@ -72,39 +73,32 @@ def pattern_match(patterns, source_list):
     return sorted(list(task_names))
 
 
-def import_builder(inp_dir: str, include_paths: str = None) -> None:
-    include_paths = (
-        [include_path.replace(os.sep, ".") for include_path in include_paths]
-        if include_paths is not None
-        else []
-    )
+def import_builder(inp_dir: str, include_paths: List[str] = None) -> None:
+
+    if include_paths is None:
+        include_paths = []
+
+    to_check = [p.replace(os.sep, ".") for p in [inp_dir] + include_paths]
 
     loaded = False
 
     # TODO: this must be generalized
-    for imp_path in [
-        "fms_dgt.databuilders.generation",
-        "fms_dgt.databuilders.transformation",
-    ] + include_paths:
+    for imp_path in to_check:
         if imp_path is not None:
-            import_path = f"{imp_path}.{inp_dir}.generate"
+            import_path = f"{imp_path}.generate"
             # we try both, but we will overwrite with include path
             try:
                 loaded = dynamic_import(import_path) or loaded
             except ModuleNotFoundError as e:
                 # we try both, but we will overwrite with include path
-                if f"No module named '{imp_path}.{inp_dir}" not in str(e):
+                if f"No module named '{imp_path}" not in str(e):
                     raise e
 
     if not loaded:
-        err_str = f"No module named 'fms_dgt.databuilders.{inp_dir}.generate'"
-        if include_paths is not None:
-            err_str += "".join(
-                [
-                    f" or '{include_path}.{inp_dir}.generate'"
-                    for include_path in include_paths
-                ]
-            )
+        err_str = []
+        for p in to_check:
+            err_str.append(f"'{p}.generate'")
+        err_str = "No module named " + " or ".join(err_str)
         raise ModuleNotFoundError(err_str)
 
 
@@ -331,3 +325,32 @@ def load_joint_config(yaml_path: str):
             )
 
     return data_paths, config_overrides
+
+
+def load_nested_paths(inp: Dict, base_dir: str = None):
+    def _load_file(path: str):
+        if path.endswith(".json"):
+            with open(path, "r") as f:
+                return json.load(f)
+        elif path.endswith(".yaml"):
+            with open(path, "r") as f:
+                return yaml.safe_load(f)
+        return path
+
+    def _pull_paths(d: Union[List, Dict, str]):
+        if isinstance(d, dict):
+            for k in d.keys():
+                d[k] = _pull_paths(d[k])
+        elif isinstance(d, list):
+            for i in range(len(d)):
+                d[i] = _pull_paths(d[i])
+        elif type(d) == str and d:
+            if os.path.isfile(d):
+                return _load_file(d)
+            elif base_dir and os.path.isfile(os.path.join(base_dir, d)):
+                return _load_file(os.path.join(base_dir, d))
+        return d
+
+    new_dict = _pull_paths(copy.deepcopy(inp))
+
+    return new_dict
