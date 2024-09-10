@@ -2,11 +2,11 @@
 import pytest
 
 # Local
-from fms_dgt.databuilders.nl2sql.sqlinstruct.models import SQLTriplet
-from fms_dgt.databuilders.nl2sql.sqlinstruct.prompts.prompt_template import (
+from fms_dgt.databuilders.generation.nl2sql.sqlinstruct.models import SQLTriplet
+from fms_dgt.databuilders.generation.nl2sql.sqlinstruct.prompts.prompt_template import (
     PromptTemplate,
 )
-from fms_dgt.databuilders.nl2sql.sqlinstruct.prompts.sql_prompts import (
+from fms_dgt.databuilders.generation.nl2sql.sqlinstruct.prompts.sql_prompts import (
     SchemaAndQueryToUtterancePrompt,
     SchemaAndUtteranceToQueryPrompt,
     SchemaToUtteranceAndQueryPrompt,
