@@ -112,7 +112,10 @@ class DataBuilderIndex:
         def add_file(root, f):
 
             if f.endswith(".yaml"):
-                f_builder_dir = os.path.split(root)[-1]
+                f_builder_dir = root.split(os.sep)
+                f_builder_dir = os.path.join(
+                    *f_builder_dir[f_builder_dir.index("fms_dgt") :]
+                )
                 yaml_path = os.path.join(root, f)
                 config = utils.load_yaml_config(yaml_path, mode="simple")
 
@@ -125,7 +128,6 @@ class DataBuilderIndex:
                 assert (
                     builder_name not in self._builder_index
                 ), f"Multiple overriding configuration files detected for data builder {builder_name}"
-
                 self._builder_index[builder_name] = {
                     "builder_dir": f_builder_dir,
                     "config": config,
