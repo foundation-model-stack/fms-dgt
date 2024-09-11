@@ -107,10 +107,7 @@ def generate_data(
             )
         except KeyError as e:
             if f"Attempted to load data builder '{builder_name}'" in str(e):
-                utils.import_builder(
-                    builder_dir,
-                    include_paths=include_builder_paths,
-                )
+                utils.import_builder(builder_dir)
                 data_builder: DataBuilder = get_data_builder(
                     builder_name, **all_builder_kwargs
                 )
