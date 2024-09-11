@@ -125,9 +125,14 @@ class DataBuilderIndex:
 
                     builder_name = config[_NAME_KEY]
 
-                    assert (
-                        builder_name not in self._builder_index
-                    ), f"Multiple overriding configuration files detected for data builder {builder_name}"
+                    if builder_name in self._builder_index:
+                        sdg_logger.warning(
+                            "Multiple overriding configuration files detected for data builder %s, the two databuilders are found at '%s' and '%s'",
+                            builder_name,
+                            f_builder_dir,
+                            self._builder_index[builder_name]["builder_dir"],
+                        )
+
                     self._builder_index[builder_name] = {
                         "builder_dir": f_builder_dir,
                         "config": config,
