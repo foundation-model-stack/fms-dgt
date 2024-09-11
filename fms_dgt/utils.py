@@ -313,6 +313,9 @@ def load_joint_config(yaml_path: str):
 
 
 def load_nested_paths(inp: Dict, base_dir: str = None):
+    def _is_file(text: str) -> bool:
+        return any([text.endswith(ext) for ext in [".json", ".yaml", ".txt"]])
+
     def _load_file(path: str):
         if path.endswith(".json"):
             with open(path, "r") as f:
@@ -320,22 +323,31 @@ def load_nested_paths(inp: Dict, base_dir: str = None):
         elif path.endswith(".yaml"):
             with open(path, "r") as f:
                 return yaml.safe_load(f)
+        elif path.endswith(".txt"):
+            with open(path, "r") as f:
+                return str(f.read())
         return path
 
-    def _pull_paths(d: Union[List, Dict, str]):
+    def _get_path(fname: str, parent_dir: str):
+        if os.path.isfile(fname):
+            return os.path.normpath(fname)
+        elif parent_dir and os.path.isfile(os.path.join(parent_dir, fname)):
+            return os.path.normpath(os.path.join(parent_dir, fname))
+
+    def _pull_paths(d: Union[List, Dict, str], parent_dir: str):
         if isinstance(d, dict):
             for k in d.keys():
-                d[k] = _pull_paths(d[k])
+                d[k] = _pull_paths(d[k], parent_dir)
         elif isinstance(d, list):
             for i in range(len(d)):
-                d[i] = _pull_paths(d[i])
-        elif type(d) == str and d:
-            if os.path.isfile(d):
-                return _load_file(d)
-            elif base_dir and os.path.isfile(os.path.join(base_dir, d)):
-                return _load_file(os.path.join(base_dir, d))
+                d[i] = _pull_paths(d[i], parent_dir)
+        elif type(d) == str and d and _is_file(d):
+            if (file_path := _get_path(d, parent_dir)) not in checked_files:
+                checked_files.add(file_path)
+                return _pull_paths(_load_file(file_path), os.path.dirname(file_path))
         return d
 
-    new_dict = _pull_paths(copy.deepcopy(inp))
+    checked_files = set()
+    new_dict = _pull_paths(copy.deepcopy(inp), base_dir)
 
     return new_dict
