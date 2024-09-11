@@ -73,33 +73,18 @@ def pattern_match(patterns, source_list):
     return sorted(list(task_names))
 
 
-def import_builder(inp_dir: str, include_paths: List[str] = None) -> None:
+def import_builder(inp_dir: str) -> None:
 
-    if include_paths is None:
-        include_paths = []
+    imp_path = inp_dir.replace(os.sep, ".")
 
-    to_check = [p.replace(os.sep, ".") for p in [inp_dir] + include_paths]
-
-    loaded = False
-
-    # TODO: this must be generalized
-    for imp_path in to_check:
-        if imp_path is not None:
-            import_path = f"{imp_path}.generate"
-            # we try both, but we will overwrite with include path
-            try:
-                loaded = dynamic_import(import_path) or loaded
-            except ModuleNotFoundError as e:
-                # we try both, but we will overwrite with include path
-                if f"No module named '{imp_path}" not in str(e):
-                    raise e
-
-    if not loaded:
-        err_str = []
-        for p in to_check:
-            err_str.append(f"'{p}.generate'")
-        err_str = "No module named " + " or ".join(err_str)
-        raise ModuleNotFoundError(err_str)
+    import_path = f"{imp_path}.generate"
+    # we try both, but we will overwrite with include path
+    try:
+        dynamic_import(import_path)
+    except ModuleNotFoundError as e:
+        # we try both, but we will overwrite with include path
+        if f"No module named '{imp_path}" not in str(e):
+            raise e
 
 
 def dynamic_import(import_module: str, throw_top_level_error: bool = False):
