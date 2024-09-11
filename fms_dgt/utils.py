@@ -80,7 +80,7 @@ def import_builder(inp_dir: str) -> None:
     import_path = f"{imp_path}.generate"
     # we try both, but we will overwrite with include path
     try:
-        loaded = dynamic_import(import_path)
+        dynamic_import(import_path)
     except ModuleNotFoundError as e:
         # we try both, but we will overwrite with include path
         if f"No module named '{imp_path}" not in str(e):
