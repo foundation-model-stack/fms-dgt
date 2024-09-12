@@ -3,8 +3,8 @@ from typing import Dict, List
 import json
 
 # Local
-from fms_dgt.base.block import BaseValidatorBlock
 from fms_dgt.base.registry import register_block
+from fms_dgt.blocks.validators import BaseValidatorBlock
 
 # Constants
 
