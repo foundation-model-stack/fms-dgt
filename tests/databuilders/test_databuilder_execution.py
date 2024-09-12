@@ -97,11 +97,13 @@ def test_data_builders(data_builder_name: str, cmd_line_args: str, timeout: int)
             time.sleep(1)
         gc.collect()
 
+    time.sleep(5)
+
     if _OUTPUT_DIR in cmd_line_args:
         os.path.exists(_OUTPUT_DIR)
         gen_found = False
         for _, _, fnames in os.walk(_OUTPUT_DIR):
-            if any(fstring.startswith("generated_instructions") for fstring in fnames):
+            if any(fstring.startswith("outputs") for fstring in fnames):
                 gen_found = True
                 break
         assert (
