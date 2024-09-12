@@ -33,9 +33,9 @@ to_execute = [
         f"--data-paths {os.path.join(_BASE_REPO_PATH, 'data/generation/code/apis/glaive/detection/single_api/qna.yaml')} --num-outputs-to-generate 1 --output-dir {_OUTPUT_DIR}",
         25,
     ),
-    # #
-    # # nl2sql
-    # #
+    #
+    # nl2sql
+    #
     (
         "nl2sql",
         f"--data-paths {os.path.join(_BASE_REPO_PATH, 'data/generation/code/sql/nl2sql/orders/qna.yaml')} --num-outputs-to-generate 1 --output-dir {_OUTPUT_DIR}",
