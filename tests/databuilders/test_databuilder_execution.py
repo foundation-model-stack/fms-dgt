@@ -9,7 +9,7 @@ import time
 import pytest
 
 # Local
-from fms_dgt.__main__ import *
+from fms_dgt.__main__ import generate_data, parse_cmd_line
 
 _BASE_REPO_PATH = os.path.split(
     os.path.split(os.path.dirname(os.path.abspath(__file__)))[0]
@@ -44,14 +44,6 @@ to_execute = [
 ]
 
 
-# def gen_data(task_kwargs, builder_kwargs, base_args):
-#     generate_data(
-#         task_kwargs=task_kwargs,
-#         builder_kwargs=builder_kwargs,
-#         **base_args,
-#     )
-
-
 @pytest.mark.parametrize("data_builder_name,cmd_line_args,timeout", to_execute)
 def test_data_builders(data_builder_name: str, cmd_line_args: str, timeout: int):
     """This file contains execution tests for each data builder (in the same way it would be called from the command-line). To add a new test,
@@ -65,15 +57,21 @@ def test_data_builders(data_builder_name: str, cmd_line_args: str, timeout: int)
         cmd_line_args (str): command-line argument string
         timeout (int): time in seconds to allocate to test
     """
+
+    arg_list = cmd_line_args.split()
+    base_args, builder_kwargs, task_kwargs = parse_cmd_line(arg_list)
+    execute_db_test(data_builder_name, base_args, builder_kwargs, task_kwargs, timeout)
+
+
+def execute_db_test(
+    data_builder_name: str,
+    base_args: dict,
+    builder_kwargs: dict,
+    task_kwargs: dict,
+    timeout: int,
+):
     if os.path.exists(_OUTPUT_DIR):
         shutil.rmtree(_OUTPUT_DIR)
-
-    parser = get_parser()
-    arg_list = cmd_line_args.split()
-    args = parser.parse_args(arg_list)
-    base_args = gather_grouped_args(args, parser, "base")
-    builder_kwargs = gather_grouped_args(args, parser, "builder")
-    task_kwargs = gather_grouped_args(args, parser, "task")
 
     p = multiprocessing.Process(
         target=generate_data, args=(task_kwargs, builder_kwargs), kwargs=base_args
@@ -88,6 +86,10 @@ def test_data_builders(data_builder_name: str, cmd_line_args: str, timeout: int)
         not p.is_alive()
     ), f"'{data_builder_name}' data builder took to long to execute"
 
+    assert (
+        p.exitcode == 0
+    ), f"'{data_builder_name}' data builder failed during execution"
+
     # if thread is still active
     if p.is_alive():
         p.terminate()
@@ -99,7 +101,7 @@ def test_data_builders(data_builder_name: str, cmd_line_args: str, timeout: int)
 
     time.sleep(5)
 
-    if _OUTPUT_DIR in cmd_line_args:
+    if _OUTPUT_DIR in task_kwargs.get("output_dir"):
         os.path.exists(_OUTPUT_DIR)
         gen_found = False
         for _, _, fnames in os.walk(_OUTPUT_DIR):
