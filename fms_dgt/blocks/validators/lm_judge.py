@@ -2,9 +2,10 @@
 from typing import Any, Callable, Dict, List, Optional
 
 # Local
-from fms_dgt.base.block import DATASET_TYPE, BaseValidatorBlock
+from fms_dgt.base.block import DATASET_TYPE
 from fms_dgt.base.registry import get_block, register_block
 from fms_dgt.blocks.generators.llm import LMGenerator
+from fms_dgt.blocks.validators import BaseValidatorBlock
 
 TYPE_KEY = "type"
 
@@ -46,7 +47,7 @@ class LMJudgeValidator(BaseValidatorBlock):
             **kwargs,
         )
 
-        judge_outputs = []
+        judge_outputs, filtered = [], []
         for llm_output in llm_outputs:
             args, kwargs = self.get_args_kwargs(
                 llm_output, arg_fields=arg_fields, kwarg_fields=kwarg_fields
@@ -58,6 +59,11 @@ class LMJudgeValidator(BaseValidatorBlock):
             if new_result or not self._filter_invalids:
                 self.write_result(llm_output, new_result, result_field=result_field)
                 judge_outputs.append(llm_output)
+
+            if not new_result:
+                filtered.append((args, kwargs))
+
+        self.save_filtered(filtered)
 
         return judge_outputs
 

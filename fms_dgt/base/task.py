@@ -126,9 +126,9 @@ class SdgTask:
         """Initialize datastore object for storing all SDG data."""
 
         ds_kwargs = {
-            "task_name": self._name,
+            "store_name": self._name,
             "data_builder": self._data_builder,
-            "restart_generation": self._restart_generation,
+            "restart": self._restart_generation,
             "file_path": self._file_path,
             "builder_cfg": self._builder_cfg,
             "builder_dir": self._builder_dir,

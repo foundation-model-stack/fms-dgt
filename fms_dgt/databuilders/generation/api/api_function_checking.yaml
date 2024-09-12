@@ -10,6 +10,11 @@ blocks:
   - name: val1
     type: api_function_checking
     filter: true
+    datastore:
+      type: default
+      output_dir: output/filtered_data
+      store_name: api_function_checking
+      restart: true
   - name: val2
     type: rouge_scorer
     filter: true

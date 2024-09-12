@@ -23,9 +23,9 @@ class DefaultDatastore(BaseDatastore):
     def __init__(
         self,
         output_dir: str = None,
-        task_name: str = None,
-        output_format: str = ".jsonl",
-        restart_generation: bool = False,
+        store_name: str = None,
+        output_format: str = "jsonl",
+        restart: bool = False,
         seed_examples: List[T] = None,
         data_path: str = None,
         hf_path: List = None,
@@ -37,12 +37,10 @@ class DefaultDatastore(BaseDatastore):
         if not os.path.exists(output_dir):
             os.makedirs(output_dir, exist_ok=True)
 
-        self._output_dir = self._get_default_output_dir(output_dir, task_name)
-        self._output_path = os.path.join(
-            self._output_dir, "generated_instructions." + output_format
-        )
-        self._instruction_output_path = os.path.join(
-            self._output_dir, "formatted_instructions." + output_format
+        self._output_dir = self._get_default_output_dir(output_dir, store_name)
+        self._output_path = os.path.join(self._output_dir, "outputs." + output_format)
+        self._final_output_path = os.path.join(
+            self._output_dir, "final_outputs." + output_format
         )
         self._state_path = os.path.join(self._output_dir, "dataloader_state.txt")
         self._dataset_path = data_path
@@ -57,21 +55,21 @@ class DefaultDatastore(BaseDatastore):
                 "Cannot set both 'data_path' and 'hf_args' in datastore config"
             )
 
-        if restart_generation and os.path.exists(self.output_path):
+        if restart and os.path.exists(self.output_path):
             os.remove(self.output_path)
 
         # always delete instruction output path because it's regenerated from machine_data
-        if os.path.exists(self._instruction_output_path):
-            os.remove(self._instruction_output_path)
+        if os.path.exists(self._final_output_path):
+            os.remove(self._final_output_path)
 
     @property
     def output_path(self) -> str:
         return self._output_path
 
-    def _get_default_output_dir(self, output_dir: str, task_name: str):
+    def _get_default_output_dir(self, output_dir: str, store_name: str):
         path_components = []
         path_components.append(output_dir)
-        path_components.append(task_name.replace("->", "__"))
+        path_components.append(store_name.replace("->", "__"))
         return os.path.join(*path_components)
 
     def save_data(
@@ -147,7 +145,7 @@ class DefaultDatastore(BaseDatastore):
 
     def save_instruction_data(self, new_data: List[T]) -> None:
         "Saves instruction data to specified location"
-        self.save_data(new_data=new_data, output_path=self._instruction_output_path)
+        self.save_data(new_data=new_data, output_path=self._final_output_path)
 
 
 ###

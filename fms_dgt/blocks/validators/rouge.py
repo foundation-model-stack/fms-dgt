@@ -3,8 +3,9 @@ from functools import partial
 from typing import Any, List, Optional, Union
 
 # Local
-from fms_dgt.base.block import DATASET_TYPE, BaseValidatorBlock
+from fms_dgt.base.block import DATASET_TYPE
 from fms_dgt.base.registry import register_block
+from fms_dgt.blocks.validators import BaseValidatorBlock
 
 try:
     # Third Party
@@ -90,7 +91,7 @@ class RougeDedupValidator(BaseValidatorBlock):
         for _, _, new_tokens, inp in ranked_inputs:
             all_tokens.append(new_tokens)
 
-        outputs = []
+        outputs, filtered = [], []
         for i, (_, is_valid_wrt_context, new_tokens, inp) in enumerate(ranked_inputs):
             # only check against elements we've already added
             check_against = all_tokens[:i]
@@ -98,6 +99,14 @@ class RougeDedupValidator(BaseValidatorBlock):
             if res or not self._filter_invalids:
                 self.write_result(inp, res, result_field)
                 outputs.append(inp)
+
+            if not res:
+                inp_args, inp_kwargs = self.get_args_kwargs(
+                    inp, arg_fields, kwarg_fields
+                )
+                filtered.append((inp_args, inp_kwargs))
+
+        self.save_filtered(filtered)
 
         return outputs
 
