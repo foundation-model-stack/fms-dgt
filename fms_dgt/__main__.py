@@ -1,4 +1,5 @@
 # Standard
+from typing import Optional
 import argparse
 
 # Local
@@ -125,14 +126,21 @@ def gather_grouped_args(
     raise ValueError(f"Unrecognized group name: {group_name}")
 
 
-def main():
+def parse_cmd_line(arg_list: Optional[list] = None):
     parser = get_parser()
 
-    args = parser.parse_args()
+    args = parser.parse_args(arg_list)
 
     base_args = gather_grouped_args(args, parser, "base")
     builder_kwargs = gather_grouped_args(args, parser, "builder")
     task_kwargs = gather_grouped_args(args, parser, "task")
+
+    return base_args, builder_kwargs, task_kwargs
+
+
+def main():
+
+    base_args, builder_kwargs, task_kwargs = parse_cmd_line()
 
     generate_data(
         task_kwargs=task_kwargs,
