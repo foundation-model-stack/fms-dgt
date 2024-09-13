@@ -1,11 +1,16 @@
 # Local
 from fms_dgt.dataloaders.default import DefaultDataloader
+from fms_dgt.datastores.default import DefaultDatastore
 
 
 class TestDefaultDataloader:
     def test_iterate(self):
         test_data = [*list(range(10))]
-        dl = DefaultDataloader(data=test_data)
+        dl = DefaultDataloader(
+            datastore=DefaultDatastore(
+                output_dir="output", store_name="test_store", seed_examples=test_data
+            )
+        )
         for i in range(20):
             try:
                 val = next(dl)
