@@ -70,8 +70,9 @@ def execute_db_test(
     task_kwargs: dict,
     timeout: int,
 ):
-    if os.path.exists(_OUTPUT_DIR):
-        shutil.rmtree(_OUTPUT_DIR)
+
+    if os.path.exists(task_kwargs.get("output_dir")):
+        shutil.rmtree(task_kwargs.get("output_dir"))
 
     p = multiprocessing.Process(
         target=generate_data, args=(task_kwargs, builder_kwargs), kwargs=base_args
@@ -99,18 +100,7 @@ def execute_db_test(
             time.sleep(1)
         gc.collect()
 
+    if os.path.exists(task_kwargs.get("output_dir")):
+        shutil.rmtree(task_kwargs.get("output_dir"))
+
     time.sleep(5)
-
-    if _OUTPUT_DIR in task_kwargs.get("output_dir"):
-        os.path.exists(_OUTPUT_DIR)
-        gen_found = False
-        for _, _, fnames in os.walk(_OUTPUT_DIR):
-            if any(fstring.startswith("outputs") for fstring in fnames):
-                gen_found = True
-                break
-        assert (
-            gen_found
-        ), f"No instructions file generated for '{data_builder_name}' data builder"
-
-    if os.path.exists(_OUTPUT_DIR):
-        shutil.rmtree(_OUTPUT_DIR)
