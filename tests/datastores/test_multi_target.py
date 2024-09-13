@@ -18,18 +18,18 @@ class TestMultiTarget:
         primary_cfg = {
             "type": "default",
             "output_dir": cache_path,
-            "task_name": "primary",
+            "store_name": "primary",
         }
         additional_cfgs = [
             {
                 "type": "default",
                 "output_dir": cache_path,
-                "task_name": "secondary_1",
+                "store_name": "secondary_1",
             },
             {
                 "type": "default",
                 "output_dir": cache_path,
-                "task_name": "secondary_2",
+                "store_name": "secondary_2",
             },
         ]
 
