@@ -5,8 +5,6 @@ import abc
 # Local
 from fms_dgt.base.block import DATASET_TYPE
 
-DATA_PATH_KEY = "data_path"
-
 
 class BaseDatastore(abc.ABC):
     """Base Class for all data stores"""
