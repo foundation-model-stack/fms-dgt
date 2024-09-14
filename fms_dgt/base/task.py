@@ -184,7 +184,7 @@ class SdgTask:
         # init seed datastore for dataloader
         seed_ds_kwargs = {
             "store_name": os.path.join(self._store_name, "seed_data"),
-            "examples": self._seed_examples,
+            "data": self._seed_examples,
             **self._seed_datastore_cfg,
             "restart": False,
         }

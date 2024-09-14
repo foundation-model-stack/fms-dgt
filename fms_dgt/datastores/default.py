@@ -26,7 +26,7 @@ class DefaultDatastore(BaseDatastore):
         output_dir: str = None,
         data_format: str = "jsonl",
         restart: bool = False,
-        examples: List[T] = None,
+        data: List[T] = None,
         data_path: str = None,
         data_split: str = "train",
         **kwargs,
@@ -40,7 +40,7 @@ class DefaultDatastore(BaseDatastore):
         )
         self._data_path = data_path
         self._data_split = data_split
-        self._examples = examples or []
+        self._data = data or []
         if restart and os.path.exists(self._output_path):
             os.remove(self._output_path)
 
@@ -61,7 +61,7 @@ class DefaultDatastore(BaseDatastore):
 
     def load_data(self) -> List[T]:
 
-        data = self._examples
+        data = self._data
         loaded_data = []
         data_path = self._data_path if self._data_path else self._output_path
 
