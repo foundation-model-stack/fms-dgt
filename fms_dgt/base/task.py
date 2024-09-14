@@ -227,6 +227,15 @@ class SdgTask:
             self._datastore_cfg.get(TYPE_KEY), **final_ds_kwargs
         )
 
+        # init logging datastore
+        logging_ds_kwargs = {
+            "store_name": os.path.join(self._store_name, "logging"),
+            **self._datastore_cfg,
+        }
+        self._logging_datastore = get_datastore(
+            self._datastore_cfg.get(TYPE_KEY), **logging_ds_kwargs
+        )
+
     def instantiate_input_example(self, **kwargs: Any) -> INPUT_DATA_TYPE:
         """Instantiate an input example for this task. Designed to be overridden with custom initialization.
 
@@ -358,7 +367,9 @@ class SdgTask:
 
     def save_log_data(self) -> None:
         """Saves any Logging information to the datastore."""
-        pass
+        # TODO: populate this with all log data
+        log_data = dict()
+        self._logging_datastore.save_data([log_data])
 
 
 ###
