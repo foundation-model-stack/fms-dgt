@@ -133,6 +133,8 @@ class SdgTask:
         }
         self._exp_card_datastore_cfg = {**base_store_cfg, **self._datastore_cfg}
 
+        self._dataloader_state_datastore: BaseDatastore = None
+        self._logging_datastore: BaseDatastore = None
         self._datastore: BaseDatastore = None
         self._final_datastore: BaseDatastore = None
 
@@ -195,7 +197,7 @@ class SdgTask:
             "store_name": os.path.join(self._store_name, "dataloader_state"),
             **self._seed_datastore_cfg,
         }
-        dataloader_state_datastore = get_datastore(
+        self._dataloader_state_datastore = get_datastore(
             self._seed_datastore_cfg.get(TYPE_KEY), **dls_ds_kwargs
         )
 
@@ -203,7 +205,6 @@ class SdgTask:
         self._dataloader = get_dataloader(
             self._dataloader_cfg.get(TYPE_KEY),
             data=seed_datastore.load_data(),
-            state_datastore=dataloader_state_datastore,
             **self._dataloader_cfg,
         )
 
@@ -360,10 +361,12 @@ class SdgTask:
                     self._final_datastore.save_data([instruction])
 
     def save_dataloader_state(self):
-        self._dataloader.save_state()
+        self._dataloader_state_datastore.save_data([self._dataloader.get_state()])
 
     def load_dataloader_state(self):
-        self._dataloader.load_state()
+        prev_state = self._dataloader_state_datastore.load_data()
+        if prev_state:
+            self._dataloader.set_state(prev_state[-1])
 
     def save_log_data(self) -> None:
         """Saves any Logging information to the datastore."""

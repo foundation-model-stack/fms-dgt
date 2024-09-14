@@ -26,13 +26,11 @@ class DefaultDataloader(BaseDataloader):
         self._i = 0
         self._loop_over_data = loop_over_data
 
-    def save_state(self) -> None:
-        self._state_datastore.save_data([self._i])
+    def get_state(self) -> Any:
+        return self._i
 
-    def load_state(self) -> None:
-        state = self._state_datastore.load_data()
-        if state:
-            self._i = state[-1]
+    def set_state(self, state: Any) -> None:
+        self._i = state
 
     def __next__(self) -> Any:
         try:
