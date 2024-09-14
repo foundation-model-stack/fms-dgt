@@ -1,89 +1,39 @@
 # Standard
-from typing import Any, List, TypeVar
+from typing import Any
 import abc
 
-DATA_PATH_KEY = "data_path"
+# Local
+from fms_dgt.base.block import DATASET_TYPE
 
-T = TypeVar("T")
+DATA_PATH_KEY = "data_path"
 
 
 class BaseDatastore(abc.ABC):
     """Base Class for all data stores"""
 
-    def __init__(self, **kwargs: Any) -> None:
+    def __init__(self, store_name: str, **kwargs: Any) -> None:
         super().__init__()
+        self._store_name = store_name
 
-    def save_data(self, new_data: List[T]) -> None:
+    @property
+    def store_name(self):
+        return self._store_name
+
+    def save_data(self, new_data: DATASET_TYPE) -> None:
         """
         Saves generated data to specified location
 
         Args:
-            new_data (List[T]): A list of data items to be saved
+            new_data (DATASET_TYPE): A list of data items to be saved
         """
         raise NotImplementedError
 
     def load_data(
         self,
-    ) -> List[T]:
+    ) -> DATASET_TYPE:
         """Loads generated data from save location.
 
         Returns:
-            A list of generated data of type T.
+            A list of generated data of type DATASET_TYPE.
         """
         raise NotImplementedError
-
-    def load_dataset(
-        self,
-    ) -> List[T]:
-        """Loads dataset from specified source
-
-        Returns:
-            List[T]: Dataset object to be used as seed examples
-        """
-        raise NotImplementedError
-
-    def save_task(
-        self,
-    ) -> None:
-        """Default method for saving task specification"""
-        raise NotImplementedError
-
-    def load_task(
-        self,
-    ) -> Any:
-        """Default method for loading task specification
-
-        Returns:
-            Any: Task specification
-        """
-        raise NotImplementedError
-
-    def save_state(self, state: Any) -> None:
-        """Saves a state object that can be used to restore an object (e.g., a dataloader) to a previous state
-
-        Args:
-            state (Any): State object
-        """
-        pass
-
-    def load_state(
-        self,
-    ) -> Any:
-        """Loads the state object
-
-        Returns:
-            Any: State object
-        """
-        pass
-
-    def save_instruction_data(self, new_data: List[T]) -> None:
-        """Saves instruction data to specified location
-
-        Args:
-            new_data (List[T]): List of data to save
-        """
-        pass
-
-    def save_log_data(self, **kwargs):
-        """Saves data regarding run information"""
-        pass

@@ -10,21 +10,11 @@ class BaseDataloader(abc.ABC):
         """Takes data from datastore object and produces one example to be used by SDG process."""
         super().__init__()
 
-    def get_state(self) -> Any:
-        """Gets the state of the dataloader, which influences __next__ function
+    def save_state(self) -> None:
+        """Saves the state of the dataloader which influences the __next__ function"""
 
-        Returns:
-            Any: Dataloader state
-        """
-        pass
-
-    def set_state(self, state: Any) -> None:
-        """Sets the state of the dataloader, which influences __next__ function
-
-        Args:
-            state (Any): Dataloader state
-        """
-        pass
+    def load_state(self) -> None:
+        """Loads the state of the dataloader and sets it which influences the __next__ function"""
 
     @abc.abstractmethod
     def __next__(self) -> Any:

@@ -180,10 +180,6 @@ class DataBuilder(ABC):
         completed_tasks = [task for task in tasks if task.is_complete()]
         tasks = [task for task in tasks if task not in completed_tasks]
 
-        # save task details for incomplete tasks
-        for task in tasks:
-            task.save_task()
-
         progress_bar = tqdm(total=len(tasks), desc="Running generation tasks")
         generate_start = time.time()
 
@@ -310,10 +306,6 @@ class TransformationDataBuilder(DataBuilder):
                 task, TransformTask
             ), f"Task {task.name} must inherit from TransformTask class to be used with TransformationDataBuilder"
             task.load_dataloader_state()
-
-        # save task details for incomplete tasks
-        for task in tasks:
-            task.save_task()
 
         progress_bar = tqdm(total=len(tasks), desc="Running transformation tasks")
         generate_start = time.time()

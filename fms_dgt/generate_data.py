@@ -1,9 +1,11 @@
 # Standard
 from typing import Dict, List, Optional
+import json
 import os
 
 # Local
 from fms_dgt.base.databuilder import DataBuilder
+from fms_dgt.base.experiment_card import ExperimentCard
 from fms_dgt.base.registry import get_data_builder
 from fms_dgt.index import DataBuilderIndex
 import fms_dgt.utils as utils
@@ -75,8 +77,8 @@ def generate_data(
     ).items():
 
         # we batch together tasks at the level of data builders
-        original_builder_info = builder_index.builder_index[builder_name]
-        builder_dir = original_builder_info.get("builder_dir")
+        builder_info = builder_index.builder_index[builder_name]
+        builder_dir = builder_info.get("builder_dir")
         if isinstance(builder_cfg, tuple):
             _, builder_cfg = builder_cfg
             if builder_cfg is None:
@@ -86,11 +88,18 @@ def generate_data(
 
         all_builder_kwargs = {
             "config": builder_cfg,
-            "builder_dir": builder_dir,
             "task_kwargs": [
                 {
-                    "builder_cfg": builder_cfg,
-                    "builder_dir": builder_dir,
+                    # get experiment card
+                    "experiment_card": ExperimentCard(
+                        task_name=task_init.get("name"),
+                        task_spec=json.dumps(task_kwargs),
+                        databuilder_spec=json.dumps(
+                            utils.load_nested_paths(builder_cfg, builder_dir)
+                        ),
+                        exec_id=task_kwargs.get("exec_id"),
+                    ),
+                    # other params
                     **task_init,
                     **task_kwargs,
                 }

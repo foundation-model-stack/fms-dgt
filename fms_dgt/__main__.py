@@ -110,6 +110,11 @@ def add_task_args(parser: argparse.ArgumentParser):
         default=DEFAULT_GENERATED_FILES_OUTPUT_DIR,
         help="Path to output generated files.",
     )
+    group.add_argument(
+        "--exec-id",
+        type=str,
+        help="ID of entity executing experiment.",
+    )
     return group
 
 
