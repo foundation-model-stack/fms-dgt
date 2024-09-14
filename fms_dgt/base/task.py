@@ -192,13 +192,13 @@ class SdgTask:
             self._seed_datastore_cfg.get(TYPE_KEY), **seed_ds_kwargs
         )
 
-        # init dataloader state datastore (should be same as seed datastore)
+        # init dataloader state datastore (should be same as base datastore)
         dls_ds_kwargs = {
             "store_name": os.path.join(self._store_name, "dataloader_state"),
-            **self._seed_datastore_cfg,
+            **self._datastore_cfg,
         }
         self._dataloader_state_datastore = get_datastore(
-            self._seed_datastore_cfg.get(TYPE_KEY), **dls_ds_kwargs
+            self._datastore_cfg.get(TYPE_KEY), **dls_ds_kwargs
         )
 
         # init dataloader itself
