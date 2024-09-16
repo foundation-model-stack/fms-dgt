@@ -94,7 +94,8 @@ class SdgTask:
         self._instruction_format = instruction_format
 
         self._store_name = os.path.join(
-            self._experiment_card.task_name, self._experiment_card.exec_id
+            self._experiment_card.exec_id,
+            self._experiment_card.task_name,
         )
 
         self.machine_data = []
