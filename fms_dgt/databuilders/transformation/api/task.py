@@ -146,7 +146,7 @@ class ApiTransformDatastore(DefaultDatastore):
         self._splits = splits
         self._extract_fn = extract_fn
 
-    def load_dataset(self) -> List[Dict]:
+    def load_data(self) -> List[Dict]:
         raw_data = []
         for split in self._splits:
             sdg_logger.info("======= %s =======", split)
@@ -172,7 +172,7 @@ class ApiLlmTransformDatastore(ApiTransformDatastore):
 class ApiTopv2TransformDatastore(ApiTransformDatastore):
     """Api transform datastore"""
 
-    def load_dataset(self) -> List[Dict]:
+    def load_data(self) -> List[Dict]:
         raw_data = extract_raw_topv2_data(self._data_path)
         return raw_data
 

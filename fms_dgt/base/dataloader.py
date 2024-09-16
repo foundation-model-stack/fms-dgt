@@ -11,20 +11,14 @@ class BaseDataloader(abc.ABC):
         super().__init__()
 
     def get_state(self) -> Any:
-        """Gets the state of the dataloader, which influences __next__ function
-
-        Returns:
-            Any: Dataloader state
-        """
-        pass
+        """Gets the state of the dataloader which influences the __next__ function"""
 
     def set_state(self, state: Any) -> None:
-        """Sets the state of the dataloader, which influences __next__ function
+        """Sets the state of the dataloader which influences the __next__ function
 
         Args:
-            state (Any): Dataloader state
+            state (Any): object representing state of dataloader
         """
-        pass
 
     @abc.abstractmethod
     def __next__(self) -> Any:
