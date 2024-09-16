@@ -2,6 +2,7 @@
 from typing import Any
 
 # Local
+from fms_dgt.base.block import DATASET_TYPE
 from fms_dgt.base.dataloader import BaseDataloader
 from fms_dgt.base.datastore import BaseDatastore
 from fms_dgt.base.registry import register_dataloader
@@ -13,20 +14,23 @@ class DefaultDataloader(BaseDataloader):
 
     def __init__(
         self,
-        datastore: BaseDatastore = None,
+        data: DATASET_TYPE,
+        state_datastore: BaseDatastore = None,
         loop_over_data: bool = True,
+        **kwargs: Any,
     ) -> None:
-        super().__init__()
-        self._data = datastore.load_dataset()
+        super().__init__(**kwargs)
+
+        self._data = data
+        self._state_datastore = state_datastore
         self._i = 0
         self._loop_over_data = loop_over_data
 
-    def get_state(self) -> int:
+    def get_state(self) -> Any:
         return self._i
 
-    def set_state(self, state: int) -> None:
-        if state is not None:
-            self._i = state
+    def set_state(self, state: Any) -> None:
+        self._i = state
 
     def __next__(self) -> Any:
         try:

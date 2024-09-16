@@ -257,14 +257,14 @@ def read_data_file(file_path: str):
         contents = load_yaml_config(file_path)
 
         if not contents:
-            sdg_logger.warn("Skipping %s because it is empty!", file_path)
+            sdg_logger.warning("Skipping %s because it is empty!", file_path)
             return None
 
         if file_path.startswith("." + os.sep):
             file_path = file_path[len("." + os.sep) :]
 
         # get seed instruction data
-        task_name = "->".join(sanitize_path(os.path.dirname(file_path)).split(os.sep))
+        task_name = "__".join(sanitize_path(os.path.dirname(file_path)).split(os.sep))
         data_builder = contents.get("data_builder", "simple")
         created_by = contents.get("created_by", "")
         seed_examples = contents.pop("seed_examples", [dict()])
@@ -274,7 +274,6 @@ def read_data_file(file_path: str):
                 "data_builder": data_builder,
                 "created_by": created_by,
                 "seed_examples": seed_examples,
-                "file_path": file_path,
             },
             **contents,
         }

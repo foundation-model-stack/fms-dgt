@@ -3,7 +3,7 @@ data_builder: transform_api_topv2
 instruction_format:
   input: "SYSTEM: You are a helpful assistant with access to the following function calls. Your task is to produce a sequence of function calls necessary to generate response to the user utterance. Use the following function calls as required and return only function \"name\" with empty \"arguments\" dictionary in your response.\n<|function_call_library|>\n{{api_specifications}}\n\nUSER: {{input}}\nASSISTANT: "
   output: "{{output}}"
-datastore:
+seed_datastore:
   type: api_topv2_transform_datastore
   data_path: data/transformation/apis/topv2/TOPv2_Dataset
   splits: [train, dev] # [train, test, dev]

@@ -36,7 +36,7 @@ class ApiSdgData(SdgData):
         ) = (None, None, None, None, None)
         return new_instr
 
-    def to_output_dict(self):
+    def to_dict(self):
         output = asdict(self)
         output["api_specifications"] = None
         return output

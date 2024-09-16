@@ -2,14 +2,13 @@
 from abc import abstractmethod
 from typing import Any, Dict, List, Optional
 import dataclasses
+import json
 
 # Third Party
-from datasets import Dataset
 import pandas as pd
 
 # Local
-from fms_dgt.base.block import DATASET_ROW_TYPE, DATASET_TYPE, BaseBlock
-from fms_dgt.base.datastore import BaseDatastore
+from fms_dgt.base.block import DATASET_TYPE, BaseBlock
 from fms_dgt.base.registry import get_datastore
 from fms_dgt.blocks import TYPE_KEY
 
@@ -33,12 +32,7 @@ class BaseValidatorBlock(BaseBlock):
         # datastore params
         self._datastore = None
         if datastore is not None:
-            assert (
-                TYPE_KEY in datastore
-            ), f"Must specify data store type with '{TYPE_KEY}' key"
-            self._datastore: BaseDatastore = get_datastore(
-                datastore.get(TYPE_KEY), **datastore
-            )
+            self._datastore = get_datastore(datastore.get(TYPE_KEY), **datastore)
 
     def generate(
         self,
@@ -81,7 +75,7 @@ class BaseValidatorBlock(BaseBlock):
 
         return outputs
 
-    def save_filtered(self, filtered_data: List[DATASET_ROW_TYPE]):
+    def save_filtered(self, filtered_data: DATASET_TYPE):
         def to_serializable(x):
             if isinstance(x, pd.Series):
                 return to_serializable(x.to_dict())
@@ -94,7 +88,9 @@ class BaseValidatorBlock(BaseBlock):
             return x
 
         if filtered_data and self._datastore is not None:
-            self._datastore.save_data([to_serializable(x) for x in filtered_data])
+            self._datastore.save_data(
+                [json.dumps(to_serializable(x)) for x in filtered_data]
+            )
 
     @abstractmethod
     def _validate(self, *args: Any, **kwargs: Any) -> bool:
