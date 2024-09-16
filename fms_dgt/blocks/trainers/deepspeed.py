@@ -14,7 +14,7 @@ import transformers
 
 # Local
 from fms_dgt.base.task import InputOutputData
-from fms_dgt.base.trainer import BaseTrainer
+from fms_dgt.blocks.trainers.trainer import BaseTrainer
 
 ###
 # Trainer itself
@@ -25,6 +25,7 @@ class DeepspeedTrainer(BaseTrainer):
     def __init__(
         self,
         model_id_or_path: str,
+        config_path: str,
         output_dir: str,
         data: List[InputOutputData],
         config_path: str,
