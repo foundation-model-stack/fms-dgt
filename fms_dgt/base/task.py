@@ -6,7 +6,7 @@ import os
 import random
 
 # Local
-from fms_dgt.base.datastore import BaseDatastore
+from fms_dgt.base.datastore import BaseDatastore, DatastoreDataType
 from fms_dgt.base.experiment_card import ExperimentCard
 from fms_dgt.base.registry import get_dataloader, get_datastore
 from fms_dgt.utils import group_data_by_attribute
@@ -214,6 +214,7 @@ class SdgTask:
         # init input/output datastore
         io_ds_kwargs = {
             "store_name": os.path.join(self._store_name, "data"),
+            "data_type": DatastoreDataType.TASK_DATA,
             **self._datastore_cfg,
         }
         self._datastore = get_datastore(
@@ -232,6 +233,7 @@ class SdgTask:
         # init logging datastore
         logging_ds_kwargs = {
             "store_name": os.path.join(self._store_name, "logging"),
+            "data_type": DatastoreDataType.LOGGING,
             **self._datastore_cfg,
         }
         self._logging_datastore = get_datastore(
@@ -369,11 +371,16 @@ class SdgTask:
         if prev_state:
             self._dataloader.set_state(prev_state[-1])
 
-    def save_log_data(self) -> None:
-        """Saves any Logging information to the datastore."""
-        # TODO: populate this with all log data
-        log_data = dict()
-        self._logging_datastore.save_data([log_data])
+    def finish(self) -> None:
+        """Method for wrapping up task execution. Called after `is_complete` signals task has completed"""
+
+        self.save_final_data()
+
+        # close datastores
+        self._dataloader_state_datastore.close()
+        self._logging_datastore.close()
+        self._datastore.close()
+        self._final_datastore.close()
 
 
 ###
