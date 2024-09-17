@@ -7,9 +7,9 @@ import random
 
 # Local
 from fms_dgt.base.datastore import BaseDatastore, DatastoreDataType
-from fms_dgt.base.experiment_card import ExperimentCard
 from fms_dgt.base.registry import get_dataloader, get_datastore
-from fms_dgt.utils import group_data_by_attribute
+from fms_dgt.base.task_card import TaskCard
+from fms_dgt.utils import group_data_by_attribute, sdg_logger
 
 DEFAULT_OUTPUT_DIR = "output"
 
@@ -47,7 +47,7 @@ class SdgTask:
         task_description: str,
         created_by: str,
         data_builder: str,
-        experiment_card: ExperimentCard,
+        task_card: TaskCard,
         instruction_format: Optional[Dict[str, str]] = None,
         output_dir: Optional[str] = "output",
         output_format: Optional[str] = "jsonl",
@@ -67,7 +67,7 @@ class SdgTask:
             task_description (str): A description of the SDG task is designed to solve.
             created_by (str): The name of the individual / group who created the code assistant.
             data_builder (str): The name of the data builder that should be used to process this task.
-            experiment_card (ExperimentCard): The experiment card containing all experiment information
+            task_card (TaskCard): The task card containing all experiment information
             instruction_format (Optional[Dict[str, str]]): A dictionary template that can be used to translate intermediate data objects to instruction-tuning pairs
             output_dir (Optional[str]): The directory where the generated outputs will be saved.
             output_format (Optional[str]): The format of the file where generated outputs are saved.
@@ -85,7 +85,7 @@ class SdgTask:
         self._task_description = task_description
         self._created_by = created_by
         self._data_builder = data_builder
-        self._experiment_card = experiment_card
+        self._task_card = task_card
         self._restart_generation = restart_generation
         self._seed_examples = seed_examples
         self._num_outputs_to_generate = num_outputs_to_generate
@@ -93,10 +93,7 @@ class SdgTask:
         self._output_dir = output_dir
         self._instruction_format = instruction_format
 
-        self._store_name = os.path.join(
-            self._experiment_card.exec_id,
-            self._experiment_card.task_name,
-        )
+        self._store_name = self._task_card.task_name
 
         self.machine_data = []
 
@@ -123,6 +120,7 @@ class SdgTask:
         base_store_cfg = {
             "restart": self._restart_generation,
             "output_dir": self._output_dir,
+            "task_card": self._task_card,
         }
         self._datastore_cfg = {
             **base_store_cfg,
@@ -132,13 +130,13 @@ class SdgTask:
             **base_store_cfg,
             **(seed_datastore if seed_datastore is not None else {TYPE_KEY: "default"}),
         }
-        self._exp_card_datastore_cfg = {**base_store_cfg, **self._datastore_cfg}
+        self._task_card_datastore_cfg = {**base_store_cfg, **self._datastore_cfg}
 
         self._dataloader_state_datastore: BaseDatastore = None
         self._datastore: BaseDatastore = None
         self._final_datastore: BaseDatastore = None
 
-        self._save_exp_card()
+        self._save_task_card()
         self._init_dataloader()
         self._init_datastores()
 
@@ -160,24 +158,27 @@ class SdgTask:
         """
         return self._task_description
 
-    def _save_exp_card(self):
+    def _save_task_card(self):
         """Saves experiment card to datastore."""
 
         exp_ds_kwargs = {
-            "store_name": os.path.join(self._store_name, "experiment_card"),
-            **self._exp_card_datastore_cfg,
+            "store_name": os.path.join(self._store_name, "task_card"),
+            "data_type": DatastoreDataType.CARD,
+            **self._task_card_datastore_cfg,
         }
-        exp_card_datastore = get_datastore(exp_ds_kwargs.get(TYPE_KEY), **exp_ds_kwargs)
+        task_card_datastore = get_datastore(
+            exp_ds_kwargs.get(TYPE_KEY), **exp_ds_kwargs
+        )
 
+        prev_card = None
         if not self._restart_generation:
-            prev_exp_cards: List[Dict] = exp_card_datastore.load_data()
-            if prev_exp_cards:
-                self._experiment_card.run_id = ExperimentCard(
-                    **prev_exp_cards[-1]
-                ).run_id
+            prev_task_cards: List[Dict] = task_card_datastore.load_data()
+            if prev_task_cards:
+                prev_card = TaskCard(**prev_task_cards[-1])
+                self._task_card.run_id = prev_card.run_id
 
-        exp_card_datastore.save_data([self._experiment_card.to_dict()])
-        exp_card_datastore.close()
+        task_card_datastore.save_data([self._task_card.to_dict()], task_card=prev_card)
+        task_card_datastore.close()
 
     def _init_dataloader(self) -> None:
         """Initialize datastore object for storing all SDG data."""
@@ -214,7 +215,6 @@ class SdgTask:
         # init input/output datastore
         io_ds_kwargs = {
             "store_name": os.path.join(self._store_name, "data"),
-            "experiment_card": self._experiment_card,
             "data_type": DatastoreDataType.TASK_DATA,
             **self._datastore_cfg,
         }

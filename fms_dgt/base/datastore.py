@@ -5,12 +5,13 @@ import abc
 
 # Local
 from fms_dgt.base.block import DATASET_TYPE
-from fms_dgt.base.experiment_card import ExperimentCard
+from fms_dgt.base.task_card import TaskCard
 
 
 class DatastoreDataType(Enum):
     MISC = 1
     TASK_DATA = 2
+    CARD = 3
 
 
 class BaseDatastore(abc.ABC):
@@ -20,13 +21,13 @@ class BaseDatastore(abc.ABC):
         self,
         store_name: str,
         data_type: Optional[DatastoreDataType] = None,
-        experiment_card: Optional[ExperimentCard] = None,
+        task_card: Optional[TaskCard] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__()
         self._store_name = store_name
         self._data_type = data_type if data_type is not None else DatastoreDataType.MISC
-        self._experiment_card = experiment_card
+        self._task_card = task_card
 
     @property
     def store_name(self):
@@ -37,15 +38,18 @@ class BaseDatastore(abc.ABC):
         return self._data_type
 
     @property
-    def experiment_card(self):
-        return self._experiment_card
+    def task_card(self):
+        return self._task_card
 
-    def save_data(self, new_data: DATASET_TYPE) -> None:
+    def save_data(
+        self, new_data: DATASET_TYPE, task_card: Optional[TaskCard] = None
+    ) -> None:
         """
         Saves generated data to specified location
 
         Args:
             new_data (DATASET_TYPE): A list of data items to be saved
+            task_card (Optional[TaskCard]): A task card corresponding to the data to be saved
         """
         raise NotImplementedError
 

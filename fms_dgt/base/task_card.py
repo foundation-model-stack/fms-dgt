@@ -7,7 +7,7 @@ _DEFAULT_EXEC_ID = "user"
 
 
 @dataclass
-class ExperimentCard:
+class TaskCard:
     """This class is intended to hold the all information regarding the experiment being run"""
 
     task_name: str  # name of task

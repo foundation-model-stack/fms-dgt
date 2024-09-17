@@ -5,8 +5,8 @@ import os
 
 # Local
 from fms_dgt.base.databuilder import DataBuilder
-from fms_dgt.base.experiment_card import ExperimentCard
 from fms_dgt.base.registry import get_data_builder
+from fms_dgt.base.task_card import TaskCard
 from fms_dgt.index import DataBuilderIndex
 import fms_dgt.utils as utils
 
@@ -90,18 +90,17 @@ def generate_data(
             "config": builder_cfg,
             "task_kwargs": [
                 {
-                    # get experiment card
-                    "experiment_card": ExperimentCard(
+                    # get task card
+                    "task_card": TaskCard(
                         task_name=task_init.get("name"),
-                        task_spec=json.dumps(task_kwargs),
+                        task_spec=json.dumps({**task_init, **task_kwargs}),
                         databuilder_spec=json.dumps(
                             utils.load_nested_paths(builder_cfg, builder_dir)
                         ),
-                        exec_id=task_kwargs.get("exec_id"),
+                        exec_id={**task_init, **task_kwargs}.get("exec_id"),
                     ),
                     # other params
-                    **task_init,
-                    **task_kwargs,
+                    **{**task_init, **task_kwargs},
                 }
                 for task_init in task_inits
                 if task_init["data_builder"] == builder_name
