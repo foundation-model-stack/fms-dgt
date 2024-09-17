@@ -124,11 +124,7 @@ class SdgTask:
             "restart": self._restart_generation,
             "output_dir": self._output_dir,
         }
-        self._exp_card_datastore_cfg = {**base_store_cfg, **self._datastore_cfg}
-        self._save_exp_card()
-
         self._datastore_cfg = {
-            "experiment_card": self._experiment_card,
             **base_store_cfg,
             **(datastore if datastore is not None else {TYPE_KEY: "default"}),
         }
@@ -136,11 +132,13 @@ class SdgTask:
             **base_store_cfg,
             **(seed_datastore if seed_datastore is not None else {TYPE_KEY: "default"}),
         }
+        self._exp_card_datastore_cfg = {**base_store_cfg, **self._datastore_cfg}
 
         self._dataloader_state_datastore: BaseDatastore = None
         self._datastore: BaseDatastore = None
         self._final_datastore: BaseDatastore = None
 
+        self._save_exp_card()
         self._init_dataloader()
         self._init_datastores()
 
@@ -216,6 +214,7 @@ class SdgTask:
         # init input/output datastore
         io_ds_kwargs = {
             "store_name": os.path.join(self._store_name, "data"),
+            "experiment_card": self._experiment_card,
             "data_type": DatastoreDataType.TASK_DATA,
             **self._datastore_cfg,
         }
