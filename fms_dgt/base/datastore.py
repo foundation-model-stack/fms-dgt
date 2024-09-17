@@ -5,6 +5,7 @@ import abc
 
 # Local
 from fms_dgt.base.block import DATASET_TYPE
+from fms_dgt.base.experiment_card import ExperimentCard
 
 
 class DatastoreDataType(Enum):
@@ -20,11 +21,13 @@ class BaseDatastore(abc.ABC):
         self,
         store_name: str,
         data_type: Optional[DatastoreDataType] = None,
+        experiment_card: Optional[ExperimentCard] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__()
         self._store_name = store_name
         self._data_type = data_type if data_type is not None else DatastoreDataType.MISC
+        self._experiment_card = experiment_card
 
     @property
     def store_name(self):
@@ -33,6 +36,10 @@ class BaseDatastore(abc.ABC):
     @property
     def data_type(self):
         return self._data_type
+
+    @property
+    def experiment_card(self):
+        return self._experiment_card
 
     def save_data(self, new_data: DATASET_TYPE) -> None:
         """
