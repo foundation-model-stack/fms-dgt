@@ -207,14 +207,17 @@ class DataBuilder(ABC):
                     stalled_cts[task.name] = self._max_stalled_requests
 
                 if task.is_complete() or stalled_cts[task.name] <= 0:
-                    completed_tasks.append(task)
-                    progress_bar.update()
+
                     if stalled_cts[task.name] <= 0:
                         sdg_logger.info(
                             "Task %s has not produced any data in the last %s attempts, terminating task",
                             task.name,
                             self._max_stalled_requests,
                         )
+
+                    completed_tasks.append(task)
+                    task.finish()
+                    progress_bar.update()
 
             tasks = [task for task in tasks if task not in completed_tasks]
 
@@ -232,8 +235,6 @@ class DataBuilder(ABC):
         sdg_logger.info("Launch postprocessing")
         self.execute_postprocessing()
         sdg_logger.info("Postprocessing completed")
-
-        self.finalize_tasks(completed_tasks)
 
     def call_with_task_list(
         self, request_idx: int, tasks: List[SdgTask]
@@ -272,16 +273,6 @@ class DataBuilder(ABC):
     def execute_postprocessing(self):
         """Executes any postprocessing required after tasks have completed."""
         pass
-
-    def finalize_tasks(self, tasks: List[SdgTask]):
-        """After tasks have completed, this method saves the final data for each task and saves any logging info.
-
-        Args:
-            tasks (List[SdgTask]): List of tasks that have completed
-        """
-        for task in tasks:
-            task.save_final_data()
-            task.save_log_data()
 
 
 ###
@@ -333,8 +324,6 @@ class TransformationDataBuilder(DataBuilder):
 
         generate_duration = time.time() - generate_start
         sdg_logger.info("Generation took %.2fs", generate_duration)
-
-        self.finalize_tasks(tasks)
 
     def call_with_task_list(self, tasks: List[SdgTask]) -> Iterable[SdgData]:
         """Executes data builder __call__ function for all in-progress tasks.
