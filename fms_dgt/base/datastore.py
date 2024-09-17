@@ -11,7 +11,6 @@ from fms_dgt.base.experiment_card import ExperimentCard
 class DatastoreDataType(Enum):
     MISC = 1
     TASK_DATA = 2
-    LOGGING = 3
 
 
 class BaseDatastore(abc.ABC):

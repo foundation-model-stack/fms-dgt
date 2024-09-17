@@ -138,7 +138,6 @@ class SdgTask:
         }
 
         self._dataloader_state_datastore: BaseDatastore = None
-        self._logging_datastore: BaseDatastore = None
         self._datastore: BaseDatastore = None
         self._final_datastore: BaseDatastore = None
 
@@ -180,6 +179,7 @@ class SdgTask:
                 ).run_id
 
         exp_card_datastore.save_data([self._experiment_card.to_dict()])
+        exp_card_datastore.close()
 
     def _init_dataloader(self) -> None:
         """Initialize datastore object for storing all SDG data."""
@@ -230,16 +230,6 @@ class SdgTask:
         }
         self._final_datastore = get_datastore(
             self._datastore_cfg.get(TYPE_KEY), **final_ds_kwargs
-        )
-
-        # init logging datastore
-        logging_ds_kwargs = {
-            "store_name": os.path.join(self._store_name, "logging"),
-            "data_type": DatastoreDataType.LOGGING,
-            **self._datastore_cfg,
-        }
-        self._logging_datastore = get_datastore(
-            self._datastore_cfg.get(TYPE_KEY), **logging_ds_kwargs
         )
 
     def instantiate_input_example(self, **kwargs: Any) -> INPUT_DATA_TYPE:
@@ -380,7 +370,6 @@ class SdgTask:
 
         # close datastores
         self._dataloader_state_datastore.close()
-        self._logging_datastore.close()
         self._datastore.close()
         self._final_datastore.close()
 
