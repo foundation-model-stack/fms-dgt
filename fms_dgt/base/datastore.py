@@ -5,7 +5,7 @@ import abc
 
 # Local
 from fms_dgt.base.block import DATASET_TYPE
-from fms_dgt.base.task_card import TaskCard
+from fms_dgt.base.task_card import TaskRunCard
 
 
 class DatastoreDataType(Enum):
@@ -21,7 +21,7 @@ class BaseDatastore(abc.ABC):
         self,
         store_name: str,
         data_type: Optional[DatastoreDataType] = None,
-        task_card: Optional[TaskCard] = None,
+        task_card: Optional[TaskRunCard] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__()
@@ -42,7 +42,7 @@ class BaseDatastore(abc.ABC):
         return self._task_card
 
     def save_data(
-        self, new_data: DATASET_TYPE, task_card: Optional[TaskCard] = None
+        self, new_data: DATASET_TYPE, task_card: Optional[TaskRunCard] = None
     ) -> None:
         """
         Saves generated data to specified location

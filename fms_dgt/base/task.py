@@ -8,8 +8,8 @@ import random
 # Local
 from fms_dgt.base.datastore import BaseDatastore, DatastoreDataType
 from fms_dgt.base.registry import get_dataloader, get_datastore
-from fms_dgt.base.task_card import TaskCard
-from fms_dgt.utils import group_data_by_attribute, sdg_logger
+from fms_dgt.base.task_card import TaskRunCard
+from fms_dgt.utils import group_data_by_attribute
 
 DEFAULT_OUTPUT_DIR = "output"
 
@@ -47,7 +47,7 @@ class SdgTask:
         task_description: str,
         created_by: str,
         data_builder: str,
-        task_card: TaskCard,
+        task_card: TaskRunCard,
         instruction_format: Optional[Dict[str, str]] = None,
         output_dir: Optional[str] = "output",
         output_format: Optional[str] = "jsonl",
@@ -174,7 +174,7 @@ class SdgTask:
         if not self._restart_generation:
             prev_task_cards: List[Dict] = task_card_datastore.load_data()
             if prev_task_cards:
-                prev_card = TaskCard(**prev_task_cards[-1])
+                prev_card = TaskRunCard(**prev_task_cards[-1])
                 self._task_card.run_id = prev_card.run_id
 
         assert (

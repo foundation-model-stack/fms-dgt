@@ -6,7 +6,7 @@ import os
 # Local
 from fms_dgt.base.databuilder import DataBuilder
 from fms_dgt.base.registry import get_data_builder
-from fms_dgt.base.task_card import TaskCard
+from fms_dgt.base.task_card import TaskRunCard
 from fms_dgt.index import DataBuilderIndex
 import fms_dgt.utils as utils
 
@@ -91,7 +91,7 @@ def generate_data(
             "task_kwargs": [
                 {
                     # get task card
-                    "task_card": TaskCard(
+                    "task_card": TaskRunCard(
                         task_name=task_init.get("name"),
                         task_spec=json.dumps({**task_init, **task_kwargs}),
                         databuilder_spec=json.dumps(

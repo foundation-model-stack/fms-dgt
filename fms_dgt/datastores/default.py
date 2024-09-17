@@ -11,9 +11,9 @@ import yaml
 
 # Local
 from fms_dgt.base.block import DATASET_TYPE
-from fms_dgt.base.datastore import BaseDatastore, DatastoreDataType
+from fms_dgt.base.datastore import BaseDatastore
 from fms_dgt.base.registry import register_datastore
-from fms_dgt.base.task_card import TaskCard
+from fms_dgt.base.task_card import TaskRunCard
 
 T = TypeVar("T")
 
@@ -48,7 +48,7 @@ class DefaultDatastore(BaseDatastore):
         os.makedirs(output_dir, exist_ok=True)
 
     def save_data(
-        self, new_data: List[T], task_card: Optional[TaskCard] = None
+        self, new_data: List[T], task_card: Optional[TaskRunCard] = None
     ) -> None:
 
         data_format = os.path.splitext(self._output_path)[-1]
