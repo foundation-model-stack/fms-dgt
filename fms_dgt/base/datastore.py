@@ -63,5 +63,5 @@ class BaseDatastore(abc.ABC):
         """
         raise NotImplementedError
 
-    def close(self):
+    def close(self) -> None:
         """Method for closing a datastore when generation has completed"""
