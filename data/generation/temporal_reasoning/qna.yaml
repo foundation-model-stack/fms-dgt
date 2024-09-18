@@ -1,3 +1,4 @@
+task_name: temporal_reasoning
 created_by: IBM
 task_description: "To teach a language model about chronological order of time. \n"
 datastore:

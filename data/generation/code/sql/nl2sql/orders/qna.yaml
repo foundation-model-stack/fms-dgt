@@ -1,3 +1,4 @@
+task_name: nl2sql_orders
 created_by: drugilsberg
 task_description: Natural Language to SQL data generation task for a Postgres database of orders
 data_builder: nl2sql

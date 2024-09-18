@@ -1,3 +1,4 @@
+task_name: api_parallel_single
 created_by: IBM
 task_description: API Parallel Single Sequencing
 data_builder: api_function_checking
