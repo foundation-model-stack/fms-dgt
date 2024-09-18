@@ -1,3 +1,4 @@
+task_name: causal_logical_reasoning
 created_by: IBM
 data_builder: simple
 seed_examples:

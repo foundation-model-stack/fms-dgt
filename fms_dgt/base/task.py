@@ -43,7 +43,7 @@ class SdgTask:
 
     def __init__(
         self,
-        name: str,
+        task_name: str,
         task_description: str,
         created_by: str,
         data_builder: str,
@@ -63,7 +63,7 @@ class SdgTask:
         """Initializes the Task object
 
         Args:
-            name (str): The name of the Task object.
+            task_name (str): The name of the Task object.
             task_description (str): A description of the SDG task is designed to solve.
             created_by (str): The name of the individual / group who created the code assistant.
             data_builder (str): The name of the data builder that should be used to process this task.
@@ -81,7 +81,7 @@ class SdgTask:
             num_outputs_to_generate (Optional[int]): The number of outputs to generate.
         """
 
-        self._name = name
+        self._name = task_name
         self._task_description = task_description
         self._created_by = created_by
         self._data_builder = data_builder
@@ -359,12 +359,14 @@ class SdgTask:
                     self._final_datastore.save_data([instruction])
 
     def save_dataloader_state(self):
-        self._dataloader_state_datastore.save_data([self._dataloader.get_state()])
+        self._dataloader_state_datastore.save_data(
+            [{"state": self._dataloader.get_state()}]
+        )
 
     def load_dataloader_state(self):
         prev_state = self._dataloader_state_datastore.load_data()
         if prev_state:
-            self._dataloader.set_state(prev_state[-1])
+            self._dataloader.set_state(prev_state[-1]["state"])
 
     def finish(self) -> None:
         """Method for wrapping up task execution. Called after `is_complete` signals task has completed"""

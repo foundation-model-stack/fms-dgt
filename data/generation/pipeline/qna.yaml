@@ -1,3 +1,4 @@
+task_name: pipeline_test
 created_by: IBM
 data_builder: pipeline
 seed_examples:
