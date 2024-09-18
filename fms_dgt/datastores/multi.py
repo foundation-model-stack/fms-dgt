@@ -42,10 +42,10 @@ class MultiTargetDatastore(BaseDatastore):
     def datastores(self):
         return self._datastores
 
-    def save_data(self, new_data: List[T]) -> None:
+    def save_data(self, *args, **kwargs) -> None:
         """Saves generated data to specified location"""
         for datastore in self._datastores:
-            datastore.save_data(new_data)
+            datastore.save_data(*args, **kwargs)
 
     def load_data(
         self,

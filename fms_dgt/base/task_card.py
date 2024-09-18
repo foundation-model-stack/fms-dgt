@@ -11,6 +11,7 @@ class TaskRunCard:
     """This class is intended to hold the all information regarding the experiment being run"""
 
     task_name: str  # name of task
+    databuilder_name: str  # name of databuilder associated with task
     task_spec: str  # json string capturing all of task settings
     databuilder_spec: str  # json string capturing all of databuilder settings
     exec_id: Optional[
