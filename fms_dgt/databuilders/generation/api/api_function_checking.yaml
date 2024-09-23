@@ -12,7 +12,7 @@ blocks:
     filter: true
     datastore:
       type: default
-      output_dir: output/filtered_data
+      output_dir: logs/filtered_data
       store_name: api_function_checking
       restart: true
   - name: val2

@@ -299,15 +299,19 @@ def load_joint_config(yaml_path: str):
     with open(yaml_path, "r") as f:
         config: dict = yaml.full_load(f)
 
-    data_paths, config_overrides = [], []
+    data_paths, db_overrides, task_overrides = [], [], []
+
     for k, v in config.items():
-        if k == "databuilders":
+        if k in ["databuilders", "tasks"]:
             if type(v) != dict:
                 raise ValueError(
                     f"'databuilders' field in config must be provided as a dictionary where keys are the names of databuilders to override"
                 )
-            config_overrides = v
-        elif k == "tasks":
+            if k == "databuilders":
+                db_overrides = v
+            else:
+                task_overrides = v
+        elif k == "task_files":
             if type(v) != list:
                 raise ValueError(f"'tasks' field in config must be provided as a list")
             data_paths = v
@@ -316,7 +320,7 @@ def load_joint_config(yaml_path: str):
                 f"Config must only specify 'databuilders' and 'tasks' fields"
             )
 
-    return data_paths, config_overrides
+    return data_paths, db_overrides, task_overrides
 
 
 def load_nested_paths(inp: Dict, base_dir: str = None):
