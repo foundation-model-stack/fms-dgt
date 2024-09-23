@@ -14,6 +14,7 @@ class DatastoreDataType(Enum):
     CARD = 3
     VAL = 4
     STATE = 5
+    SEED = 6
 
 
 class BaseDatastore(abc.ABC):
