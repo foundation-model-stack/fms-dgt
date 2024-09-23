@@ -9,6 +9,11 @@ databuilders:
         filter: true
         threshold: 0.9
 tasks:
+  api_yes_no:
+    datastore:
+      type: default
+      output_dir: output/test_yes_no
+task_files:
   - data/generation/code/apis/glaive/detection/multiple_apis/qna.yaml
   - data/generation/code/apis/glaive/detection/single_api/qna.yaml
   - data/generation/code/apis/glaive/detection/yes_no/qna.yaml

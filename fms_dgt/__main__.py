@@ -48,6 +48,11 @@ def add_base_args(parser: argparse.ArgumentParser):
         nargs="*",
         help="One or more paths to local data.",
     )
+    group.add_argument(
+        "--build-id",
+        type=str,
+        help="Build ID to identify SDG job",
+    )
     return group
 
 

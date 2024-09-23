@@ -201,6 +201,7 @@ class SdgTask:
         # init dataloader state datastore (should be same as base datastore)
         dls_ds_kwargs = {
             "store_name": os.path.join(self._store_name, "dataloader_state"),
+            "data_type": DatastoreDataType.STATE,
             **self._datastore_cfg,
         }
         self._dataloader_state_datastore = get_datastore(

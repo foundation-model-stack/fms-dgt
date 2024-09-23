@@ -12,6 +12,8 @@ class DatastoreDataType(Enum):
     MISC = 1
     TASK_DATA = 2
     CARD = 3
+    VAL = 4
+    STATE = 5
 
 
 class BaseDatastore(abc.ABC):
