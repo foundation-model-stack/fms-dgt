@@ -32,7 +32,7 @@ def generate_data(
     """
     data_paths = data_paths or []
     builder_overrides = None
-    task_overrides = None
+    task_overrides = dict()
 
     if config_path:
         addlt_data_paths, builder_overrides, task_overrides = utils.load_joint_config(
