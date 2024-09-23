@@ -191,6 +191,7 @@ class SdgTask:
         seed_ds_kwargs = {
             "store_name": os.path.join(self._store_name, "seed_data"),
             "data": self._seed_examples,
+            "data_type": DatastoreDataType.SEED,
             **self._seed_datastore_cfg,
             "restart": False,
         }

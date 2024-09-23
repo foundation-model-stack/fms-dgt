@@ -286,28 +286,40 @@ def load_joint_config(yaml_path: str):
     with open(yaml_path, "r") as f:
         config: dict = yaml.full_load(f)
 
-    data_paths, db_overrides, task_overrides = [], [], []
+    data_paths, db_overrides, task_overrides, ordering = [], [], [], []
 
     for k, v in config.items():
         if k in ["databuilders", "tasks"]:
             if type(v) != dict:
                 raise ValueError(
-                    f"'databuilders' field in config must be provided as a dictionary where keys are the names of databuilders to override"
+                    f"'{k}' field in config must be provided as a dictionary where keys are the names of databuilders to override"
                 )
             if k == "databuilders":
                 db_overrides = v
             else:
                 task_overrides = v
+        elif k == "ordering":
+            if type(v) != list:
+                raise ValueError(
+                    f"'ordering' field in config must be provided as a list"
+                )
+            if any([type(l) != list for l in v]):
+                raise ValueError(
+                    f"Every element in 'ordering' field in config must be provided as a list"
+                )
+            ordering = v
         elif k == "task_files":
             if type(v) != list:
-                raise ValueError(f"'tasks' field in config must be provided as a list")
+                raise ValueError(
+                    f"'task_files' field in config must be provided as a list"
+                )
             data_paths = v
         else:
             raise ValueError(
                 f"Config must only specify 'databuilders' and 'tasks' fields"
             )
 
-    return data_paths, db_overrides, task_overrides
+    return data_paths, db_overrides, task_overrides, ordering
 
 
 def load_nested_paths(inp: Dict, base_dir: str = None):
