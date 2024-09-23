@@ -1,5 +1,6 @@
 ssdg_env
 ssdg_venv
+logs
 src
 output*
 *~

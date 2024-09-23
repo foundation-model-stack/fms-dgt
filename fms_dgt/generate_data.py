@@ -19,6 +19,7 @@ def generate_data(
     data_paths: Optional[List[str]] = None,
     config_path: Optional[str] = None,
     include_builder_paths: Optional[List[str]] = None,
+    build_id: Optional[str] = None,
 ):
     """Generate data for a set of tasks using their respective data builders
 
@@ -30,10 +31,13 @@ def generate_data(
         include_builder_paths (Optional[List[str]], optional): A list of paths to search for data builders.
     """
     data_paths = data_paths or []
-    config_overrides = None
+    builder_overrides = None
+    task_overrides = None
 
     if config_path:
-        addlt_data_paths, config_overrides = utils.load_joint_config(config_path)
+        addlt_data_paths, builder_overrides, task_overrides = utils.load_joint_config(
+            config_path
+        )
         data_paths.extend(addlt_data_paths)
 
     if not data_paths and not config_path:
@@ -49,9 +53,14 @@ def generate_data(
     task_inits = []
     for data_path in data_paths:
         if data_path and os.path.exists(data_path):
-            task_inits.extend(utils.read_data(data_path))
+            for task_init in utils.read_data(data_path):
+                task_init = {
+                    **task_overrides.get(task_init["task_name"], dict()),
+                    **task_init,
+                }
+                task_inits.append(task_init)
         else:
-            raise SystemExit(f"Error: data path ({data_path}) does not exist.")
+            raise FileExistsError(f"Error: data path ({data_path}) does not exist.")
 
     # gather data builders here
     builder_list = [t["data_builder"] for t in task_inits]
@@ -73,7 +82,7 @@ def generate_data(
         raise ValueError(f"Builder specifications not found: [{missing}]")
 
     for builder_name, builder_cfg in builder_index.load_builder_configs(
-        builder_names, config_overrides=config_overrides
+        builder_names, config_overrides=builder_overrides
     ).items():
 
         # we batch together tasks at the level of data builders
@@ -98,7 +107,7 @@ def generate_data(
                         databuilder_spec=json.dumps(
                             utils.load_nested_paths(builder_cfg, builder_dir)
                         ),
-                        exec_id={**task_init, **task_kwargs}.get("exec_id"),
+                        build_id=build_id,
                     ),
                     # other params
                     **{**task_init, **task_kwargs},

@@ -9,6 +9,7 @@ import pandas as pd
 
 # Local
 from fms_dgt.base.block import DATASET_TYPE, BaseBlock
+from fms_dgt.base.datastore import DatastoreDataType
 from fms_dgt.base.registry import get_datastore
 from fms_dgt.blocks import TYPE_KEY
 
@@ -32,7 +33,10 @@ class BaseValidatorBlock(BaseBlock):
         # datastore params
         self._datastore = None
         if datastore is not None:
-            self._datastore = get_datastore(datastore.get(TYPE_KEY), **datastore)
+            self._datastore = get_datastore(
+                datastore.get(TYPE_KEY),
+                **{"data_type": DatastoreDataType.VAL, **datastore},
+            )
 
     def generate(
         self,
