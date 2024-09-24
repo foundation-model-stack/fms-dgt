@@ -34,11 +34,24 @@ class SdgData(abc.ABC):
 
 
 @dataclass
+<<<<<<< HEAD
 class InputOutputData(SdgData):
     """This class is intended to hold data that can directly be used for tuning a model"""
+=======
+class InputOutputData(abc.ABC):
+    """This class is intended to hold the final formatted instruction data"""
+>>>>>>> 25b4aaf (input output formal (#108))
 
     input: str
     output: str
+
+    def to_dict(self) -> Dict:
+        """Returns output dictionary representation of dataclass. Designed to be overridden with custom logic.
+
+        Returns:
+            Dict: Dictionary representation of dataclass
+        """
+        return asdict(self)
 
 
 class SdgTask:
@@ -282,9 +295,13 @@ class SdgTask:
         Returns:
             Dict: Dictionary representing an instruction-tuning pair.
         """
+
+        if isinstance(data, InputOutputData):
+            return data
+
         assert (
             self._instruction_format is not None
-        ), f"'instruction_format' cannot be none in method 'instantiate_instruction'"
+        ), f"'instruction_format' cannot be None in method 'instantiate_instruction'"
 
         data = asdict(data)
         output = dict(self._instruction_format)
@@ -293,7 +310,8 @@ class SdgTask:
                 inp_key = "{{" + ds_k + "}}"
                 if inp_key in output[k]:
                     output[k] = output[k].replace(inp_key, str(ds_v))
-        return InputOutputData(**output).to_output_dict()
+
+        return InputOutputData(**output)
 
     def get_example(self) -> SdgData:
         """Returns single example from dataloader.
@@ -369,11 +387,14 @@ class SdgTask:
         """Saves final instruction-tuning data that can be used directly for training."""
         if self._save_formatted_output:
             loaded_data = self._datastore.load_data() or []
-            for d in loaded_data:
-                instruction = self.instantiate_instruction(
+            to_add = [
+                self.instantiate_instruction(
                     self.instantiate_output_example(**d)
-                )
-                self._final_datastore.save_data([instruction])
+                ).to_dict()
+                for d in loaded_data
+            ]
+            if to_add:
+                self._final_datastore.save_data(to_add)
 
     def save_dataloader_state(self):
         self._dataloader_state_datastore.save_data(
