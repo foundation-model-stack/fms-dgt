@@ -15,6 +15,7 @@ class DatastoreDataType(Enum):
     VAL = 4
     STATE = 5
     SEED = 6
+    FINAL_DATA = 7
 
 
 class BaseDatastore(abc.ABC):
