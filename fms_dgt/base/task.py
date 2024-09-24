@@ -57,6 +57,7 @@ class SdgTask:
         data_builder: str,
         task_card: TaskRunCard,
         instruction_format: Optional[Dict[str, str]] = None,
+        save_formatted_output: Optional[bool] = False,
         output_dir: Optional[str] = "output",
         output_format: Optional[str] = "jsonl",
         datastore: Optional[Dict] = None,
@@ -77,6 +78,7 @@ class SdgTask:
             data_builder (str): The name of the data builder that should be used to process this task.
             task_card (TaskCard): The task card containing all experiment information
             instruction_format (Optional[Dict[str, str]]): A dictionary template that can be used to translate intermediate data objects to instruction-tuning pairs
+            save_formatted_output (Optional[bool]): A boolean indicating whether to save outputs that have been reformatted
             output_dir (Optional[str]): The directory where the generated outputs will be saved.
             output_format (Optional[str]): The format of the file where generated outputs are saved.
             datastore (Optional[Dict]): A dictionary containing the configuration for the datastore.
@@ -100,6 +102,7 @@ class SdgTask:
         self._output_format = output_format
         self._output_dir = output_dir
         self._instruction_format = instruction_format
+        self._save_formatted_output = save_formatted_output
 
         self._store_name = self._task_card.task_name
 
@@ -279,8 +282,9 @@ class SdgTask:
         Returns:
             Dict: Dictionary representing an instruction-tuning pair.
         """
-        if type(data) == InputOutputData:
-            return data.to_output_dict()
+        assert (
+            self._instruction_format is not None
+        ), f"'instruction_format' cannot be none in method 'instantiate_instruction'"
 
         data = asdict(data)
         output = dict(self._instruction_format)
@@ -363,17 +367,13 @@ class SdgTask:
 
     def save_final_data(self) -> None:
         """Saves final instruction-tuning data that can be used directly for training."""
-        if (
-            self._instruction_format is not None
-            or self.OUTPUT_DATA_TYPE == InputOutputData
-        ):
-            loaded_data = self._datastore.load_data()
-            if loaded_data:
-                for d in loaded_data:
-                    instruction = self.instantiate_instruction(
-                        self.instantiate_output_example(**d)
-                    )
-                    self._final_datastore.save_data([instruction])
+        if self._save_formatted_output:
+            loaded_data = self._datastore.load_data() or []
+            for d in loaded_data:
+                instruction = self.instantiate_instruction(
+                    self.instantiate_output_example(**d)
+                )
+                self._final_datastore.save_data([instruction])
 
     def save_dataloader_state(self):
         self._dataloader_state_datastore.save_data(

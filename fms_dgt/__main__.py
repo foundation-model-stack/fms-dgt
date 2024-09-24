@@ -116,9 +116,9 @@ def add_task_args(parser: argparse.ArgumentParser):
         help="Path to output generated files.",
     )
     group.add_argument(
-        "--exec-id",
-        type=str,
-        help="ID of entity executing experiment.",
+        "--save-formatted-output",
+        action="store_true",
+        help="Save formatted output to datastore.",
     )
     return group
 
