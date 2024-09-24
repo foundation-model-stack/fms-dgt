@@ -47,7 +47,7 @@ class LMGenerator(BaseBlock):
         stop_sequences: List[str] = None,
         temperature: float = None,
         batch_size: int = None,
-        auto_chat_template: bool = False,
+        auto_chat_template: Optional[Union[bool, Dict]] = False,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
@@ -86,6 +86,15 @@ class LMGenerator(BaseBlock):
 
         self._chat_template = None
         if auto_chat_template:
+
+            if auto_chat_template is True:
+                auto_chat_template = dict()
+            assert isinstance(
+                auto_chat_template, dict
+            ), f"'auto_chat_template' must either be boolean or dictionary, instead got '{auto_chat_template}' with type {type(auto_chat_template)}"
+
+            self._auto_chat_template_params = {"tokenize": False, **auto_chat_template}
+
             try:
                 # Third Party
                 from transformers import AutoTokenizer
@@ -222,7 +231,11 @@ class LMGenerator(BaseBlock):
             if type(prompt) == str:
                 prompt = [{"role": "user", "content": prompt}]
 
-            inp_args = [self._chat_template.apply_chat_template(prompt, tokenize=False)]
+            inp_args = [
+                self._chat_template.apply_chat_template(
+                    prompt, **self._auto_chat_template_params
+                )
+            ]
 
         return inp_args, inp_kwargs
 
