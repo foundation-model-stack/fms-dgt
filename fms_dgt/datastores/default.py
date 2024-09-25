@@ -25,7 +25,6 @@ class DefaultDatastore(BaseDatastore):
         self,
         output_dir: str = None,
         data_format: str = "jsonl",
-        restart: bool = False,
         data: List[T] = None,
         data_path: str = None,
         data_split: str = "train",
@@ -41,7 +40,7 @@ class DefaultDatastore(BaseDatastore):
         self._data_path = data_path
         self._data_split = data_split
         self._data = data or []
-        if restart and os.path.exists(self._output_path):
+        if self._restart and os.path.exists(self._output_path):
             os.remove(self._output_path)
 
         os.makedirs(output_dir, exist_ok=True)
