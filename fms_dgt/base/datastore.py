@@ -45,9 +45,7 @@ class BaseDatastore(abc.ABC):
     def task_card(self):
         return self._task_card
 
-    def save_data(
-        self, new_data: DATASET_TYPE, task_card: Optional[TaskRunCard] = None
-    ) -> None:
+    def save_data(self, new_data: DATASET_TYPE) -> None:
         """
         Saves generated data to specified location
 
