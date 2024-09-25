@@ -209,7 +209,7 @@ class SdgTask:
             self._task_card.run_id is not None
         ), "TaskCard.run_id cannot be set to None"
 
-        task_card_datastore.save_data([self._task_card.to_dict()], task_card=prev_card)
+        task_card_datastore.save_data([self._task_card.to_dict()])
         task_card_datastore.close()
 
     def _init_dataloader(self) -> None:

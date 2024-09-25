@@ -46,9 +46,7 @@ class DefaultDatastore(BaseDatastore):
 
         os.makedirs(output_dir, exist_ok=True)
 
-    def save_data(
-        self, new_data: List[T], task_card: Optional[TaskRunCard] = None
-    ) -> None:
+    def save_data(self, new_data: List[T]) -> None:
 
         data_format = os.path.splitext(self._output_path)[-1]
 
