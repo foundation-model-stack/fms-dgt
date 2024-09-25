@@ -2,7 +2,6 @@
 from abc import abstractmethod
 from typing import Any, Dict, List, Optional
 import dataclasses
-import json
 
 # Third Party
 import pandas as pd
@@ -12,6 +11,9 @@ from fms_dgt.base.block import DATASET_TYPE, BaseBlock
 from fms_dgt.base.datastore import DatastoreDataType
 from fms_dgt.base.registry import get_datastore
 from fms_dgt.blocks import TYPE_KEY
+
+ARGS_SAVE_FIELD = "args"
+KWARGS_SAVE_FIELD = "kwargs"
 
 
 class BaseValidatorBlock(BaseBlock):
@@ -73,7 +75,9 @@ class BaseValidatorBlock(BaseBlock):
                 self.write_result(x, res, result_field)
                 outputs.append(x)
             if not res:
-                filtered.append((inp_args, inp_kwargs))
+                filtered.append(
+                    {ARGS_SAVE_FIELD: inp_args, KWARGS_SAVE_FIELD: inp_kwargs}
+                )
 
         self.save_filtered(filtered)
 
@@ -92,9 +96,7 @@ class BaseValidatorBlock(BaseBlock):
             return x
 
         if filtered_data and self._datastore is not None:
-            self._datastore.save_data(
-                [json.dumps(to_serializable(x)) for x in filtered_data]
-            )
+            self._datastore.save_data([to_serializable(x) for x in filtered_data])
 
     @abstractmethod
     def _validate(self, *args: Any, **kwargs: Any) -> bool:
