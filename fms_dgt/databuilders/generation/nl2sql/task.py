@@ -22,6 +22,7 @@ class SqlSdgData(SdgData):
     ground_truth: Optional[List[Dict[str, str]]]
     query_logs: Optional[List[str]]
     context: Optional[str]
+    config_path: Optional[str]
 
 
 class SqlSdgTask(SdgTask):
@@ -38,6 +39,7 @@ class SqlSdgTask(SdgTask):
         ground_truth: str = None,
         query_logs: str = None,
         context: str = None,
+        config_path: str = None,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
@@ -46,6 +48,7 @@ class SqlSdgTask(SdgTask):
         self._ground_truth = ground_truth
         self._query_logs = query_logs
         self._context = context
+        self._config_path = config_path
 
     def instantiate_input_example(self, **kwargs: Any):
         return self.INPUT_DATA_TYPE(
@@ -56,11 +59,12 @@ class SqlSdgTask(SdgTask):
             input=kwargs.get("context", kwargs.get("input", "")),
             output=kwargs.get("answer", kwargs.get("output")),
             document=kwargs.get("document", None),
-            ddl_schema=kwargs.get("ddl_schema", ""),
-            database_information=kwargs.get("database_information", None),
-            ground_truth=kwargs.get("ground_truth", None),
-            query_logs=kwargs.get("query_logs", None),
-            context=kwargs.get("context", None),
+            ddl_schema=kwargs.get("ddl_schema", self._ddl_schema),
+            database_information=kwargs.get("database_information", self._db_info),
+            ground_truth=kwargs.get("ground_truth", self._ground_truth),
+            query_logs=kwargs.get("query_logs", self._query_logs),
+            context=kwargs.get("context", self._context),
+            config_path=kwargs.get("config_path", self._config_path),
         )
 
     def get_example(self) -> None:
@@ -71,5 +75,6 @@ class SqlSdgTask(SdgTask):
                 ground_truth=self._ground_truth,
                 query_logs=self._query_logs,
                 context=self._context,
+                config_path=self._config_path,
             )
         )
