@@ -26,12 +26,14 @@ class BaseDatastore(abc.ABC):
         store_name: str,
         data_type: Optional[DatastoreDataType] = None,
         task_card: Optional[TaskRunCard] = None,
+        restart: Optional[bool] = False,
         **kwargs: Any,
     ) -> None:
         super().__init__()
         self._store_name = store_name
         self._data_type = data_type if data_type is not None else DatastoreDataType.MISC
         self._task_card = task_card
+        self._restart = restart
 
     @property
     def store_name(self):
