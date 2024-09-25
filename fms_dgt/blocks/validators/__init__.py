@@ -39,6 +39,7 @@ class BaseValidatorBlock(BaseBlock):
             self._datastore = get_datastore(
                 datastore.get(TYPE_KEY),
                 **{
+                    "store_name": f"{self.block_type}_{self.name}",
                     "task_card": canon_task_card,
                     "data_type": DatastoreDataType.VAL,
                     **datastore,
