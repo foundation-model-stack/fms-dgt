@@ -68,12 +68,12 @@ class DataBuilder(ABC):
             max_stalled_requests if max_stalled_requests is not None else float("inf")
         )
 
-        # initializing generators / validators
-        self._init_blocks()
-
         # initialize tasks
         if task_kwargs is not None:
             self._init_tasks(task_kwargs)
+
+        # initializing generators / validators
+        self._init_blocks()
 
         self.kwargs = kwargs
 
@@ -130,7 +130,9 @@ class DataBuilder(ABC):
                 block.name == obj_name for block in self._blocks
             ), f"Duplicate '{obj_name}' block in '{self.name}' data builder"
 
-            obj = get_block(obj_type, **obj_kwargs)
+            task_cards = [t.task_card for t in self._tasks]
+
+            obj = get_block(obj_type, task_cards=task_cards, **obj_kwargs)
 
             # we type check when not using a pipeline
             type_annotations = all_annotations(type(self))
