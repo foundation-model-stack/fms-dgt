@@ -35,9 +35,14 @@ class BaseValidatorBlock(BaseBlock):
         # datastore params
         self._datastore = None
         if datastore is not None:
+            canon_task_card = self._task_cards[0] if self._task_cards else None
             self._datastore = get_datastore(
                 datastore.get(TYPE_KEY),
-                **{"data_type": DatastoreDataType.VAL, **datastore},
+                **{
+                    "task_card": canon_task_card,
+                    "data_type": DatastoreDataType.VAL,
+                    **datastore,
+                },
             )
 
     def generate(

@@ -6,6 +6,9 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from datasets import Dataset
 import pandas as pd
 
+# Local
+from fms_dgt.base.task_card import TaskRunCard
+
 DATASET_ROW_TYPE = Union[Dict[str, Any], pd.Series]
 DATASET_TYPE = Union[Iterable[DATASET_ROW_TYPE], pd.DataFrame, Dataset]
 
@@ -35,6 +38,7 @@ class BaseBlock(ABC):
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
+        task_cards: Optional[List[TaskRunCard]] = None,
     ) -> None:
         """A block is a unit of computation that takes in some inputs and produces an output. It is intended to be specialized algorithms or processes that teams can contribute for others to use to build their pipelines.
 
@@ -44,6 +48,7 @@ class BaseBlock(ABC):
             arg_fields (Optional[List[str]], optional): A list of field names to use as positional arguments.
             kwarg_fields (Optional[List[str]], optional): A list of field names to use as keyword arguments.
             result_field (Optional[str], optional): Name of the result field in the input data row that the computation of the block will be written to.
+            task_cards (Optional[TaskRunCard], optional): A list of all task cards this block is associated with.
 
         Raises:
             TypeError: If any of the arguments are not of the correct type.
@@ -61,6 +66,7 @@ class BaseBlock(ABC):
         self._arg_fields = arg_fields
         self._kwarg_fields = kwarg_fields
         self._result_field = result_field
+        self._task_cards = task_cards
 
     @property
     def name(self) -> str:

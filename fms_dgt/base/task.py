@@ -177,6 +177,15 @@ class SdgTask:
         """
         return self._task_description
 
+    @property
+    def task_card(self) -> TaskRunCard:
+        """Returns the task card.
+
+        Returns:
+            TaskRunCard: Task card
+        """
+        return self._task_card
+
     def _save_task_card(self):
         """Saves experiment card to datastore."""
 
