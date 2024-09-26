@@ -223,7 +223,6 @@ class DataBuilder(ABC):
                         )
 
                     completed_tasks.append(task)
-                    task.finish()
                     progress_bar.update()
 
             tasks = [task for task in tasks if task not in completed_tasks]
@@ -242,6 +241,9 @@ class DataBuilder(ABC):
         sdg_logger.info("Launch postprocessing")
         self.execute_postprocessing()
         sdg_logger.info("Postprocessing completed")
+
+        for task in completed_tasks:
+            task.finish()
 
     def call_with_task_list(
         self, request_idx: int, tasks: List[SdgTask]

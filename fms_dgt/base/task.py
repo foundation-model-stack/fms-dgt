@@ -186,6 +186,15 @@ class SdgTask:
         """
         return self._task_card
 
+    @property
+    def datastore(self) -> BaseDatastore:
+        """Returns the datastore of the class.
+
+        Returns:
+            BaseDatastore: Datastore
+        """
+        return self._datastore
+
     def _save_task_card(self):
         """Saves experiment card to datastore."""
 

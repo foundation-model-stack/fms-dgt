@@ -12,7 +12,6 @@ import yaml
 from fms_dgt.base.block import DATASET_TYPE
 from fms_dgt.base.datastore import BaseDatastore
 from fms_dgt.base.registry import register_datastore
-from fms_dgt.base.task_card import TaskRunCard
 
 T = TypeVar("T")
 
