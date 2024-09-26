@@ -11,6 +11,8 @@ import pytest
 from fms_dgt.base.instance import Instance
 from fms_dgt.blocks.validators.lm_judge import LMJudgeValidator
 
+LM_RESULT_FIELD = "lm_generation"
+JUDGE_RESULT_FIELD = "judge_result"
 GREEDY_CFG = {
     "lm_config": {
         "type": "genai",
@@ -19,6 +21,7 @@ GREEDY_CFG = {
         "max_new_tokens": 25,
         "min_new_tokens": 1,
         "model_id_or_path": "ibm/granite-8b-code-instruct",
+        "result_field": LM_RESULT_FIELD,
     }
 }
 
@@ -26,7 +29,9 @@ GREEDY_CFG = {
 class TestLlmJudgeValidator:
     @pytest.mark.parametrize("model_backend", ["genai"])
     def test_generate_batch(self, model_backend):
-        lm_judge = LMJudgeValidator(name=f"test_{model_backend}", **GREEDY_CFG)
+        lm_judge = LMJudgeValidator(
+            name=f"test_{model_backend}", result_field=JUDGE_RESULT_FIELD, **GREEDY_CFG
+        )
 
         inputs = [
             {
@@ -38,10 +43,10 @@ class TestLlmJudgeValidator:
             inputs,
             arg_fields=["success_func"],
             lm_arg_fields=["lm_input"],
-            result_field="result",
-            lm_result_field="result",
+            result_field=JUDGE_RESULT_FIELD,
+            lm_result_field=LM_RESULT_FIELD,
         )
-        assert inputs[0]["result"], "Result should be true!"
+        assert inputs[0][JUDGE_RESULT_FIELD], "Result should be true!"
 
         inputs = [
             {
@@ -53,7 +58,23 @@ class TestLlmJudgeValidator:
             inputs,
             arg_fields=["success_func"],
             lm_arg_fields=["lm_input"],
-            result_field="result",
-            lm_result_field="result",
+            result_field=JUDGE_RESULT_FIELD,
+            lm_result_field=LM_RESULT_FIELD,
         )
-        assert not inputs[0]["result"], "Result should be false!"
+        assert not inputs[0][JUDGE_RESULT_FIELD], "Result should be false!"
+
+        inputs = [
+            {
+                "lm_input": "Is 'eat' a verb?\nRespond with 'yes' or 'no.\n",
+                "success_func": lambda x: "yes" in x,
+            }
+        ]
+        lm_judge.generate(
+            inputs,
+            arg_fields=["success_func"],
+            lm_arg_fields=["lm_input"],
+        )
+        assert inputs[0][JUDGE_RESULT_FIELD], "Result should be true!"
+        assert (
+            "yes" in inputs[0][LM_RESULT_FIELD]
+        ), "Result should contain the word 'yes'!"

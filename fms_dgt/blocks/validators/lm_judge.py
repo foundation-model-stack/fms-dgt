@@ -54,7 +54,7 @@ class LMJudgeValidator(BaseValidatorBlock):
             )
             success_func = args[0]
 
-            lm_res = self.get_result(llm_output, result_field)
+            lm_res = self.get_result(llm_output, self._llm_generator.result_field)
             new_result = success_func(lm_res)
             if new_result or not self._filter_invalids:
                 self.write_result(llm_output, new_result, result_field=result_field)
