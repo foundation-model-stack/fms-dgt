@@ -16,7 +16,7 @@ class BasePostProcessingBlock(BaseBlock):
 
     def __init__(
         self,
-        folder_path: str = None,
+        processing_dir: str = None,
         data_path: Optional[str] = None,
         config_path: Optional[str] = None,
         restart: Optional[bool] = False,
@@ -24,36 +24,60 @@ class BasePostProcessingBlock(BaseBlock):
     ) -> None:
         """Post-processing block that accepts data, transforms it, and then writes the transformed data to the original datastore
 
-        Args:
+        Kwargs:
+            processing_dir str: The path to the folder that will be used for processing data. Defaults to None.
             data_path (Optional[str]): A path from where data processing should begin
-            folder_path (Optional[str], optional): The path to the folder that will be used for processing data. Defaults to None.
+            config_path (Optional[str]): A path from where data processing should begin
+            restart (Optional[bool]): Whether or not to restart processing from checkpoints if they exist
         """
         super().__init__(**kwargs)
 
-        if folder_path is None:
-            raise ValueError(f"'folder_path' cannot be none for post processing block")
+        if processing_dir is None:
+            raise ValueError(
+                f"'processing_dir' cannot be none for post processing block"
+            )
 
-        if os.path.exists(folder_path) and restart:
-            shutil.rmtree(folder_path)
+        if os.path.exists(processing_dir) and restart:
+            shutil.rmtree(processing_dir)
 
         self._input_dir = (
-            os.path.join(folder_path, "post_proc_inputs")
+            os.path.join(processing_dir, "post_proc_inputs")
             if data_path is None
             else data_path
         )
-        self._intermediate_dir = os.path.join(folder_path, "post_proc_intermediate")
-        self._logging_dir = os.path.join(folder_path, "post_proc_logging")
-        self._output_dir = os.path.join(folder_path, "post_proc_outputs")
+        self._intermediate_dir = os.path.join(processing_dir, "post_proc_intermediate")
+        self._logging_dir = os.path.join(processing_dir, "post_proc_logging")
+        self._output_dir = os.path.join(processing_dir, "post_proc_outputs")
         self._config_path = config_path
 
     @property
     def data_filename(self):
         return f"{self.block_type}_{self.name}.parquet"
 
+    @property
+    def input_dir(self):
+        return self._input_dir
+
+    @property
+    def intermediate_dir(self):
+        return self._intermediate_dir
+
+    @property
+    def logging_dir(self):
+        return self._logging_dir
+
+    @property
+    def output_dir(self):
+        return self._output_dir
+
+    @property
+    def config_path(self):
+        return self._config_path
+
     def _set_data(self, data: DATASET_TYPE):
         """Initializes the data directories for post processing"""
-        os.makedirs(self._input_dir)
-        data_path = os.path.join(self._input_dir, self.data_filename)
+        os.makedirs(self.input_dir)
+        data_path = os.path.join(self.input_dir, self.data_filename)
         pd.DataFrame(data).to_parquet(
             data_path,
             engine="fastparquet",
@@ -69,16 +93,20 @@ class BasePostProcessingBlock(BaseBlock):
             DATASET_TYPE: Output data that has been post processed
         """
         ret_data = []
-        for f in os.listdir(self._output_dir):
+        for f in os.listdir(self.output_dir):
             if f.endswith(self.data_filename):
-                data_path = os.path.join(self._output_dir, f)
+                data_path = os.path.join(self.output_dir, f)
                 proc_data = (
                     pd.read_parquet(data_path, engine="fastparquet")
                     .apply(dict, axis=1)
                     .to_list()
                 )
                 ret_data.extend(proc_data)
-        return ret_data
+        # TODO: make this more efficient, e.g., stream
+        if isinstance(inputs, pd.DataFrame):
+            return pd.DataFrame(ret_data)
+        else:
+            return ret_data
 
     def generate(
         self,
@@ -111,5 +139,5 @@ class BasePostProcessingBlock(BaseBlock):
         return self._get_data(inputs)
 
     @abstractmethod
-    def _process(self, *args, **kwargs):
+    def _process(self, *args, **kwargs) -> None:
         """Method that executes the post processing"""

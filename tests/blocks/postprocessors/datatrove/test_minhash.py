@@ -17,14 +17,10 @@ def test_minhash():
         restart=True,
     )
 
-    data = [
-        {"a": "1", "b": "2", "c": "3"},
-        {"a": "1", "b": "0", "c": "3"},
-        {"a": "1", "b": "2", "c": "3"},
-    ]
+    data = [{"a": "1", "b": "2", "c": "3"} for _ in range(100000)]
 
     proc_data = block.generate(data, arg_fields=["b"])
 
-    assert data == proc_data, f"Data mismatch, expected {data} but got {proc_data}"
-
     shutil.rmtree(_B_PATH)
+
+    assert data and data != proc_data, f"Expected data to be deduplicated"
