@@ -1,7 +1,7 @@
 # Standard
 from abc import ABC
 from dataclasses import dataclass
-from typing import Any, Iterable, List, Mapping, Optional, Union
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Union
 import json
 import time
 
@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 # Local
 from fms_dgt.base.block import BaseBlock, get_row_name
+from fms_dgt.base.datastore import BaseDatastore
 from fms_dgt.base.registry import get_block
 from fms_dgt.base.task import NAME_KEY, TYPE_KEY, SdgData, SdgTask, TransformTask
 from fms_dgt.blocks.generators.llm import CachingLM
@@ -281,7 +282,11 @@ class DataBuilder(ABC):
         raise NotImplementedError
 
     def execute_postprocessing(self, completed_tasks: List[SdgTask]):
-        """Executes any postprocessing required after tasks have completed."""
+        """Executes any postprocessing required after tasks have completed.
+
+        Args:
+            completed_tasks (List[SdgTask]): tasks that have been completed and can undergo postprocessing
+        """
         post_proc_blocks = [
             b for b in self.blocks if isinstance(b, BasePostProcessingBlock)
         ]
@@ -308,6 +313,8 @@ class DataBuilder(ABC):
                     ]
                     for task in completed_tasks
                 }
+            for task in completed_tasks:
+                task.set_postprocess_datastore(datastore_assgns[task.name][-1])
 
 
 ###

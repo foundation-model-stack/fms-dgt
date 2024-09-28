@@ -265,6 +265,9 @@ class SdgTask:
             self._datastore_cfg.get(TYPE_KEY), **io_ds_kwargs
         )
 
+        # set post-proc datastore
+        self._pp_datastore = self._datastore
+
         # init final output datastore (should be same as input/output datastore)
         final_ds_kwargs = {
             "store_name": os.path.join(self._store_name, "final_data"),
@@ -274,6 +277,9 @@ class SdgTask:
         self._final_datastore = get_datastore(
             self._datastore_cfg.get(TYPE_KEY), **final_ds_kwargs
         )
+
+    def set_postprocess_datastore(self, datastore: BaseDatastore):
+        self._pp_datastore = datastore
 
     def make_postprocess_datastore(self, post_proc_id: int):
         # init post processing datastore
@@ -407,15 +413,10 @@ class SdgTask:
                 self.instantiate_output_example(**d) for d in loaded_data
             ]
 
-    def save_final_data(self, datastore: Optional[BaseDatastore] = None) -> None:
-        """Saves final instruction-tuning data that can be used directly for training.
-
-
-        Args:
-            datastore (Optional[BaseDatastore], optional): Datastore to be used to instantiate final data. Defaults to None.
-        """
+    def save_final_data(self) -> None:
+        """Saves final instruction-tuning data that can be used directly for training."""
         if self._save_formatted_output:
-            loaded_data = (datastore or self._datastore).load_data() or []
+            loaded_data = self._pp_datastore.load_data() or []
             to_add = [
                 self.instantiate_instruction(
                     self.instantiate_output_example(**d)
