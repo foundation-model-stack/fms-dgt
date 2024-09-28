@@ -1,5 +1,4 @@
 # Standard
-from typing import List, Optional
 import os
 
 # Third Party
@@ -24,7 +23,7 @@ from fms_dgt.blocks.postprocessors.datatrove import BaseDatatroveFilterDedupBloc
 class MinHashDatatrove(BaseDatatroveFilterDedupBlock):
     """MinHash Datatrove Block"""
 
-    def __init__(self, *args, total_tasks: int = 10, **kwargs):
+    def __init__(self, *args, text_key: str = None, total_tasks: int = 10, **kwargs):
         super().__init__(*args, **kwargs)
 
         # you can also change ngrams or the number of buckets and their size here
@@ -34,21 +33,15 @@ class MinHashDatatrove(BaseDatatroveFilterDedupBlock):
             hashes_per_bucket=8,
         )  # better precision -> fewer false positives (collisions)
 
+        self._text_key = text_key
         self._total_tasks = total_tasks
 
-    def _process(self, *, arg_fields: Optional[List[str]] = None, **kwargs):
-
-        arg_fields = arg_fields or self._arg_fields
-        if len(arg_fields) != 1:
-            raise ValueError(
-                f"Must specify exactly one arg_field to be used as deduplication key"
-            )
-        text_key = arg_fields[0]
+    def _process(self):
 
         # this is the original data that we want to deduplicate
         input_reader = ParquetReader(
             self._input_dir,
-            text_key=text_key,
+            text_key=self._text_key,
         )
 
         # stage 1 computes minhash signatures for each task (each task gets a set of files)
@@ -101,13 +94,12 @@ class MinHashDatatrove(BaseDatatroveFilterDedupBlock):
                 TokensCounter(),  # nice way to see how many tokens we had before and after deduplication
                 MinhashDedupFilter(
                     input_folder=os.path.join(self._intermediate_dir, "remove_ids"),
-                    exclusion_writer=ParquetReader(
+                    exclusion_writer=ParquetWriter(
                         os.path.join(self._intermediate_dir, "removed"),
                     ),
                 ),
                 ParquetWriter(
-                    output_folder=self._output_dir,
-                    output_filename=self.data_filename,
+                    output_folder=self._output_dir, output_filename="${rank}"
                 ),
             ],
             tasks=self._total_tasks,

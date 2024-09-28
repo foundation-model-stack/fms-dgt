@@ -7,13 +7,18 @@ import pandas as pd
 
 # Local
 from fms_dgt.blocks.postprocessors.dpk.fuzzy_dedup import FuzzyDedupPostprocessing
+from fms_dgt.datastores.default import DefaultDatastore
 
 
 def test_dedup():
 
+    tmp_cache = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tmp_cache")
     test_root = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "fuzzy_dedup_test"
     )
+    for d in [tmp_cache, test_root]:
+        if os.path.exists(d):
+            shutil.rmtree(d)
 
     test_data = {
         "output": [
@@ -33,18 +38,30 @@ def test_dedup():
     }
     inp_df = pd.DataFrame(data=test_data)
 
+    from_ds = DefaultDatastore(
+        output_dir=os.path.join(tmp_cache, "from"), store_name="input"
+    )
+    to_ds = DefaultDatastore(
+        output_dir=os.path.join(tmp_cache, "to"), store_name="output"
+    )
+    from_ds.save_data(inp_df)
+
     fdedup = FuzzyDedupPostprocessing(
         type="fuzzy_dedup",
         name="test_fuzzy_dedup_postprocessor",
         processing_dir=test_root,
         restart=True,
     )
-    df: pd.DataFrame = fdedup.generate(inp_df)
+    fdedup.generate([("mock_task", from_ds, to_ds)])
+
+    df = pd.DataFrame(to_ds.load_data())
 
     assert (
         df.iloc[0]["output"][:54]
         == "mary had a little lamb, Its fleece was milky as snow. "
     )
 
-    # Clean up test folder
-    shutil.rmtree(test_root)
+    # clean up test folders
+    for d in [tmp_cache, test_root]:
+        if os.path.exists(d):
+            shutil.rmtree(d)

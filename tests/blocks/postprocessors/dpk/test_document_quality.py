@@ -9,13 +9,19 @@ import pandas as pd
 from fms_dgt.blocks.postprocessors.dpk.document_quality import (
     DocumentQualityPostprocessing,
 )
+from fms_dgt.datastores.default import DefaultDatastore
 
 
 def test_docquality():
 
+    tmp_cache = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tmp_cache")
     test_root = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "docquality_test"
     )
+    for d in [tmp_cache, test_root]:
+        if os.path.exists(d):
+            shutil.rmtree(d)
+
     bad_word_filepath = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         "test_data",
@@ -43,6 +49,14 @@ def test_docquality():
     }
     inp_df = pd.DataFrame(data=test_data)
 
+    from_ds = DefaultDatastore(
+        output_dir=os.path.join(tmp_cache, "from"), store_name="input"
+    )
+    to_ds = DefaultDatastore(
+        output_dir=os.path.join(tmp_cache, "to"), store_name="output"
+    )
+    from_ds.save_data(inp_df)
+
     docquality = DocumentQualityPostprocessing(
         type="document_quality",
         name="test_docquality_postprocessor",
@@ -52,10 +66,14 @@ def test_docquality():
         doc_content_column="output",
         restart=True,
     )
-    df: pd.DataFrame = docquality.generate(inp_df)
+    docquality.generate([("mock_task", from_ds, to_ds)])
+
+    df = pd.DataFrame(to_ds.load_data())
 
     assert df.iloc[0]["docq_contain_bad_word"] == False
     assert df.iloc[4]["docq_contain_bad_word"] == True
 
-    # Clean up test folder
-    shutil.rmtree(test_root)
+    # clean up test folders
+    for d in [tmp_cache, test_root]:
+        if os.path.exists(d):
+            shutil.rmtree(d)

@@ -1,18 +1,20 @@
 # Standard
 from abc import abstractmethod
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Tuple
 import os
 import shutil
 
 # Third Party
-import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 # Local
-from fms_dgt.base.block import DATASET_TYPE, BaseBlock
+from fms_dgt.base.block import BaseBlock
+from fms_dgt.base.datastore import BaseDatastore
 
 
 class BasePostProcessingBlock(BaseBlock):
-    """Base Class for all Postprocessors"""
+    """Base Class for all Postprocessors."""
 
     def __init__(
         self,
@@ -22,7 +24,7 @@ class BasePostProcessingBlock(BaseBlock):
         restart: Optional[bool] = False,
         **kwargs: Any,
     ) -> None:
-        """Post-processing block that accepts data, transforms it, and then writes the transformed data to the original datastore
+        """Post-processing block that accepts data, transforms it, and then reads the transformed data back to the databuilder
 
         Kwargs:
             processing_dir str: The path to the folder that will be used for processing data. Defaults to None.
@@ -51,10 +53,6 @@ class BasePostProcessingBlock(BaseBlock):
         self._config_path = config_path
 
     @property
-    def data_filename(self):
-        return f"{self.block_type}_{self.name}.parquet"
-
-    @property
     def input_dir(self):
         return self._input_dir
 
@@ -74,69 +72,89 @@ class BasePostProcessingBlock(BaseBlock):
     def config_path(self):
         return self._config_path
 
-    def _set_data(self, data: DATASET_TYPE):
-        """Initializes the data directories for post processing"""
-        os.makedirs(self.input_dir)
-        data_path = os.path.join(self.input_dir, self.data_filename)
-        pd.DataFrame(data).to_parquet(
-            data_path,
-            engine="fastparquet",
-        )
-
-    def _get_data(self, inputs: DATASET_TYPE) -> DATASET_TYPE:
-        """Gets data that after post processing has completed
+    def _set_data(
+        self,
+        file_name: str,
+        from_datastore: BaseDatastore,
+        batch_size: Optional[int] = 10000,
+    ) -> None:
+        """Initializes the data directories for post processing
 
         Args:
-            inputs (DATASET_TYPE): Original input data
+            file_name (str): filename to use for saving data
+            from_datastore (BaseDatastore): data to write to input directory
 
-        Returns:
-            DATASET_TYPE: Output data that has been post processed
+        Kwargs:
+            batch_size (Optional[int]): batch size to read / write data
         """
-        ret_data = []
+
+        def get_batches():
+            batch = []
+            for element in from_datastore.load_data():
+                batch.append(element)
+                if len(batch) >= batch_size:
+                    yield pa.RecordBatch.from_pylist(batch)
+                    batch = []
+            if batch:
+                yield pa.RecordBatch.from_pylist(batch)
+
+        os.makedirs(self.input_dir, exist_ok=True)
+
+        try:
+            batches = get_batches()
+            batch = next(batches)
+        except StopIteration:
+            return
+
+        with pq.ParquetWriter(
+            os.path.join(self.input_dir, file_name + ".parquet"), schema=batch.schema
+        ) as writer:
+            writer.write_batch(batch)
+            for batch in batches:
+                writer.write_batch(batch)
+
+    def _save_data(
+        self,
+        file_name: str,
+        to_datastore: BaseDatastore,
+        batch_size: Optional[int] = 10000,
+    ) -> None:
+        """Saves data that after post processing has completed
+
+        Args:
+            file_name (str): filename used for original data
+            to_datastore (BaseDatastore): datastore to write to data to
+
+        Kwargs:
+            batch_size (Optional[int]): batch size to read / write data
+        """
+        file_name = file_name + ".parquet"
         for f in os.listdir(self.output_dir):
-            if f.endswith(self.data_filename):
-                data_path = os.path.join(self.output_dir, f)
-                proc_data = (
-                    pd.read_parquet(data_path, engine="fastparquet")
-                    .apply(dict, axis=1)
-                    .to_list()
-                )
-                ret_data.extend(proc_data)
-        # TODO: make this more efficient, e.g., stream
-        if isinstance(inputs, pd.DataFrame):
-            return pd.DataFrame(ret_data)
-        else:
-            return ret_data
+            if f.endswith(file_name):
+                parquet_file = pq.ParquetFile(os.path.join(self.output_dir, f))
+                for batch in parquet_file.iter_batches(batch_size):
+                    to_datastore.save_data(batch.to_pylist())
 
     def generate(
         self,
-        inputs: DATASET_TYPE,
+        datastores: List[Tuple[str, BaseDatastore, BaseDatastore]],
         *args,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
-        result_field: Optional[str] = None,
         **kwargs,
     ) -> None:
         """Executes post processing on the data generated by a list of tasks
 
         Args:
-            inputs (BLOCK_INPUT_TYPE): A block operates over a logical iterable
-                of rows with named columns (see BLOCK_INPUT_TYPE)
-
-        Kwargs:
-            arg_fields (Optional[List[str]], optional): A list of field names to use as positional arguments.
-            kwarg_fields (Optional[List[str]], optional): A list of field names to use as keyword arguments.
-            result_field (Optional[str], optional): Name of the result field in the input data row that the computation of the block will be written to.
+            datastores (List[Tuple[str, BaseDatastore, BaseDatastore]]): A list containing tuples of the form <filename, from_datastore, to_datastore>,
+                where filename is the name of the file that will be saved by the post processor, from_datastore is the datastore to load data from
+                and to_datastore is the datastore to write data to
         """
-        self._set_data(inputs)
-        self._process(
-            *args,
-            arg_fields=arg_fields,
-            kwarg_fields=kwarg_fields,
-            result_field=result_field,
-            **kwargs,
-        )
-        return self._get_data(inputs)
+        for filename, from_datastore, _ in datastores:
+            self._set_data(filename, from_datastore)
+
+        self._process(*args, **kwargs)
+
+        for filename, _, to_datastore in datastores:
+            self._save_data(filename, to_datastore)
 
     @abstractmethod
     def _process(self, *args, **kwargs) -> None:

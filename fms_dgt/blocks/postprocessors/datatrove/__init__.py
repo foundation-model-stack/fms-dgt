@@ -3,32 +3,25 @@ import os
 
 # Third Party
 import pandas as pd
+import pyarrow.parquet as pq
 
 # Local
-from fms_dgt.base.block import DATASET_TYPE
+from fms_dgt.base.datastore import BaseDatastore
 from fms_dgt.blocks.postprocessors import BasePostProcessingBlock
 
 
 class BaseDatatroveFilterDedupBlock(BasePostProcessingBlock):
     """Base Class for all Postprocessors"""
 
-    def _get_data(self, inputs: DATASET_TYPE):
-        ids = set()
+    def _save_data(
+        self,
+        file_name: str,
+        to_datastore: BaseDatastore,
+        batch_size: int | None = 10000,
+    ) -> None:
         for f in os.listdir(self._output_dir):
-            if f.endswith(self.data_filename):
-                data_path = os.path.join(self._output_dir, f)
-                proc_data = (
-                    pd.read_parquet(data_path, engine="fastparquet")
-                    .apply(dict, axis=1)
-                    .to_list()
-                )
-                rem_ids = [
-                    int(d_id[-1])
-                    for d_id in [d["id"].split("/") for d in proc_data]
-                    if d_id[0].startswith(self.data_filename)
-                ]
-                ids.update(rem_ids)
-
-        # TODO: make this more efficient
-        ret_data = [inp for i, inp in enumerate(inputs) if i in ids]
-        return ret_data
+            parquet_file = pq.ParquetFile(os.path.join(self.output_dir, f))
+            for batch in parquet_file.iter_batches(batch_size):
+                data = batch.to_pylist()
+                if data and data[0]["id"].startswith(file_name):
+                    to_datastore.save_data(batch.to_pylist())
