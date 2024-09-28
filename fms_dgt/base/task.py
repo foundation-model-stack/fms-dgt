@@ -265,16 +265,6 @@ class SdgTask:
             self._datastore_cfg.get(TYPE_KEY), **io_ds_kwargs
         )
 
-        # init post processing datastore
-        pp_ds_kwargs = {
-            "store_name": os.path.join(self._store_name, "postproc_data"),
-            "data_type": DatastoreDataType.POST_PROC_DATA,
-            **self._datastore_cfg,
-        }
-        self._post_proc_datastore = get_datastore(
-            self._datastore_cfg.get(TYPE_KEY), **pp_ds_kwargs
-        )
-
         # init final output datastore (should be same as input/output datastore)
         final_ds_kwargs = {
             "store_name": os.path.join(self._store_name, "final_data"),
