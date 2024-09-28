@@ -271,7 +271,7 @@ class SdgTask:
             "data_type": DatastoreDataType.POST_PROC_DATA,
             **self._datastore_cfg,
         }
-        self._datastore = get_datastore(
+        self._post_proc_datastore = get_datastore(
             self._datastore_cfg.get(TYPE_KEY), **pp_ds_kwargs
         )
 
@@ -284,6 +284,17 @@ class SdgTask:
         self._final_datastore = get_datastore(
             self._datastore_cfg.get(TYPE_KEY), **final_ds_kwargs
         )
+
+    def make_postprocess_datastore(self, post_proc_id: int):
+        # init post processing datastore
+        pp_ds_kwargs = {
+            "store_name": os.path.join(
+                self._store_name, f"postproc_data_{post_proc_id}"
+            ),
+            "data_type": DatastoreDataType.POST_PROC_DATA,
+            **self._datastore_cfg,
+        }
+        return get_datastore(self._datastore_cfg.get(TYPE_KEY), **pp_ds_kwargs)
 
     def instantiate_input_example(self, **kwargs: Any) -> INPUT_DATA_TYPE:
         """Instantiate an input example for this task. Designed to be overridden with custom initialization.
@@ -406,10 +417,15 @@ class SdgTask:
                 self.instantiate_output_example(**d) for d in loaded_data
             ]
 
-    def save_final_data(self) -> None:
-        """Saves final instruction-tuning data that can be used directly for training."""
+    def save_final_data(self, datastore: Optional[BaseDatastore] = None) -> None:
+        """Saves final instruction-tuning data that can be used directly for training.
+
+
+        Args:
+            datastore (Optional[BaseDatastore], optional): Datastore to be used to instantiate final data. Defaults to None.
+        """
         if self._save_formatted_output:
-            loaded_data = self._datastore.load_data() or []
+            loaded_data = (datastore or self._datastore).load_data() or []
             to_add = [
                 self.instantiate_instruction(
                     self.instantiate_output_example(**d)
