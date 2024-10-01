@@ -384,7 +384,8 @@ class SdgTask:
         self._datastore.save_data(to_save)
 
     def load_intermediate_data(self) -> List[SdgData]:
-        """Loads intermediate data produced during SDG (will be used to resume SDG).
+        """Loads intermediate data produced during SDG (will be used to resume SDG). This function loads the data from _pp_datastore, which is either
+            the latest datastore defined during post processing or the original input/output datastore.
 
         Returns:
             List[SdgData]: List of SdgData that has been loaded
