@@ -169,10 +169,11 @@ class DataBuilder(ABC):
         """Main entry point for task execution. Default behavior executes a loop until all tasks are complete, where each loop generates synthetic data."""
 
         # main entry point to task execution
-        tasks = self._tasks + []
+        generating = self._tasks + []
+        completed: List[SdgTask] = []
 
         # load the LM-generated data
-        for task in tasks:
+        for task in generating:
             task.load_intermediate_data()
             if task.machine_data:
                 sdg_logger.debug(
@@ -180,68 +181,81 @@ class DataBuilder(ABC):
                 )
             task.load_dataloader_state()
 
-        completed_tasks = [task for task in tasks if task.is_complete()]
-        tasks = [task for task in tasks if task not in completed_tasks]
-
-        progress_bar = tqdm(total=len(tasks), desc="Running generation tasks")
         generate_start = time.time()
 
-        stalled_cts = {task.name: self._max_stalled_requests for task in tasks}
+        stalled_cts = {task.name: self._max_stalled_requests for task in generating}
 
         request_idx = 0
-        while tasks and request_idx <= self._max_gen_requests:
-            request_idx += 1
+        # outer loop captures postprocessing
+        while generating and request_idx <= self._max_gen_requests:
+            # inner loop captures main generation
+            progress_bar = tqdm(total=len(generating), desc="Running generation tasks")
+            postprocessing: List[SdgTask] = []
+            while generating and request_idx <= self._max_gen_requests:
 
-            filtered_data: List[SdgData] = []
-            for generated_inst in self.call_with_task_list(request_idx, tasks):
-                # save incrementally
-                task = next(
-                    task for task in tasks if get_row_name(generated_inst) == task.name
-                )
-                task.save_intermediate_data(generated_inst)
-                filtered_data.append(generated_inst)
-                task.save_dataloader_state()
+                request_idx += 1
 
-            for task in tasks:
-                new_data = [
-                    gen_inst
-                    for gen_inst in filtered_data
-                    if get_row_name(gen_inst) == task.name
-                ]
-                task.machine_data.extend(new_data)
+                filtered_data: List[SdgData] = []
+                for generated_inst in self.call_with_task_list(request_idx, generating):
+                    # save incrementally
+                    task = next(
+                        task
+                        for task in generating
+                        if get_row_name(generated_inst) == task.name
+                    )
+                    task.save_intermediate_data(generated_inst)
+                    filtered_data.append(generated_inst)
+                    task.save_dataloader_state()
 
-                stalled_cts[task.name] -= 1
-                if new_data:
-                    stalled_cts[task.name] = self._max_stalled_requests
+                for task in generating:
+                    new_data = [
+                        gen_inst
+                        for gen_inst in filtered_data
+                        if get_row_name(gen_inst) == task.name
+                    ]
+                    task.machine_data.extend(new_data)
 
-                if task.is_complete() or stalled_cts[task.name] <= 0:
+                    stalled_cts[task.name] -= 1
+                    if new_data:
+                        stalled_cts[task.name] = self._max_stalled_requests
 
-                    sdg_logger.info("Launch postprocessing")
-                    self.execute_postprocessing(completed_tasks)
-                    sdg_logger.info("Postprocessing completed")
-
-                    if task.is_complete():
-
-                        if stalled_cts[task.name] <= 0:
-                            sdg_logger.info(
-                                "Task %s has not produced any data in the last %s attempts, terminating task",
-                                task.name,
-                                self._max_stalled_requests,
-                            )
-
-                        task.finish()
-                        completed_tasks.append(task)
+                    if task.is_complete() or stalled_cts[task.name] <= 0:
+                        postprocessing.append(task)
                         progress_bar.update()
 
-            tasks = [task for task in tasks if task not in completed_tasks]
+                # remove tasks from generating that have completed
+                generating = [task for task in generating if task not in postprocessing]
 
-            sdg_logger.info(
-                "Generated %s data in this iteration, %s data overall",
-                len(filtered_data),
-                sum([len(task.machine_data) for task in tasks + completed_tasks]),
-            )
+                sdg_logger.info(
+                    "Generated %s data in this iteration, %s data overall",
+                    len(filtered_data),
+                    sum(
+                        [
+                            len(task.machine_data)
+                            for task in (generating + postprocessing + completed)
+                        ]
+                    ),
+                )
 
-        progress_bar.close()
+            # launch postprocessing for completed tasks
+            sdg_logger.info("Launch postprocessing")
+            self.execute_postprocessing(postprocessing)
+            sdg_logger.info("Postprocessing completed")
+
+            for task in postprocessing:
+                if task.is_complete() or stalled_cts[task.name] <= 0:
+                    if stalled_cts[task.name] <= 0:
+                        sdg_logger.info(
+                            "Task %s has not produced any data in the last %s attempts, terminating task",
+                            task.name,
+                            self._max_stalled_requests,
+                        )
+                    completed.append(task)
+
+            # redefine generating and postprocessing
+            generating = [task for task in postprocessing if task not in completed]
+
+            progress_bar.close()
 
         generate_duration = time.time() - generate_start
         sdg_logger.info("Generation took %.2fs", generate_duration)
@@ -364,6 +378,10 @@ class TransformationDataBuilder(DataBuilder):
         )
 
         progress_bar.close()
+
+        sdg_logger.info("Launch postprocessing")
+        self.execute_postprocessing(tasks)
+        sdg_logger.info("Postprocessing completed")
 
         generate_duration = time.time() - generate_start
         sdg_logger.info("Generation took %.2fs", generate_duration)
