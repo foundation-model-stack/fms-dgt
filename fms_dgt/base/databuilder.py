@@ -241,6 +241,7 @@ class DataBuilder(ABC):
         sdg_logger.info("Generation took %.2fs", generate_duration)
 
         sdg_logger.info("Launch postprocessing")
+        # TODO: move this into loop
         self.execute_postprocessing(completed_tasks)
         sdg_logger.info("Postprocessing completed")
 
