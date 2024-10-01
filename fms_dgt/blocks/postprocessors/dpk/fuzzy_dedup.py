@@ -6,7 +6,7 @@ import sys
 # Third Party
 from data_processing.utils import ParamsUtils
 from data_processing_ray.runtime.ray import RayTransformLauncher
-from doc_id_transform_ray import DocIDRayTransformConfiguration
+from doc_id_transform_ray import DocIDRayTransformRuntimeConfiguration
 from fdedup_transform_ray import FdedupRayTransformConfiguration
 
 # Local
@@ -49,7 +49,7 @@ class FuzzyDedupPostprocessing(BasePostProcessingBlock):
         }
         sys.argv = ParamsUtils.dict_to_req(d=params)
         # create launcher
-        launcher = RayTransformLauncher(DocIDRayTransformConfiguration())
+        launcher = RayTransformLauncher(DocIDRayTransformRuntimeConfiguration())
         # launch
         launcher.launch()
 
