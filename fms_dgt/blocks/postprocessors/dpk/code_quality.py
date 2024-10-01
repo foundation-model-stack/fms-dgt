@@ -3,7 +3,7 @@ from typing import Any
 import sys
 
 # Third Party
-from code_quality_transform import CodeQualityTransformConfiguration
+from code_quality_transform_python import CodeQualityPythonTransformConfiguration
 from data_processing.runtime.pure_python import PythonTransformLauncher
 from data_processing.utils import ParamsUtils
 
@@ -48,7 +48,7 @@ class CodeQualityPostprocessing(BasePostProcessingBlock):
         sys.argv = ParamsUtils.dict_to_req(d=params)
         # create launcher
         launcher = PythonTransformLauncher(
-            runtime_config=CodeQualityTransformConfiguration()
+            runtime_config=CodeQualityPythonTransformConfiguration()
         )
         # launch
         launcher.launch()
