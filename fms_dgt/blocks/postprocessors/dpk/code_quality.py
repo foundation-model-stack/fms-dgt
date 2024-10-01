@@ -1,19 +1,23 @@
 # Standard
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
+import sys
+
+# Third Party
+from code_quality_transform import CodeQualityTransformConfiguration
+from data_processing.runtime.pure_python import PythonTransformLauncher
+from data_processing.utils import ParamsUtils
 
 # Local
-from fms_dgt.base.block import DATASET_TYPE, BaseBlock
 from fms_dgt.base.registry import register_block
+from fms_dgt.blocks.postprocessors import BasePostProcessingBlock
 
 
 @register_block("code_quality")
-class CodeQualityPostprocessing(BaseBlock):
+class CodeQualityPostprocessing(BasePostProcessingBlock):
     """Base Class for all Postprocessors"""
 
     def __init__(
         self,
-        input_folder_path: str,
-        output_folder_path: str,
         hf_token: str,
         contents_column_name: str = "contents",
         language_column_name: str = "language",
@@ -21,25 +25,16 @@ class CodeQualityPostprocessing(BaseBlock):
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
-        self.input_folder_path = input_folder_path
-        self.output_folder_path = output_folder_path
         self.contents_column_name = contents_column_name
         self.language_column_name = language_column_name
         self.tokenizer = tokenizer
         self.hf_token = hf_token
 
     def code_quality(self, input_params: dict):
-        # Standard
-        import sys
-
-        # Third Party
-        from code_quality_transform import CodeQualityTransformConfiguration
-        from data_processing.runtime.pure_python import PythonTransformLauncher
-        from data_processing.utils import ParamsUtils
 
         local_conf = {
-            "input_folder": self.input_folder_path,
-            "output_folder": self.output_folder_path,
+            "input_folder": self.input_dir,
+            "output_folder": self.output_dir,
         }
 
         params = input_params | {
@@ -68,19 +63,5 @@ class CodeQualityPostprocessing(BaseBlock):
         args.pop("self")
         code_quality_task = self.code_quality(input_params=args)
 
-    def generate(
-        self,
-        inputs: DATASET_TYPE,
-        *,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
-        result_field: Optional[List[str]] = None,
-    ):
-
-        self._postprocess()
-
-        return self.output_folder_path
-
-    def _postprocess(self) -> bool:
+    def _process(self, *args, **kwargs) -> None:
         self.codequality_embeddable()
-        return True

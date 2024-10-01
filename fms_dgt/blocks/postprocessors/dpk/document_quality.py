@@ -1,48 +1,43 @@
 # Standard
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
+import sys
+
+# Third Party
+from data_processing.runtime.pure_python import PythonTransformLauncher
+from data_processing.utils import ParamsUtils
+from doc_quality_transform import (
+    bad_word_filepath_cli_param,
+    doc_content_column_cli_param,
+    text_lang_cli_param,
+)
+from doc_quality_transform_python import DocQualityPythonTransformConfiguration
 
 # Local
-from fms_dgt.base.block import DATASET_TYPE, BaseBlock
 from fms_dgt.base.registry import register_block
+from fms_dgt.blocks.postprocessors import BasePostProcessingBlock
 
 
 @register_block("document_quality")
-class DocumentQualityPostprocessing(BaseBlock):
+class DocumentQualityPostprocessing(BasePostProcessingBlock):
     """Base Class for all Postprocessors"""
 
     def __init__(
         self,
-        input_folder_path: str,
-        output_folder_path: str,
         bad_word_filepath: str,
         text_lang: str = "en",
         doc_content_column: str = "contents",
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
-        self.input_folder_path = input_folder_path
-        self.output_folder_path = output_folder_path
         self.bad_word_filepath = bad_word_filepath
         self.text_lang = text_lang
         self.doc_content_column = doc_content_column
 
     def doc_quality(self, input_params: dict):
-        # Standard
-        import sys
-
-        # Third Party
-        from data_processing.runtime.pure_python import PythonTransformLauncher
-        from data_processing.utils import ParamsUtils
-        from doc_quality_transform import (
-            bad_word_filepath_cli_param,
-            doc_content_column_cli_param,
-            text_lang_cli_param,
-        )
-        from doc_quality_transform_python import DocQualityPythonTransformConfiguration
 
         local_conf = {
-            "input_folder": self.input_folder_path,
-            "output_folder": self.output_folder_path,
+            "input_folder": self.input_dir,
+            "output_folder": self.output_dir,
         }
 
         params = input_params | {
@@ -71,19 +66,5 @@ class DocumentQualityPostprocessing(BaseBlock):
         args.pop("self")
         doc_quality_task = self.doc_quality(input_params=args)
 
-    def generate(
-        self,
-        inputs: DATASET_TYPE,
-        *,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
-        result_field: Optional[List[str]] = None,
-    ):
-
-        self._postprocess()
-
-        return self.output_folder_path
-
-    def _postprocess(self) -> bool:
+    def _process(self, *args, **kwargs) -> None:
         self.docquality_embeddable()
-        return True

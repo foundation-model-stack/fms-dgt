@@ -11,7 +11,7 @@ readme = "README.md"
 classifiers = [
     "License :: OSI Approved :: Apache License",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "accelerate>=0.26.0",
     "datasets>=2.16.0",
@@ -59,13 +59,17 @@ testing = ["pytest", "pytest-cov", "pytest-xdist"]
 vllm = ["vllm>=0.3.2", "xformers", "flash-attn>=2.5.8"]
 trainer = ["deepspeed==0.14.4", "mpi4py"]
 dpk =  [
-        "dpk_docid_transform_ray @ git+https://github.com/IBM/data-prep-kit.git#subdirectory=transforms/universal/doc_id/ray",
+        "data_prep_toolkit @ git+https://github.com/IBM/data-prep-kit.git#subdirectory=data-processing-lib/python",
+        "data_prep_toolkit_ray @ git+https://github.com/IBM/data-prep-kit.git#subdirectory=data-processing-lib/ray",
+        "dpk_doc_id_transform_python @ git+https://github.com/IBM/data-prep-kit.git#subdirectory=transforms/universal/doc_id/python",
+        "dpk_doc_id_transform_ray @ git+https://github.com/IBM/data-prep-kit.git#subdirectory=transforms/universal/doc_id/ray",
         "dpk_ededup_transform_python @ git+https://github.com/IBM/data-prep-kit.git#subdirectory=transforms/universal/ededup/python",
         "dpk_ededup_transform_ray @ git+https://github.com/IBM/data-prep-kit.git#subdirectory=transforms/universal/ededup/ray",
         "dpk_fdedup_transform_ray @ git+https://github.com/IBM/data-prep-kit.git#subdirectory=transforms/universal/fdedup/ray",
         "dpk_code_quality_transform_python @ git+https://github.com/IBM/data-prep-kit.git#subdirectory=transforms/code/code_quality/python",
         "dpk_doc_quality_transform_python @ git+https://github.com/IBM/data-prep-kit.git#subdirectory=transforms/language/doc_quality/python",
         ]
+datatrove = ["datatrove[all]"]
 dev-test = [
     # TODO: Add packages when tests are built out
     # "pytest>=6",

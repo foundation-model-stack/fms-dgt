@@ -40,7 +40,8 @@ class BaseBlock(ABC):
         result_field: Optional[str] = None,
         task_cards: Optional[List[TaskRunCard]] = None,
     ) -> None:
-        """A block is a unit of computation that takes in some inputs and produces an output. It is intended to be specialized algorithms or processes that teams can contribute for others to use to build their pipelines.
+        """A block is a unit of computation that takes in some inputs and produces an output. It is intended to be specialized algorithms
+            or processes that teams can contribute for others to use to build their pipelines.
 
         Args:
             name (str, optional): The name of the block.
