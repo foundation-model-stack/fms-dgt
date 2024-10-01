@@ -1,18 +1,19 @@
 # Standard
-from typing import List, Optional, TypeVar
+from typing import List, TypeVar
 import json
 import os
 
 # Third Party
 import datasets
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 import yaml
 
 # Local
 from fms_dgt.base.block import DATASET_TYPE
 from fms_dgt.base.datastore import BaseDatastore
 from fms_dgt.base.registry import register_datastore
-from fms_dgt.base.task_card import TaskRunCard
 
 T = TypeVar("T")
 
@@ -45,9 +46,12 @@ class DefaultDatastore(BaseDatastore):
 
         os.makedirs(output_dir, exist_ok=True)
 
-    def save_data(self, new_data: List[T]) -> None:
+    def save_data(self, new_data: DATASET_TYPE) -> None:
 
         data_format = os.path.splitext(self._output_path)[-1]
+
+        if isinstance(new_data, pd.DataFrame):
+            new_data = new_data.to_dict("records")
 
         if data_format == ".jsonl":
             _write_json(new_data, self._output_path)
@@ -98,6 +102,10 @@ def _write_json(new_data: List[T], output_path: str):
 
 def _write_parquet(new_data: List[T], output_path: str):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    rec_batch = pa.RecordBatch.from_pylist(new_data)
+    with pq.ParquetWriter("example.parquet", schema=rec_batch.schema) as writer:
+        writer.write_batch(rec_batch)
+
     pd.DataFrame(new_data).to_parquet(
         output_path,
         engine="fastparquet",
