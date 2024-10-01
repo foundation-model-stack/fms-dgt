@@ -292,7 +292,7 @@ class DataBuilder(ABC):
         ]
         if post_proc_blocks:
             datastore_assgns = {
-                task.name: [task.datastore, task.make_postprocess_datastore(0)]
+                task.name: [task.datastore, task.make_postprocess_datastore()]
                 for task in completed_tasks
             }
             for i, block in enumerate(post_proc_blocks, start=1):
@@ -309,7 +309,7 @@ class DataBuilder(ABC):
                 datastore_assgns = {
                     task.name: [
                         datastore_assgns[task.name][-1],
-                        task.make_postprocess_datastore(i),
+                        task.make_postprocess_datastore(),
                     ]
                     for task in completed_tasks
                 }
