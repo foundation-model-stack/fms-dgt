@@ -246,6 +246,7 @@ class DataBuilder(ABC):
                             self._max_stalled_requests,
                         )
                     completed.append(task)
+                    task.finish()
 
             # redefine generating and postprocessing
             generating = [task for task in postprocessing if task not in completed]
@@ -377,6 +378,9 @@ class TransformationDataBuilder(DataBuilder):
         sdg_logger.info("Launch postprocessing")
         self.execute_postprocessing(tasks)
         sdg_logger.info("Postprocessing completed")
+
+        for task in tasks:
+            task.finish()
 
         generate_duration = time.time() - generate_start
         sdg_logger.info("Generation took %.2fs", generate_duration)
