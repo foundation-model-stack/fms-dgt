@@ -17,13 +17,13 @@ from datatrove.utils.hashing import HashConfig
 from datatrove.utils.typeshelper import Languages
 
 # Local
-from fms_dgt.blocks.postprocessors.datatrove import BaseDatatroveFilterDedupBlock
+from fms_dgt.blocks.postprocessors.datatrove import BaseDatatroveBlock
 
 
-class MinHashDatatrove(BaseDatatroveFilterDedupBlock):
+class MinHashDatatrove(BaseDatatroveBlock):
     """MinHash Datatrove Block"""
 
-    def __init__(self, *args, text_key: str = None, total_tasks: int = 10, **kwargs):
+    def __init__(self, *args, total_tasks: int = 10, **kwargs):
         super().__init__(*args, **kwargs)
 
         # you can also change ngrams or the number of buckets and their size here
@@ -33,7 +33,6 @@ class MinHashDatatrove(BaseDatatroveFilterDedupBlock):
             hashes_per_bucket=8,
         )  # better precision -> fewer false positives (collisions)
 
-        self._text_key = text_key
         self._total_tasks = total_tasks
 
     def _process(self):
@@ -41,7 +40,8 @@ class MinHashDatatrove(BaseDatatroveFilterDedupBlock):
         # this is the original data that we want to deduplicate
         input_reader = ParquetReader(
             self._input_dir,
-            text_key=self._text_key,
+            text_key=self.text_key,
+            id_key=self.id_key,
         )
 
         # stage 1 computes minhash signatures for each task (each task gets a set of files)

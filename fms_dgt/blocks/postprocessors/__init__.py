@@ -22,6 +22,7 @@ class BasePostProcessingBlock(BaseBlock):
         data_path: Optional[str] = None,
         config_path: Optional[str] = None,
         restart: Optional[bool] = False,
+        output_fields: Optional[List] = None,
         **kwargs: Any,
     ) -> None:
         """Post-processing block that accepts data, transforms it, and then reads the transformed data back to the databuilder
@@ -51,6 +52,11 @@ class BasePostProcessingBlock(BaseBlock):
         self._logging_dir = os.path.join(processing_dir, "post_proc_logging")
         self._output_dir = os.path.join(processing_dir, "post_proc_outputs")
         self._config_path = config_path
+        self._output_fields = output_fields
+
+    @property
+    def fields(self) -> List:
+        return self._output_fields
 
     @property
     def input_dir(self):
@@ -103,6 +109,8 @@ class BasePostProcessingBlock(BaseBlock):
         try:
             batches = get_batches()
             batch = next(batches)
+            if self.fields is None:
+                self._output_fields = batch.schema.names
         except StopIteration:
             return
 
