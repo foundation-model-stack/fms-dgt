@@ -23,7 +23,7 @@ class BasePostProcessingBlock(BaseBlock):
         data_path: Optional[str] = None,
         config_path: Optional[str] = None,
         restart: Optional[bool] = False,
-        output_fields: Optional[List] = None,
+        output_schema: Optional[List] = None,
         **kwargs: Any,
     ) -> None:
         """Post-processing block that accepts data, transforms it, and then reads the transformed data back to the databuilder
@@ -33,13 +33,14 @@ class BasePostProcessingBlock(BaseBlock):
             data_path (Optional[str]): A path from where data processing should begin
             config_path (Optional[str]): A path from where data processing should begin
             restart (Optional[bool]): Whether or not to restart processing from checkpoints if they exist
+            output_schema (Optional[List[str]]): Schema to use for output. If None, will be dynamically created from _set_data method
         """
         super().__init__(**kwargs)
 
         self._input_dir, self._logging_dir, self._output_dir = None, None, None
 
         self._config_path = config_path
-        self._output_fields = output_fields
+        self._output_schema = output_schema
 
         if processing_dir is None:
             sdg_logger.warning(
@@ -61,8 +62,8 @@ class BasePostProcessingBlock(BaseBlock):
             self._output_dir = os.path.join(processing_dir, "post_proc_outputs")
 
     @property
-    def fields(self) -> List:
-        return self._output_fields
+    def output_schema(self) -> List:
+        return self._output_schema
 
     @property
     def input_dir(self):
@@ -115,8 +116,8 @@ class BasePostProcessingBlock(BaseBlock):
         try:
             batches = get_batches()
             batch = next(batches)
-            if self.fields is None:
-                self._output_fields = batch.schema.names
+            if self.output_schema is None:
+                self._output_schema = batch.schema.names
         except StopIteration:
             return
 
@@ -142,12 +143,21 @@ class BasePostProcessingBlock(BaseBlock):
         Kwargs:
             batch_size (Optional[int]): batch size to read / write data
         """
+
+        self._assert_schema_exists()
+
         file_name = file_name + ".parquet"
         for f in os.listdir(self.output_dir):
             if f.endswith(file_name):
                 parquet_file = pq.ParquetFile(os.path.join(self.output_dir, f))
                 for batch in parquet_file.iter_batches(batch_size):
                     to_datastore.save_data(batch.to_pylist())
+
+    def _assert_schema_exists(self):
+        if self.output_schema is None:
+            raise ValueError(
+                f"Due to restrictions on datastore implementations, 'output_schema' cannot be None"
+            )
 
     def generate(
         self,
