@@ -12,6 +12,9 @@ from fms_dgt.base.task_card import TaskRunCard
 from fms_dgt.utils import group_data_by_attribute
 
 DEFAULT_OUTPUT_DIR = "output"
+DEFAULT_MACHINE_BATCH_SIZE = 10
+DEFAULT_SEED_BATCH_SIZE = 100
+DEFAULT_NUM_OUTPUTS = 2
 
 
 NAME_KEY = "name"
@@ -50,16 +53,16 @@ class SdgTask:
         task_card: TaskRunCard,
         instruction_format: Optional[Dict[str, str]] = None,
         save_formatted_output: Optional[bool] = False,
-        output_dir: Optional[str] = "output",
+        output_dir: Optional[str] = DEFAULT_OUTPUT_DIR,
         output_format: Optional[str] = "jsonl",
         datastore: Optional[Dict] = None,
         seed_datastore: Optional[Dict] = None,
         restart_generation: Optional[bool] = False,
         dataloader: Optional[Dict] = None,
-        seed_batch_size: Optional[int] = None,
-        machine_batch_size: Optional[int] = None,
+        seed_batch_size: Optional[int] = DEFAULT_SEED_BATCH_SIZE,
+        machine_batch_size: Optional[int] = DEFAULT_MACHINE_BATCH_SIZE,
         seed_examples: Optional[List[Any]] = None,
-        num_outputs_to_generate: Optional[int] = None,
+        num_outputs_to_generate: Optional[int] = DEFAULT_NUM_OUTPUTS,
     ):
         """Initializes the Task object
 
@@ -102,7 +105,7 @@ class SdgTask:
 
         self.machine_data = []
 
-        self._seed_batch_size = seed_batch_size if seed_batch_size is not None else 100
+        self._seed_batch_size = seed_batch_size
         if self._seed_batch_size < 0:
             raise ValueError(
                 f"Cannot have negative value of {self._seed_batch_size} for seed_batch_size parameter"

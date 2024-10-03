@@ -16,6 +16,9 @@ from fms_dgt.blocks.generators.llm import CachingLM
 from fms_dgt.blocks.postprocessors import BasePostProcessingBlock
 from fms_dgt.utils import all_annotations, sdg_logger
 
+DEFAULT_MAX_STALLED_ATTEMPTS = 5
+DEFAULT_MAX_GEN_REQUESTS = 10
+
 
 @dataclass
 class DataBuilderConfig(dict):
@@ -45,8 +48,8 @@ class DataBuilder(ABC):
     def __init__(
         self,
         config: Union[Mapping, DataBuilderConfig] = None,
-        max_gen_requests: int = None,
-        max_stalled_requests: int = None,
+        max_gen_requests: int = DEFAULT_MAX_GEN_REQUESTS,
+        max_stalled_requests: int = DEFAULT_MAX_STALLED_ATTEMPTS,
         task_kwargs: dict = None,
         **kwargs: Any,
     ) -> None:

@@ -11,6 +11,7 @@ import pyarrow.parquet as pq
 # Local
 from fms_dgt.base.block import BaseBlock
 from fms_dgt.base.datastore import BaseDatastore
+from fms_dgt.utils import sdg_logger
 
 
 class BasePostProcessingBlock(BaseBlock):
@@ -35,24 +36,29 @@ class BasePostProcessingBlock(BaseBlock):
         """
         super().__init__(**kwargs)
 
-        if processing_dir is None:
-            raise ValueError(
-                f"'processing_dir' cannot be none for post processing block"
-            )
+        self._input_dir, self._logging_dir, self._output_dir = None, None, None
 
-        if os.path.exists(processing_dir) and restart:
-            shutil.rmtree(processing_dir)
-
-        self._input_dir = (
-            os.path.join(processing_dir, "post_proc_inputs")
-            if data_path is None
-            else data_path
-        )
-        self._intermediate_dir = os.path.join(processing_dir, "post_proc_intermediate")
-        self._logging_dir = os.path.join(processing_dir, "post_proc_logging")
-        self._output_dir = os.path.join(processing_dir, "post_proc_outputs")
         self._config_path = config_path
         self._output_fields = output_fields
+
+        if processing_dir is None:
+            sdg_logger.warning(
+                "'processing_dir' is set to None for post processing block"
+            )
+        else:
+            if os.path.exists(processing_dir) and restart:
+                shutil.rmtree(processing_dir)
+
+            self._input_dir = (
+                os.path.join(processing_dir, "post_proc_inputs")
+                if data_path is None
+                else data_path
+            )
+            self._intermediate_dir = os.path.join(
+                processing_dir, "post_proc_intermediate"
+            )
+            self._logging_dir = os.path.join(processing_dir, "post_proc_logging")
+            self._output_dir = os.path.join(processing_dir, "post_proc_outputs")
 
     @property
     def fields(self) -> List:
