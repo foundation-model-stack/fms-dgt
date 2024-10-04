@@ -76,7 +76,11 @@ class BaseBlock(ABC):
         self._result_field = result_field
         self._task_cards = task_cards
 
-        self._save_schema = save_schema
+        self._save_schema = (
+            save_schema
+            or ((self._arg_fields or []) + (self._kwarg_fields or []))
+            or None
+        )
         # datastore params
         self._datastore = None
         if datastore is not None:
