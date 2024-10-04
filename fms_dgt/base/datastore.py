@@ -1,11 +1,11 @@
 # Standard
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, List, Optional
 import abc
 
 # Local
-from fms_dgt.base.block import DATASET_TYPE
 from fms_dgt.base.task_card import TaskRunCard
+from fms_dgt.constants import DATASET_TYPE
 
 
 class DatastoreDataType(Enum):
@@ -28,6 +28,7 @@ class BaseDatastore(abc.ABC):
         data_type: Optional[DatastoreDataType] = None,
         task_card: Optional[TaskRunCard] = None,
         restart: Optional[bool] = False,
+        schema: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__()
@@ -35,6 +36,7 @@ class BaseDatastore(abc.ABC):
         self._data_type = data_type if data_type is not None else DatastoreDataType.MISC
         self._task_card = task_card
         self._restart = restart
+        self._schema = schema
 
     @property
     def store_name(self):
@@ -47,6 +49,18 @@ class BaseDatastore(abc.ABC):
     @property
     def task_card(self):
         return self._task_card
+
+    @property
+    def schema(self):
+        return self._schema
+
+    def set_schema(self, new_schema: List[str]):
+        """Sets the schema variable
+
+        Args:
+            new_schema (List[str]): New schema for datastore to use
+        """
+        self._schema = new_schema
 
     def save_data(self, new_data: DATASET_TYPE) -> None:
         """

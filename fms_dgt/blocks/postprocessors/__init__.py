@@ -11,7 +11,6 @@ import pyarrow.parquet as pq
 # Local
 from fms_dgt.base.block import BaseBlock
 from fms_dgt.base.datastore import BaseDatastore
-from fms_dgt.utils import sdg_logger
 
 
 class BasePostProcessingBlock(BaseBlock):
@@ -23,7 +22,6 @@ class BasePostProcessingBlock(BaseBlock):
         data_path: Optional[str] = None,
         config_path: Optional[str] = None,
         restart: Optional[bool] = False,
-        output_schema: Optional[List] = None,
         **kwargs: Any,
     ) -> None:
         """Post-processing block that accepts data, transforms it, and then reads the transformed data back to the databuilder
@@ -33,37 +31,29 @@ class BasePostProcessingBlock(BaseBlock):
             data_path (Optional[str]): A path from where data processing should begin
             config_path (Optional[str]): A path from where data processing should begin
             restart (Optional[bool]): Whether or not to restart processing from checkpoints if they exist
-            output_schema (Optional[List[str]]): Schema to use for output. If None, will be dynamically created from _set_data method
         """
         super().__init__(**kwargs)
 
         self._input_dir, self._logging_dir, self._output_dir = None, None, None
 
         self._config_path = config_path
-        self._output_schema = output_schema
 
         if processing_dir is None:
-            sdg_logger.warning(
+            raise ValueError(
                 "'processing_dir' is set to None for post processing block"
             )
-        else:
-            if os.path.exists(processing_dir) and restart:
-                shutil.rmtree(processing_dir)
 
-            self._input_dir = (
-                os.path.join(processing_dir, "post_proc_inputs")
-                if data_path is None
-                else data_path
-            )
-            self._intermediate_dir = os.path.join(
-                processing_dir, "post_proc_intermediate"
-            )
-            self._logging_dir = os.path.join(processing_dir, "post_proc_logging")
-            self._output_dir = os.path.join(processing_dir, "post_proc_outputs")
+        if os.path.exists(processing_dir) and restart:
+            shutil.rmtree(processing_dir)
 
-    @property
-    def output_schema(self) -> List:
-        return self._output_schema
+        self._input_dir = (
+            os.path.join(processing_dir, "post_proc_inputs")
+            if data_path is None
+            else data_path
+        )
+        self._intermediate_dir = os.path.join(processing_dir, "post_proc_intermediate")
+        self._logging_dir = os.path.join(processing_dir, "post_proc_logging")
+        self._output_dir = os.path.join(processing_dir, "post_proc_outputs")
 
     @property
     def input_dir(self):
@@ -116,8 +106,8 @@ class BasePostProcessingBlock(BaseBlock):
         try:
             batches = get_batches()
             batch = next(batches)
-            if self.output_schema is None:
-                self._output_schema = batch.schema.names
+            if self.save_schema is None:
+                self._save_schema = batch.schema.names
         except StopIteration:
             return
 
@@ -143,21 +133,12 @@ class BasePostProcessingBlock(BaseBlock):
         Kwargs:
             batch_size (Optional[int]): batch size to read / write data
         """
-
-        self._assert_schema_exists()
-
         file_name = file_name + ".parquet"
         for f in os.listdir(self.output_dir):
             if f.endswith(file_name):
                 parquet_file = pq.ParquetFile(os.path.join(self.output_dir, f))
                 for batch in parquet_file.iter_batches(batch_size):
                     to_datastore.save_data(batch.to_pylist())
-
-    def _assert_schema_exists(self):
-        if self.output_schema is None:
-            raise ValueError(
-                f"Due to restrictions on datastore implementations, 'output_schema' cannot be None"
-            )
 
     def generate(
         self,
@@ -178,6 +159,7 @@ class BasePostProcessingBlock(BaseBlock):
         self._process(*args, **kwargs)
 
         for filename, _, to_datastore in datastores:
+            to_datastore.set_schema(self._save_schema)
             self._save_data(filename, to_datastore)
 
     @abstractmethod

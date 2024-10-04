@@ -17,10 +17,6 @@ DEFAULT_SEED_BATCH_SIZE = 100
 DEFAULT_NUM_OUTPUTS = 2
 
 
-NAME_KEY = "name"
-TYPE_KEY = "type"
-
-
 @dataclass
 class SdgData(abc.ABC):
     """This class is intended to hold the seed / machine generated instruction data"""

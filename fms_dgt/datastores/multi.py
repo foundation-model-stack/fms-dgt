@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, TypeVar
 # Local
 from fms_dgt.base.datastore import BaseDatastore
 from fms_dgt.base.registry import get_datastore, register_datastore
-from fms_dgt.base.task import TYPE_KEY
+from fms_dgt.constants import TYPE_KEY
 
 T = TypeVar("T")
 
