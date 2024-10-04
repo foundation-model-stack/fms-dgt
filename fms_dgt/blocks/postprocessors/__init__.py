@@ -106,8 +106,6 @@ class BasePostProcessingBlock(BaseBlock):
         try:
             batches = get_batches()
             batch = next(batches)
-            if self.save_schema is None:
-                self._save_schema = batch.schema.names
         except StopIteration:
             return
 
@@ -159,7 +157,6 @@ class BasePostProcessingBlock(BaseBlock):
         self._process(*args, **kwargs)
 
         for filename, _, to_datastore in datastores:
-            to_datastore.set_schema(self._save_schema)
             self._save_data(filename, to_datastore)
 
     @abstractmethod

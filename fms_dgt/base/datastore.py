@@ -54,14 +54,6 @@ class BaseDatastore(abc.ABC):
     def schema(self):
         return self._schema
 
-    def set_schema(self, new_schema: List[str]):
-        """Sets the schema variable
-
-        Args:
-            new_schema (List[str]): New schema for datastore to use
-        """
-        self._schema = new_schema
-
     def save_data(self, new_data: DATASET_TYPE) -> None:
         """
         Saves generated data to specified location

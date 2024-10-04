@@ -275,6 +275,7 @@ class SdgTask:
                 self._store_name, f"postproc_data_{self._post_proc_id}"
             ),
             "data_type": DatastoreDataType.POST_PROC_DATA,
+            "schema": list(self.OUTPUT_DATA_TYPE.__dataclass_fields__),
             **self._datastore_cfg,
             "restart": True,
         }
