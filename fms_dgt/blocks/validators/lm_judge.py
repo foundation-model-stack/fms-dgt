@@ -59,9 +59,10 @@ class LMJudgeValidator(BaseValidatorBlock):
                 judge_outputs.append(llm_output)
 
             if not new_result:
+                iter_args = arg_fields or self._arg_fields or []
                 to_save.append(
                     {
-                        **dict(zip(arg_fields or self._arg_fields, args)),
+                        **dict(zip(iter_args, args)),
                         **kwargs,
                         result_field: new_result,
                     }

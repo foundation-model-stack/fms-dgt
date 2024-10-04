@@ -9,6 +9,7 @@ import random
 from fms_dgt.base.datastore import BaseDatastore, DatastoreDataType
 from fms_dgt.base.registry import get_dataloader, get_datastore
 from fms_dgt.base.task_card import TaskRunCard
+from fms_dgt.constants import TYPE_KEY
 from fms_dgt.utils import group_data_by_attribute
 
 DEFAULT_OUTPUT_DIR = "output"

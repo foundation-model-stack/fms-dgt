@@ -104,9 +104,10 @@ class RougeDedupValidator(BaseValidatorBlock):
                 inp_args, inp_kwargs = self.get_args_kwargs(
                     inp, arg_fields, kwarg_fields
                 )
+                iter_args = arg_fields or self._arg_fields or []
                 to_save.append(
                     {
-                        **dict(zip(arg_fields or self._arg_fields, inp_args)),
+                        **dict(zip(iter_args, inp_args)),
                         **inp_kwargs,
                         result_field: res,
                     }

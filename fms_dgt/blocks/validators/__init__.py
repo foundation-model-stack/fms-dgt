@@ -57,9 +57,10 @@ class BaseValidatorBlock(BaseBlock):
                 self.write_result(x, res, result_field)
                 outputs.append(x)
             if not res:
+                iter_args = arg_fields or self._arg_fields or []
                 to_save.append(
                     {
-                        **dict(zip(arg_fields or self._arg_fields, inp_args)),
+                        **dict(zip(iter_args, inp_args)),
                         **inp_kwargs,
                     }
                 )
