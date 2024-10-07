@@ -1,50 +1,26 @@
 # Standard
 from abc import abstractmethod
-from typing import Any, Dict, List, Optional
-import dataclasses
-
-# Third Party
-import pandas as pd
+from typing import Any, List, Optional
 
 # Local
-from fms_dgt.base.block import DATASET_TYPE, BaseBlock
-from fms_dgt.base.datastore import DatastoreDataType
-from fms_dgt.base.registry import get_datastore
-from fms_dgt.blocks import TYPE_KEY
-
-ARGS_SAVE_FIELD = "args"
-KWARGS_SAVE_FIELD = "kwargs"
+from fms_dgt.base.block import BaseBlock
+from fms_dgt.constants import DATASET_TYPE
 
 
 class BaseValidatorBlock(BaseBlock):
     def __init__(
         self,
         filter: Optional[bool] = False,
-        datastore: Optional[Dict] = None,
         **kwargs: Any,
     ) -> None:
         """Initialize a block that validates (and possibly filters) its input.
 
         Parameters:
             filter (Optional[bool]): Whether to filter out invalid values from the list.
-            datastore (Optional[Dict]): A dictionary containing the configuration for the datastore.
             kwargs (Any): Additional keyword arguments to pass to the base class.
         """
         super().__init__(**kwargs)
         self._filter_invalids = filter
-        # datastore params
-        self._datastore = None
-        if datastore is not None:
-            canon_task_card = self._task_cards[0] if self._task_cards else None
-            self._datastore = get_datastore(
-                datastore.get(TYPE_KEY),
-                **{
-                    "store_name": f"{self.block_type}_{self.name}",
-                    "task_card": canon_task_card,
-                    "data_type": DatastoreDataType.VAL,
-                    **datastore,
-                },
-            )
 
     def generate(
         self,
@@ -73,7 +49,7 @@ class BaseValidatorBlock(BaseBlock):
         Returns:
             DATASET_TYPE: Input dataset with results added (possibly filtered to remove any invalid inputs)
         """
-        outputs, filtered = [], []
+        outputs, to_save = [], []
         for x in inputs:
             inp_args, inp_kwargs = self.get_args_kwargs(x, arg_fields, kwarg_fields)
             res = self._validate(*inp_args, **inp_kwargs)
@@ -81,28 +57,17 @@ class BaseValidatorBlock(BaseBlock):
                 self.write_result(x, res, result_field)
                 outputs.append(x)
             if not res:
-                filtered.append(
-                    {ARGS_SAVE_FIELD: inp_args, KWARGS_SAVE_FIELD: inp_kwargs}
+                iter_args = arg_fields or self._arg_fields or []
+                to_save.append(
+                    {
+                        **dict(zip(iter_args, inp_args)),
+                        **inp_kwargs,
+                    }
                 )
 
-        self.save_filtered(filtered)
+        self.save_data(to_save)
 
         return outputs
-
-    def save_filtered(self, filtered_data: DATASET_TYPE):
-        def to_serializable(x):
-            if isinstance(x, pd.Series):
-                return to_serializable(x.to_dict())
-            elif dataclasses.is_dataclass(x):
-                return to_serializable(dataclasses.asdict(x))
-            elif isinstance(x, dict):
-                return {k: to_serializable(v) for k, v in x.items()}
-            elif isinstance(x, (tuple, list)):
-                return [to_serializable(y) for y in x]
-            return x
-
-        if filtered_data and self._datastore is not None:
-            self._datastore.save_data([to_serializable(x) for x in filtered_data])
 
     @abstractmethod
     def _validate(self, *args: Any, **kwargs: Any) -> bool:

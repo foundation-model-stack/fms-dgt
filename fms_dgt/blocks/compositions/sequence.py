@@ -2,9 +2,9 @@
 from typing import Any, Dict, List
 
 # Local
-from fms_dgt.base.block import DATASET_TYPE, BaseBlock
+from fms_dgt.base.block import BaseBlock
 from fms_dgt.base.registry import get_block, register_block
-from fms_dgt.blocks import TYPE_KEY
+from fms_dgt.constants import DATASET_TYPE, TYPE_KEY
 from fms_dgt.utils import sdg_logger
 
 
@@ -21,7 +21,7 @@ class BlockSequence(BaseBlock):
 
         for attr in [self._arg_fields, self._kwarg_fields, self._result_field]:
             if attr is not None:
-                sdg_logger.warn(
+                sdg_logger.warning(
                     "Field attribute is set but it will not be used in block '%s'",
                     self.name,
                 )

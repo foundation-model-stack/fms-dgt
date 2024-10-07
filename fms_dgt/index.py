@@ -4,10 +4,11 @@ import collections
 import os
 
 # Local
+from fms_dgt.constants import NAME_KEY
 from fms_dgt.utils import sdg_logger
 import fms_dgt.utils as utils
 
-_BLOCKS_KEY, _NAME_KEY = "blocks", "name"
+_BLOCKS_KEY = "blocks"
 
 
 class DataBuilderIndex:
@@ -71,7 +72,7 @@ class DataBuilderIndex:
                         override_blocks = [
                             ob
                             for ob in override[_BLOCKS_KEY]
-                            if ob[_NAME_KEY] == block[_NAME_KEY]
+                            if ob[NAME_KEY] == block[NAME_KEY]
                         ]
                         if override_blocks:
                             config[_BLOCKS_KEY][i] = utils.merge_dictionaries(
@@ -120,10 +121,10 @@ class DataBuilderIndex:
                     config = utils.load_yaml_config(yaml_path, mode="simple")
 
                     # TODO: better validation as to what files are builders and what files aren't
-                    if not _NAME_KEY in config:
+                    if not NAME_KEY in config:
                         return
 
-                    builder_name = config[_NAME_KEY]
+                    builder_name = config[NAME_KEY]
 
                     if builder_name in self._builder_index:
                         sdg_logger.warning(

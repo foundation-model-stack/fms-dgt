@@ -9,16 +9,13 @@ import random
 from fms_dgt.base.datastore import BaseDatastore, DatastoreDataType
 from fms_dgt.base.registry import get_dataloader, get_datastore
 from fms_dgt.base.task_card import TaskRunCard
+from fms_dgt.constants import TYPE_KEY
 from fms_dgt.utils import group_data_by_attribute
 
 DEFAULT_OUTPUT_DIR = "output"
 DEFAULT_MACHINE_BATCH_SIZE = 10
 DEFAULT_SEED_BATCH_SIZE = 100
 DEFAULT_NUM_OUTPUTS = 2
-
-
-NAME_KEY = "name"
-TYPE_KEY = "type"
 
 
 @dataclass
@@ -278,6 +275,7 @@ class SdgTask:
                 self._store_name, f"postproc_data_{self._post_proc_id}"
             ),
             "data_type": DatastoreDataType.POST_PROC_DATA,
+            "schema": list(self.OUTPUT_DATA_TYPE.__dataclass_fields__),
             **self._datastore_cfg,
             "restart": True,
         }

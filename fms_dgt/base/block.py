@@ -1,16 +1,17 @@
 # Standard
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
+import dataclasses
 
 # Third Party
 from datasets import Dataset
 import pandas as pd
 
 # Local
+from fms_dgt.base.datastore import BaseDatastore, DatastoreDataType
+from fms_dgt.base.registry import get_datastore
 from fms_dgt.base.task_card import TaskRunCard
-
-DATASET_ROW_TYPE = Union[Dict[str, Any], pd.Series]
-DATASET_TYPE = Union[Iterable[DATASET_ROW_TYPE], pd.DataFrame, Dataset]
+from fms_dgt.constants import DATASET_ROW_TYPE, DATASET_TYPE, TYPE_KEY
 
 
 def get_row_name(gen_inst: DATASET_ROW_TYPE) -> str:
@@ -39,6 +40,8 @@ class BaseBlock(ABC):
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
         task_cards: Optional[List[TaskRunCard]] = None,
+        datastore: Optional[Dict] = None,
+        save_schema: Optional[List[str]] = None,
     ) -> None:
         """A block is a unit of computation that takes in some inputs and produces an output. It is intended to be specialized algorithms
             or processes that teams can contribute for others to use to build their pipelines.
@@ -46,10 +49,14 @@ class BaseBlock(ABC):
         Args:
             name (str, optional): The name of the block.
             block_type (str, optional): The type of the block.
+
+        Kwargs:
             arg_fields (Optional[List[str]], optional): A list of field names to use as positional arguments.
             kwarg_fields (Optional[List[str]], optional): A list of field names to use as keyword arguments.
             result_field (Optional[str], optional): Name of the result field in the input data row that the computation of the block will be written to.
             task_cards (Optional[TaskRunCard], optional): A list of all task cards this block is associated with.
+            datastore (Optional[Dict]): A dictionary containing the configuration for the datastore.
+            save_schema (Optional[List[str]], optional): The schema of the data that should be saved.
 
         Raises:
             TypeError: If any of the arguments are not of the correct type.
@@ -68,6 +75,26 @@ class BaseBlock(ABC):
         self._kwarg_fields = kwarg_fields
         self._result_field = result_field
         self._task_cards = task_cards
+
+        self._save_schema = (
+            save_schema
+            or ((self._arg_fields or []) + (self._kwarg_fields or []))
+            or None
+        )
+        # datastore params
+        self._datastore = None
+        if datastore is not None:
+            canon_task_card = self._task_cards[0] if self._task_cards else None
+            self._datastore = get_datastore(
+                datastore.get(TYPE_KEY),
+                **{
+                    "store_name": f"{self.block_type}_{self.name}",
+                    "task_card": canon_task_card,
+                    "data_type": DatastoreDataType.VAL,
+                    "schema": save_schema,
+                    **datastore,
+                },
+            )
 
     @property
     def name(self) -> str:
@@ -113,6 +140,47 @@ class BaseBlock(ABC):
             str: Name of the result field that computations will be written to
         """
         return self._result_field
+
+    @property
+    def save_schema(self) -> List[str]:
+        """Returns the schema of the data in the validator
+
+        Returns:
+            List[str]: Fields of the data
+        """
+        return self._save_schema
+
+    @property
+    def datastore(self) -> BaseDatastore:
+        """Returns the datastore of the block
+
+        Returns:
+            BaseDatastore: Datastore of the block
+        """
+        return self._datastore
+
+    def save_data(self, data: DATASET_TYPE) -> None:
+        def to_serializable(x):
+            def _to_serializable_inner(x):
+                if isinstance(x, pd.Series):
+                    return _to_serializable_inner(x.to_dict())
+                elif dataclasses.is_dataclass(x):
+                    return _to_serializable_inner(dataclasses.asdict(x))
+                elif isinstance(x, dict):
+                    return {k: _to_serializable_inner(v) for k, v in x.items()}
+                elif isinstance(x, (tuple, list)):
+                    return [_to_serializable_inner(y) for y in x]
+                return x
+
+            x = _to_serializable_inner(x)
+            if not isinstance(x, dict):
+                raise ValueError(
+                    f"Attempting to serialize {x} to datastore, but data cannot be converted into dictionary"
+                )
+            return x
+
+        if data and self._datastore is not None:
+            self.datastore.save_data([to_serializable(x) for x in data])
 
     def get_args_kwargs(
         self,
