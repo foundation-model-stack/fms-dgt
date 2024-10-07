@@ -34,14 +34,11 @@ def generate_data(
     data_paths = data_paths or []
     builder_overrides = None
     task_overrides = dict()
-    ordering = []
-
     if config_path:
         (
             addlt_data_paths,
             builder_overrides,
             task_overrides,
-            ordering,
         ) = utils.load_joint_config(config_path)
         data_paths.extend(addlt_data_paths)
 
@@ -92,12 +89,11 @@ def generate_data(
             builder_names, config_overrides=builder_overrides
         ).items()
     )
+
     # get execution order for tasks
     task_map = {task_init["task_name"]: task_init for task_init in task_inits}
     # groups in ordering come first, everything else grouped at the end
-    task_groups = [[task_map[t] for t in lst] for lst in ordering] + [
-        [t for t in task_inits if not any([t["task_name"] in lst for lst in ordering])]
-    ]
+    task_groups = [task_inits]
     for task_group in task_groups:
         for builder_name, builder_cfg in all_builder_cfgs:
 

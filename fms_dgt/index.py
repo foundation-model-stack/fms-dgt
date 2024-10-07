@@ -77,10 +77,9 @@ class DataBuilderIndex:
                             if cb[NAME_KEY] == block[NAME_KEY]
                         ]
                         if config_block:
-                            config[_BLOCKS_KEY][
-                                config_block[0][0]
-                            ] = utils.merge_dictionaries(
-                                config[_BLOCKS_KEY][config_block[0][1]], block
+                            i = config_block[0]
+                            config[_BLOCKS_KEY][i] = utils.merge_dictionaries(
+                                config[_BLOCKS_KEY][i], block
                             )
                         else:
                             addlt_blocks.append(block)

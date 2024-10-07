@@ -13,9 +13,6 @@ tasks:
     datastore:
       type: default
       output_dir: output/test_yes_no
-ordering:
-  - [api_multiple_detection, api_single_detection]
-  - [api_parallel_multiple]
 task_files:
   - data/generation/code/apis/glaive/detection/multiple_apis/qna.yaml
   - data/generation/code/apis/glaive/detection/single_api/qna.yaml
