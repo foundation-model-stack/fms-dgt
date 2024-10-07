@@ -1,6 +1,0 @@
-Generate questions like the following:
-
-Q: {{input1}}
-A: {{input2}}
-
-Q:
