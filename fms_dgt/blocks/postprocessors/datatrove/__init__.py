@@ -38,9 +38,6 @@ class BaseDatatroveBlock(BasePostProcessingBlock):
         to_datastore: BaseDatastore,
         batch_size: int | None = 10000,
     ) -> None:
-
-        self._assert_schema_exists()
-
         for f in os.listdir(self._output_dir):
             parquet_file = pq.ParquetFile(os.path.join(self.output_dir, f))
             for batch in parquet_file.iter_batches(batch_size):
@@ -51,7 +48,5 @@ class BaseDatatroveBlock(BasePostProcessingBlock):
                         base = proc["metadata"]
                         if self.text_key:
                             base[self.text_key] = proc["text"]
-                        data.append(
-                            {k: v for k, v in base.items() if k in self._output_schema}
-                        )
+                        data.append(base)
                     to_datastore.save_data(data)

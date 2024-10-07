@@ -3,11 +3,11 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Union
 
 # Local
-from fms_dgt.base.block import DATASET_TYPE
 from fms_dgt.base.databuilder import DataBuilder, DataBuilderConfig
 from fms_dgt.base.registry import register_data_builder
 from fms_dgt.base.task import SdgTask
 from fms_dgt.blocks.compositions.sequence import BlockSequence
+from fms_dgt.constants import DATASET_TYPE
 from fms_dgt.utils import sdg_logger
 
 
