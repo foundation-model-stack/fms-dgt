@@ -319,7 +319,7 @@ class SdgTask:
             self._instruction_format is not None
         ), f"'instruction_format' cannot be None in method 'instantiate_instruction'"
 
-        data = asdict(data)
+        data = data if type(data) == dict else asdict(data)
         output = dict(self._instruction_format)
         for k in output.keys():
             for ds_k, ds_v in data.items():

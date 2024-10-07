@@ -65,19 +65,25 @@ class DataBuilderIndex:
         config_overrides: Optional[Dict] = None,
     ) -> Mapping:
         def override_builder_config(config: Dict, override: Dict):
+            if _BLOCKS_KEY not in config:
+                config[_BLOCKS_KEY] = []
             for k in config:
                 if k == _BLOCKS_KEY and _BLOCKS_KEY in override:
-                    for i in range(len(config[_BLOCKS_KEY])):
-                        block = config[_BLOCKS_KEY][i]
-                        override_blocks = [
-                            ob
-                            for ob in override[_BLOCKS_KEY]
-                            if ob[NAME_KEY] == block[NAME_KEY]
+                    addlt_blocks = []
+                    for block in override[_BLOCKS_KEY]:
+                        config_block = [
+                            i
+                            for i, cb in enumerate(config[_BLOCKS_KEY])
+                            if cb[NAME_KEY] == block[NAME_KEY]
                         ]
-                        if override_blocks:
+                        if config_block:
+                            i = config_block[0]
                             config[_BLOCKS_KEY][i] = utils.merge_dictionaries(
-                                block, *override_blocks
+                                config[_BLOCKS_KEY][i], block
                             )
+                        else:
+                            addlt_blocks.append(block)
+                    config[_BLOCKS_KEY].extend(addlt_blocks)
                 else:
                     config[k] = utils.merge_dictionaries(
                         config[k], override.get(k, dict())
