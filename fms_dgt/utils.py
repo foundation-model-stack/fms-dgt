@@ -255,7 +255,7 @@ def read_data_file(file_path: str):
             **{
                 "data_builder": "simple",
                 "created_by": "",
-                "seed_examples": [dict()],
+                "seed_examples": [],
             },
             **contents,
         }

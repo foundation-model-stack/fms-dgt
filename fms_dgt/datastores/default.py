@@ -69,6 +69,8 @@ class DefaultDatastore(BaseDatastore):
         elif os.path.exists(data_path):
             output_format = os.path.splitext(data_path)[-1]
             if output_format == ".jsonl":
+                loaded_data = _read_jsonl(data_path)
+            elif output_format == ".json":
                 loaded_data = _read_json(data_path)
             elif output_format == ".yaml":
                 loaded_data = _read_yaml(data_path)
@@ -105,10 +107,19 @@ def _write_parquet(new_data: List[T], output_path: str):
     )
 
 
-def _read_json(output_path: str):
+def _read_jsonl(output_path: str):
     with open(output_path, "r") as f:
         try:
             machine_data = [json.loads(l.strip()) for l in f.readlines()]
+        except ValueError:
+            machine_data = []
+    return machine_data
+
+
+def _read_json(output_path: str):
+    with open(output_path, "r") as f:
+        try:
+            machine_data = json.load(f)
         except ValueError:
             machine_data = []
     return machine_data
