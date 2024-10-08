@@ -104,10 +104,6 @@ def _write_json(new_data: List[T], output_path: str):
 
 def _write_parquet(new_data: List[T], output_path: str):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    rec_batch = pa.RecordBatch.from_pylist(new_data)
-    with pq.ParquetWriter("example.parquet", schema=rec_batch.schema) as writer:
-        writer.write_batch(rec_batch)
-
     pd.DataFrame(new_data).to_parquet(
         output_path,
         engine="fastparquet",
