@@ -2,6 +2,10 @@
 from typing import Dict, List
 import json
 
+# Third Party
+from openapi_schema_validator import validate
+import jsonschema
+
 # Local
 from fms_dgt.base.registry import register_block
 from fms_dgt.blocks.validators import BaseValidatorBlock
@@ -102,14 +106,13 @@ class APIGenSpecValidator(BaseValidatorBlock):
             )
             component_args = component[_ARGS] if _ARGS in component else dict()
 
-            # filter if required args not met
-            if (
-                _PARAM in matching_api
-                and _REQUIRED in matching_api[_PARAM]
-                and set(matching_api[_PARAM][_REQUIRED]).difference(
-                    component_args.keys()
-                )
-            ):
+            # validate schema
+            try:
+                validate(component_args, matching_api["parameters"])
+            except (
+                jsonschema.exceptions.ValidationError,
+                jsonschema.exceptions.SchemaError,
+            ) as e:
                 return False
 
             # now do individual arg checking

@@ -232,7 +232,10 @@ class ApiDataBuilder(DataBuilder):
                 # if k not in [gd.seed_api_group for gd in grouped_data]
             ]
         )
-        new_group = random.choices(key_lst, weights=key_weights, k=1)[0]
+        # TODO: hmm, do we want to weight these?
+        # new_group = random.choices(key_lst, weights=key_weights, k=1)[0]
+        new_group = random.choices(key_lst, k=1)[0]
+
         new_pos_ct = random.randint(*new_instr.func_count_bounds)
         new_pos_apis = random.sample(
             list(api_specification_groups[new_group]),
