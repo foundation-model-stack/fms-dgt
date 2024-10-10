@@ -181,8 +181,8 @@ def load_yaml_config(yaml_path=None, yaml_config=None, yaml_dir=None, mode="full
         final_yaml_config = dict()
         to_add = init_include(to_include)
         if type(to_include) == list:
-            for entry in to_add:
-                final_yaml_config.update(entry)
+            new_entry = merge_dictionaries(*to_add)
+            final_yaml_config.update(new_entry)
         elif type(to_include) == dict:
             final_yaml_config.update(to_add)
         else:
