@@ -342,7 +342,10 @@ def load_nested_paths(inp: Dict, base_dir: str = None):
             for i in range(len(d)):
                 d[i] = _pull_paths(d[i], parent_dir)
         elif type(d) == str and d and _is_file(d):
-            if (file_path := _get_path(d, parent_dir)) not in checked_files:
+            # assigns file_path then checks that file_path is not 'None'
+            if (
+                file_path := _get_path(d, parent_dir)
+            ) not in checked_files and file_path is not None:
                 checked_files.add(file_path)
                 return _pull_paths(_load_file(file_path), os.path.dirname(file_path))
         return d
