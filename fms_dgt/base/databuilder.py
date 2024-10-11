@@ -15,7 +15,7 @@ from fms_dgt.base.task import SdgData, SdgTask, TransformTask
 from fms_dgt.blocks.generators.llm import CachingLM
 from fms_dgt.blocks.postprocessors import BasePostProcessingBlock
 from fms_dgt.constants import NAME_KEY, TYPE_KEY
-from fms_dgt.utils import all_annotations, sdg_logger
+from fms_dgt.utils import all_annotations, init_dataclass_from_dict, sdg_logger
 
 DEFAULT_MAX_STALLED_ATTEMPTS = 5
 DEFAULT_MAX_GEN_REQUESTS = 10
