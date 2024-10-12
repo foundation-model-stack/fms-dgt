@@ -1,13 +1,11 @@
 # Standard
-from typing import List, TypeVar
+from typing import List, TypeVar, Union
 import json
 import os
 
 # Third Party
 import datasets
 import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
 import yaml
 
 # Local
@@ -27,7 +25,7 @@ class DefaultDatastore(BaseDatastore):
         output_dir: str = None,
         data_format: str = "jsonl",
         data: List[T] = None,
-        data_path: str = None,
+        data_path: Union[str, List[str]] = None,
         data_split: str = "train",
         **kwargs,
     ) -> None:

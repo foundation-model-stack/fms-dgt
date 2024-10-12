@@ -164,6 +164,10 @@ class SdgTask:
         return self._task_description
 
     @property
+    def restart_generation(self):
+        return self._restart_generation
+
+    @property
     def task_card(self) -> TaskRunCard:
         """Returns the task card.
 

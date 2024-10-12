@@ -10,9 +10,12 @@ from tqdm import tqdm, trange
 # Local
 from fms_dgt.base.databuilder import TransformationDataBuilder
 from fms_dgt.base.registry import register_data_builder
+from fms_dgt.base.task import DEFAULT_OUTPUT_DIR
 from fms_dgt.blocks.generators.llm import LMGenerator
 from fms_dgt.blocks.trainers import BaseTrainerBlock
+from fms_dgt.blocks.trainers.trainer import make_model_dir
 from fms_dgt.blocks.validators import BaseValidatorBlock
+from fms_dgt.constants import TASK_NAME_KEY
 from fms_dgt.databuilders.transformation.star.task import StarSdgData, StarTransformTask
 from fms_dgt.utils import sdg_logger
 
@@ -40,12 +43,10 @@ class StarTransformDataBuilder(TransformationDataBuilder):
 
     def __init__(
         self,
-        task_kwargs: Dict,
         max_iters: int = 2,
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self._task_kwargs = task_kwargs
         self._max_iters = max_iters
 
     def execute_tasks(self):
@@ -55,20 +56,27 @@ class StarTransformDataBuilder(TransformationDataBuilder):
         for task_kwargs in tqdm(self._task_kwargs, desc="Running transformation tasks"):
             self._execute_single_task(task_kwargs)
 
-    def _execute_single_task(self, task_kwargs: StarTransformTask):
+    def _execute_single_task(self, task_kwargs: Dict):
         """Execute single task"""
         for iteration in trange(self._max_iters, desc="Bootstrap Iteration"):
 
             # initialize a fresh task
-            task = StarTransformTask(iteration=iteration, **task_kwargs)
+            output_dir = task_kwargs.get(
+                "output_dir",
+                os.path.join(DEFAULT_OUTPUT_DIR, task_kwargs.get(TASK_NAME_KEY)),
+            )
+            curr_iter_dir = os.path.join(output_dir, f"iter_{iteration}")
+            prev_iter_dir = os.path.join(
+                output_dir, f"iter_{(iteration - 1 if iteration else 'init')}"
+            )
+            task = StarTransformTask(**task_kwargs, output_dir=curr_iter_dir)
 
             # initialize model
             if iteration == 0:
                 model_id_or_path = self.llm1.model_id_or_path
                 assert os.path.exists(model_id_or_path), f"Must use a local model!"
-                if os.path.exists(task.prev_model):
-                    shutil.rmtree(task.prev_model)
-                shutil.copytree(model_id_or_path, task.prev_model)
+                if not os.path.exists(prev_iter_dir):
+                    shutil.copytree(model_id_or_path, make_model_dir(prev_iter_dir))
 
             # annotation of dataset, resume if possible
             task.load_intermediate_data()
@@ -96,10 +104,9 @@ class StarTransformDataBuilder(TransformationDataBuilder):
 
             # train model
             trained_model = self.trainer1.train(
-                model_id_or_path=task.prev_model,
-                output_dir=task.curr_model_dir,
-                datastore=task.final_datastore,
-                restart=task.restart_generation,
+                model_id_or_path=make_model_dir(prev_iter_dir),
+                output_dir=curr_iter_dir,
+                datastore=task.datastore,
             )
 
             # reload model with newly created
@@ -110,6 +117,9 @@ class StarTransformDataBuilder(TransformationDataBuilder):
         self,
         input_data: List[StarSdgData],
     ) -> Iterable[Dict]:
+
+        # TODO: REMOVE
+        input_data = input_data[:20]
 
         llm_inputs = []
         for qa_pair in tqdm(input_data, desc="Data Transformation"):

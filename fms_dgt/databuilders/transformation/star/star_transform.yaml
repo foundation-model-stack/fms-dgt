@@ -14,6 +14,6 @@ blocks:
     result_field: result
   - name: trainer1
     type: deepspeed
-    config_path: ./trainer_configs/ds_config.json
+    config_path: /dccstor/cfm-tst/fms-sdg/fms_dgt/databuilders/transformation/star/trainer_configs/ds_config.json
 metadata:
   version: 1.0

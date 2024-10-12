@@ -10,3 +10,4 @@ DATASET_TYPE = Union[Iterable[DATASET_ROW_TYPE], pd.DataFrame, Dataset]
 
 TYPE_KEY = "type"
 NAME_KEY = "name"
+TASK_NAME_KEY = "task_name"

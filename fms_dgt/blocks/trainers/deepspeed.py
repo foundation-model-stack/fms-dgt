@@ -1,4 +1,5 @@
 # Standard
+from typing import List
 import gc
 import json
 import os
@@ -6,15 +7,20 @@ import shutil
 
 # Third Party
 from torch.utils.data import DataLoader
-from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    DataCollatorForLanguageModeling,
+    PreTrainedModel,
+)
 import deepspeed
 import torch
-import transformers
 
 # Local
 from fms_dgt.base.datastore import BaseDatastore
 from fms_dgt.base.registry import register_block
 from fms_dgt.blocks.trainers import BaseTrainerBlock
+from fms_dgt.blocks.trainers.trainer import TrainerData, make_model_dir
 
 ###
 # Trainer itself
@@ -25,6 +31,7 @@ from fms_dgt.blocks.trainers import BaseTrainerBlock
 class DeepspeedTrainerBlock(BaseTrainerBlock):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         with open(self._config_path, "r") as f:
             config = json.load(f)
             self._save_steps = config["save_steps"]
@@ -34,20 +41,17 @@ class DeepspeedTrainerBlock(BaseTrainerBlock):
         model_id_or_path: str,
         output_dir: str,
         datastore: BaseDatastore,
-        restart: bool = False,
     ) -> str:
-        def collate_fn(batch):
-            tokenized = [tokenizer(b).input_ids for b in batch]
+        def collate_fn(batch: List[TrainerData]):
+            # input will be batch of DICTIONARIES matching the TrainerData dataclass
+            tokenized = [tokenizer(b["input"] + b["output"]).input_ids for b in batch]
             batch_data = {k: v.to("cuda") for k, v in data_collator(tokenized).items()}
             return batch_data
-
-        if restart:
-            shutil.rmtree(output_dir)
 
         data_dir = os.path.join(output_dir, "dataset")
         dataset = self.get_dataset(datastore, data_dir)
 
-        model_dir = os.path.join(output_dir, "model")
+        model_dir = make_model_dir(output_dir)
 
         is_distributed = False
         if is_distributed:
@@ -68,7 +72,7 @@ class DeepspeedTrainerBlock(BaseTrainerBlock):
         )
         model_engine: deepspeed.DeepSpeedEngine
 
-        data_collator = transformers.DataCollatorForLanguageModeling(
+        data_collator = DataCollatorForLanguageModeling(
             tokenizer, mlm=False, return_tensors="pt"
         )
 

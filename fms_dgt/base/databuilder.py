@@ -51,7 +51,7 @@ class DataBuilder(ABC):
         config: Union[Mapping, DataBuilderConfig] = None,
         max_gen_requests: int = DEFAULT_MAX_GEN_REQUESTS,
         max_stalled_requests: int = DEFAULT_MAX_STALLED_ATTEMPTS,
-        task_kwargs: dict = None,
+        task_kwargs: List[dict] = None,
         **kwargs: Any,
     ) -> None:
         """Initializes data builder object.
@@ -63,6 +63,7 @@ class DataBuilder(ABC):
             task_kwargs (List[dict], optional): List of task_kwargs for each task to be executed by this data builder.
         """
         self._config = init_dataclass_from_dict(config, DataBuilderConfig)
+        self._task_kwargs = task_kwargs
 
         self._name = self.config.name
 
@@ -74,8 +75,7 @@ class DataBuilder(ABC):
         )
 
         # initialize tasks
-        if task_kwargs is not None:
-            self._init_tasks(task_kwargs)
+        self._init_tasks()
 
         # initializing generators / validators
         self._init_blocks()
@@ -154,14 +154,14 @@ class DataBuilder(ABC):
 
             setattr(self, obj_name, obj)
 
-    def _init_tasks(self, all_task_kwargs: List[dict]):
+    def _init_tasks(self):
         """Initializes the tasks for this data builder
 
         Args:
             all_task_kwargs (List[dict]): List of task_kwargs for each task to be executed by this data builder
         """
         self._tasks: List[SdgTask] = [
-            self.TASK_TYPE(**task_kwargs) for task_kwargs in all_task_kwargs
+            self.TASK_TYPE(**task_kwargs) for task_kwargs in self._task_kwargs
         ]
 
     def execute_tasks(self):

@@ -4,6 +4,7 @@
 
 
 # Standard
+from dataclasses import asdict, dataclass
 from typing import Any
 import abc
 import os
@@ -14,6 +15,15 @@ from datasets import Dataset, load_from_disk
 # Local
 from fms_dgt.base.block import BaseBlock
 from fms_dgt.base.datastore import BaseDatastore
+
+
+@dataclass
+class TrainerData:
+    input: str
+    output: str
+
+    def to_dict(self):
+        return asdict(self)
 
 
 class BaseTrainerBlock(BaseBlock):
@@ -31,12 +41,24 @@ class BaseTrainerBlock(BaseBlock):
         if os.path.isdir(path):
             if os.listdir(path):
                 # if data already exists, continue
-                return
+                return load_from_disk(path).with_format("torch")
         else:
             os.makedirs(path)
 
         # TODO: Improve this
-        dataset = Dataset.from_list(datastore.load_data())
+
+        dataset = Dataset.from_list(
+            [
+                TrainerData(
+                    **{
+                        k: v
+                        for k, v in d.items()
+                        if k in TrainerData.__dataclass_fields__
+                    }
+                ).to_dict()
+                for d in datastore.load_data()
+            ]
+        )
         dataset.save_to_disk(path)
 
         return load_from_disk(path).with_format("torch")
@@ -47,7 +69,6 @@ class BaseTrainerBlock(BaseBlock):
         model_id_or_path: str,
         output_dir: str,
         datastore: BaseDatastore,
-        restart: bool = False,
         *args,
         **kwargs,
     ) -> str:
@@ -60,10 +81,14 @@ class BaseTrainerBlock(BaseBlock):
             config_path (Any): path to config used for trainer
             kwargs (Any): Additional keyword arguments to pass to the base class.
 
-        Kwargs:
-            restart (bool): Whether to restart training or not
-
         Returns:
             str: Path to model that was trained
         """
         raise NotImplementedError
+
+    def generate(self, *args, **kwargs) -> Any:
+        raise NotImplementedError
+
+
+def make_model_dir(output_path: str):
+    return os.path.join(output_path, "model")
