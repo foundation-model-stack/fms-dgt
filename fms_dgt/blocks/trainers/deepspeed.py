@@ -3,7 +3,6 @@ from typing import List
 import gc
 import json
 import os
-import shutil
 
 # Third Party
 from torch.utils.data import DataLoader
