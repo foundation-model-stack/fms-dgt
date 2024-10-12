@@ -12,5 +12,8 @@ blocks:
     arg_fields:
       - prompt
     result_field: result
+  - name: trainer1
+    type: deepspeed
+    config_path: ./trainer_configs/ds_config.json
 metadata:
   version: 1.0

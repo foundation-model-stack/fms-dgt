@@ -181,6 +181,15 @@ class SdgTask:
         """
         return self._datastore
 
+    @property
+    def final_datastore(self) -> BaseDatastore:
+        """Returns the datastore of the class.
+
+        Returns:
+            BaseDatastore: Datastore
+        """
+        return self._final_datastore
+
     def _save_task_card(self):
         """Saves experiment card to datastore."""
 
@@ -410,6 +419,14 @@ class SdgTask:
             ]
             if to_add:
                 self._final_datastore.save_data(to_add)
+
+    def load_final_data(self) -> List[SdgData]:
+        """Loads final data produced during SDG (will be used to resume SDG).
+
+        Returns:
+            List[SdgData]: List of SdgData that has been loaded
+        """
+        return self._final_datastore.load_data()
 
     def save_dataloader_state(self):
         self._dataloader_state_datastore.save_data(

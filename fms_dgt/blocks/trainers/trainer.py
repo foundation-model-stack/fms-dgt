@@ -4,59 +4,66 @@
 
 
 # Standard
-from typing import Any, List, Optional
+from typing import Any
 import abc
+import os
+
+# Third Party
+from datasets import Dataset, load_from_disk
 
 # Local
-from fms_dgt.base.block import DATASET_TYPE, BaseBlock
+from fms_dgt.base.block import BaseBlock
+from fms_dgt.base.datastore import BaseDatastore
 
 
 class BaseTrainerBlock(BaseBlock):
     def __init__(self, config_path: str, **kwargs: Any) -> None:
-        """Initialize a block that trains a model on a dataset input.
+        """Initialize a trainer that trains a model on a dataset input.
 
-        Parameters:
+        Args:
             config_path (Any): path to config used for trainer
             kwargs (Any): Additional keyword arguments to pass to the base class.
         """
         super().__init__(**kwargs)
-
-        if len(self.arg_fields) > 1:
-            raise ValueError(f"Can only accept one argument field in 'arg_fields' list")
-
         self._config_path = config_path
 
-    @property
-    @abc.abstractmethod
-    def trained_model_path(self):
-        raise NotImplementedError
+    def get_dataset(self, datastore: BaseDatastore, path: str):
+        if os.path.isdir(path):
+            if os.listdir(path):
+                # if data already exists, continue
+                return
+        else:
+            os.makedirs(path)
 
-    def generate(
+        # TODO: Improve this
+        dataset = Dataset.from_list(datastore.load_data())
+        dataset.save_to_disk(path)
+
+        return load_from_disk(path).with_format("torch")
+
+    @abc.abstractmethod
+    def train(
         self,
-        inputs: DATASET_TYPE,
-        *,
-        arg_fields: Optional[List[str]] = None,
-        **kwargs: Any,
-    ) -> None:
-        """The generate function is the primary interface to a Block. For trainer blocks, it accepts an input dataset and trains a model.
-        It returns 'None' to the user, with the trained model available at 'trained_model_path'
+        model_id_or_path: str,
+        output_dir: str,
+        datastore: BaseDatastore,
+        restart: bool = False,
+        *args,
+        **kwargs,
+    ) -> str:
+        """Run training and return a model
 
         Args:
-            inputs (DATASET_TYPE): The dataset to train the model on
+            model_id_or_path (str): Model to initialize from
+            output_dir (str): Directory to output model checkpoints
+            datastore (BaseDatastore): Datastore that contains all training data
+            config_path (Any): path to config used for trainer
+            kwargs (Any): Additional keyword arguments to pass to the base class.
 
         Kwargs:
-            arg_fields (Optional[List[str]]): The single field of the dataset to extract.
-            **kwargs: Additional keyword args that may be passed to override the trainer parameters
+            restart (bool): Whether to restart training or not
+
+        Returns:
+            str: Path to model that was trained
         """
-
-        if len(self.arg_fields) > 1:
-            raise ValueError(f"Can only accept one argument field in 'arg_fields' list")
-
-        dataset = []
-        for x in inputs:
-            inp_args, _ = self.get_args_kwargs(x, arg_fields)
-            dataset.append(inp_args[0])
-
-    @abc.abstractmethod
-    def train(self):
         raise NotImplementedError
