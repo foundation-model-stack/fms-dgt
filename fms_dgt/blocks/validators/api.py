@@ -17,7 +17,6 @@ _PARAM = "parameters"
 _PROPERTIES = "properties"
 _ARGS = "arguments"
 _LABEL = "label"
-_REQUIRED = "required"
 _OUTPUT_PARAM = "output_parameters"
 
 # Classes
