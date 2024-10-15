@@ -10,7 +10,7 @@ import abc
 import os
 
 # Third Party
-from datasets import Dataset, load_from_disk
+from datasets import Dataset
 
 # Local
 from fms_dgt.base.block import BaseBlock
@@ -37,11 +37,11 @@ class BaseTrainerBlock(BaseBlock):
         super().__init__(**kwargs)
         self._config_path = config_path
 
-    def get_dataset(self, datastore: BaseDatastore, path: str):
+    def set_dataset(self, datastore: BaseDatastore, path: str):
         if os.path.isdir(path):
             if os.listdir(path):
                 # if data already exists, continue
-                return load_from_disk(path).with_format("torch")
+                return
         else:
             os.makedirs(path)
 
@@ -60,8 +60,6 @@ class BaseTrainerBlock(BaseBlock):
             ]
         )
         dataset.save_to_disk(path)
-
-        return load_from_disk(path).with_format("torch")
 
     @abc.abstractmethod
     def train(

@@ -1,7 +1,6 @@
 # Standard
 from typing import Dict, Iterable, List
 import os
-import shutil
 import time
 
 # Third Party
@@ -13,7 +12,6 @@ from fms_dgt.base.registry import register_data_builder
 from fms_dgt.base.task import DEFAULT_OUTPUT_DIR
 from fms_dgt.blocks.generators.llm import LMGenerator
 from fms_dgt.blocks.trainers import BaseTrainerBlock
-from fms_dgt.blocks.trainers.trainer import make_model_dir
 from fms_dgt.blocks.validators import BaseValidatorBlock
 from fms_dgt.constants import TASK_NAME_KEY
 from fms_dgt.databuilders.transformation.star.task import StarSdgData, StarTransformTask
@@ -66,17 +64,12 @@ class StarTransformDataBuilder(TransformationDataBuilder):
                 os.path.join(DEFAULT_OUTPUT_DIR, task_kwargs.get(TASK_NAME_KEY)),
             )
             curr_iter_dir = os.path.join(output_dir, f"iter_{iteration}")
-            prev_iter_dir = os.path.join(
-                output_dir, f"iter_{(iteration - 1 if iteration else 'init')}"
-            )
             task = StarTransformTask(**task_kwargs, output_dir=curr_iter_dir)
 
             # initialize model
             if iteration == 0:
                 model_id_or_path = self.llm1.model_id_or_path
                 assert os.path.exists(model_id_or_path), f"Must use a local model!"
-                if not os.path.exists(prev_iter_dir):
-                    shutil.copytree(model_id_or_path, make_model_dir(prev_iter_dir))
 
             # annotation of dataset, resume if possible
             task.load_intermediate_data()
@@ -100,18 +93,18 @@ class StarTransformDataBuilder(TransformationDataBuilder):
             task.save_final_data()
 
             # release model memory to allow for trainer
-            self.llm1.release_model()
+            # self.llm1.release_model()
 
             # train model
-            trained_model = self.trainer1.train(
-                model_id_or_path=make_model_dir(prev_iter_dir),
+            model_id_or_path = self.trainer1.train(
+                model_id_or_path=model_id_or_path,
                 output_dir=curr_iter_dir,
                 datastore=task.datastore,
             )
 
             # reload model with newly created
             if iteration != self._max_iters - 1:
-                self.llm1.init_model(trained_model)
+                self.llm1.init_model(model_id_or_path)
 
     def __call__(
         self,

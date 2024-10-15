@@ -114,7 +114,10 @@ class vLLMGenerator(LMGenerator):
         self._prefix_token_id = prefix_token_id
 
         if self.data_parallel_size <= 1:
-            self.init_model()
+            try:
+                self.init_model()
+            except Exception as e:
+                print(e)
         else:
             assert parse_version(version("vllm")) < parse_version(
                 "0.3.3"

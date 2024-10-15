@@ -1,0 +1,4 @@
+deepspeed
+mpi4py
+transformers
+datasets
