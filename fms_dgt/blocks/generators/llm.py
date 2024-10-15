@@ -239,7 +239,10 @@ class LMGenerator(BaseBlock):
 
         return inp_args, inp_kwargs
 
-    def close(self):
+    def init_model(self):
+        pass
+
+    def release_model(self):
         pass
 
 
@@ -289,8 +292,8 @@ class CachingLM:
 
         if not callable(lm_attr):
             return lm_attr
-        elif lm_attr == "close":
-            return self.lm.close()
+        elif attr in ["init_model", "release_model"]:
+            return lm_attr
 
         def fn(requests: List[Instance]):
             res = []

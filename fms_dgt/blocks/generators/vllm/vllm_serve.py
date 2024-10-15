@@ -70,55 +70,74 @@ class vLLMGenerator(LMGenerator):
         if self.batch_size is None:
             self._batch_size = "auto"
 
-        self.tensor_parallel_size = int(tensor_parallel_size)
-        self.data_parallel_size = int(data_parallel_size)
-        model_args = {
-            "model": self.model_id_or_path,
-            "gpu_memory_utilization": float(gpu_memory_utilization),
-            "revision": revision,
-            "dtype": dtype,
-            "tokenizer": tokenizer,
-            "tokenizer_mode": tokenizer_mode,
-            "tokenizer_revision": tokenizer_revision,
-            "trust_remote_code": trust_remote_code,
-            "tensor_parallel_size": int(tensor_parallel_size),
-            "max_model_len": (
-                int(self.max_length) if self.max_length is not None else None
-            ),
-            "swap_space": int(swap_space) if swap_space is not None else None,
-            "quantization": quantization,
-            "seed": int(self.random_seed) if self.random_seed is not None else None,
-            # "distributed_executor_backend": (
-            #     "ray" if self.tensor_parallel_size > 1 else "mp"
-            # ),
-        }
-        self.model_args = {k: v for k, v in model_args.items() if v is not None}
+        self._check_interval = check_interval
+        self._tensor_parallel_size = int(tensor_parallel_size)
+        self._data_parallel_size = int(data_parallel_size)
+        self._gpu_memory_utilization = float(gpu_memory_utilization)
 
-        pid = os.getpid()
-        api_key = str(uuid.uuid4())
-        host = "0.0.0.0"
-        port = "9001"
-        base_url = f"http://{host}:{port}/v1/"
+        self._pid = os.getpid()
+        self._api_key = str(uuid.uuid4())
+        self._host = "0.0.0.0"
+        self._port = "9001"
+        self._base_url = f"http://{self._host}:{self._port}/v1/"
+        self._vllm = OpenaiCompletionsLM(
+            api_key=self._api_key, base_url=self._base_url, **kwargs
+        )
+
+        self._vllm_process = None
+        self.init_model()
+
+        # model_args = {
+        #     "model": self.model_id_or_path,
+        #     "gpu_memory_utilization": float(gpu_memory_utilization),
+        #     "revision": revision,
+        #     "dtype": dtype,
+        #     "tokenizer": tokenizer,
+        #     "tokenizer_mode": tokenizer_mode,
+        #     "tokenizer_revision": tokenizer_revision,
+        #     "trust_remote_code": trust_remote_code,
+        #     "tensor_parallel_size": int(tensor_parallel_size),
+        #     "max_model_len": (
+        #         int(self.max_length) if self.max_length is not None else None
+        #     ),
+        #     "swap_space": int(swap_space) if swap_space is not None else None,
+        #     "quantization": quantization,
+        #     "seed": int(self.random_seed) if self.random_seed is not None else None,
+        #     # "distributed_executor_backend": (
+        #     #     "ray" if self.tensor_parallel_size > 1 else "mp"
+        #     # ),
+        # }
+        # self._model_args = {k: v for k, v in model_args.items() if v is not None}
+
+    def generate_batch(self, *args, **kwargs) -> None:
+        return self._vllm.generate_batch(*args, **kwargs)
+
+    def loglikelihood_batch(self, *args, **kwargs) -> None:
+        return self._vllm.loglikelihood_batch(*args, **kwargs)
+
+    def init_model(self, model_id_or_path: str = None):
+        model_id_or_path = (
+            self.model_id_or_path if model_id_or_path is None else model_id_or_path
+        )
         cmd = [
             (
                 "python",
                 os.path.join(os.path.dirname(os.path.abspath(__file__)), "server.py"),
             ),
-            ("--pid", pid),
-            ("--check-interval", check_interval),
-            ("--api-key", api_key),
-            ("--host", host),
-            ("--port", port),
-            ("--model", self.model_id_or_path),
-            ("--tensor-parallel-size", tensor_parallel_size),
-            ("--gpu-memory-utilization", gpu_memory_utilization),
+            ("--pid", self._pid),
+            ("--check-interval", self._check_interval),
+            ("--api-key", self._api_key),
+            ("--host", self._host),
+            ("--port", self._port),
+            ("--model", model_id_or_path),
+            ("--tensor-parallel-size", self._tensor_parallel_size),
+            ("--gpu-memory-utilization", self._gpu_memory_utilization),
         ]
         cmd = [str(x) for entry in cmd for x in entry]
 
         self._vllm_process = subprocess.Popen(
             cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
         )
-        self._vllm = OpenaiCompletionsLM(api_key=api_key, base_url=base_url, **kwargs)
 
         while True:
             line = self._vllm_process.stdout.readline()
@@ -127,11 +146,5 @@ class vLLMGenerator(LMGenerator):
             elif self._vllm_process.poll() is not None:
                 raise SystemError(f"Underlying vllm process has terminated!")
 
-    def generate_batch(self, *args, **kwargs) -> None:
-        return self._vllm.generate_batch(*args, **kwargs)
-
-    def loglikelihood_batch(self, *args, **kwargs) -> None:
-        return self._vllm.loglikelihood_batch(*args, **kwargs)
-
-    def close(self):
+    def release_model(self):
         self._vllm_process.kill()
