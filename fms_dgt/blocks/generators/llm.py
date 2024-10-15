@@ -239,6 +239,9 @@ class LMGenerator(BaseBlock):
 
         return inp_args, inp_kwargs
 
+    def close(self):
+        pass
+
 
 ### SQLite-based caching of LM responses
 def hash_args(attr, request):
@@ -283,8 +286,11 @@ class CachingLM:
 
     def __getattr__(self, attr):
         lm_attr = getattr(self.lm, attr)
+
         if not callable(lm_attr):
             return lm_attr
+        elif lm_attr == "close":
+            return self.lm.close()
 
         def fn(requests: List[Instance]):
             res = []

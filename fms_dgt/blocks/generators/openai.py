@@ -71,6 +71,7 @@ def oa_completion(client, chat: bool = False, **kwargs):
 class OpenaiCompletionsLM(LMGenerator):
     def __init__(
         self,
+        api_key: str = "EMPTY",
         base_url: str = None,
         auto_chat_template: bool = False,
         **kwargs: Any,
@@ -84,9 +85,8 @@ class OpenaiCompletionsLM(LMGenerator):
             import openai  # noqa: E401
             import tiktoken
         except ModuleNotFoundError:
-            raise Exception(
-                "attempted to use 'openai' LM type, but package `openai` or `tiktoken` are not installed. \
-    please install these via `pip install .[openai]`",
+            raise ModuleNotFoundError(
+                f"attempted to use '{self.block_type}' LM type, but package `openai` or `tiktoken` are not installed. please install these via `pip install .[openai]`",
             )
 
         self.base_url = base_url
@@ -98,7 +98,7 @@ class OpenaiCompletionsLM(LMGenerator):
         # Read from environment variable OPENAI_API_KEY
         # Set to EMPTY for local
         if self.base_url:
-            self.client = openai.OpenAI(api_key="EMPTY", base_url=self.base_url)
+            self.client = openai.OpenAI(api_key=api_key, base_url=self.base_url)
         else:
             self._openai_resource: OpenAIKeyResource = get_resource(
                 "openai", "OPENAI_API_KEY"
@@ -196,7 +196,7 @@ class OpenaiChatCompletionsLM(OpenaiCompletionsLM):
         if self.batch_size is None:
             self._batch_size = 1
         if self.block_type == "openai-chat":
-            sdg_logger.warn(f"OpenAI Chat models only support batch size of 1")
+            sdg_logger.warning(f"OpenAI Chat models only support batch size of 1")
             self._batch_size = 1
 
     def _prepare_input(self, prompt: Union[str, List[Dict]]):
