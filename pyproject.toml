@@ -32,6 +32,7 @@ dependencies = [
     "more_itertools",
     "GitPython",
     "Jinja2",
+    "openapi-schema-validator",
     "fastparquet>=2024.5.0"
 ]
 
