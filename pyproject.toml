@@ -33,7 +33,9 @@ dependencies = [
     "GitPython",
     "Jinja2",
     "openapi-schema-validator",
-    "fastparquet>=2024.5.0"
+    "fastparquet>=2024.5.0",
+    "psutil",
+    "uvloop",
 ]
 
 [tool.setuptools.packages.find]
