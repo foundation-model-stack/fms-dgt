@@ -11,6 +11,7 @@ import os
 
 # Third Party
 from datasets import Dataset
+import torch
 
 # Local
 from fms_dgt.base.block import BaseBlock
@@ -27,7 +28,19 @@ class TrainerData:
 
 
 class BaseTrainerBlock(BaseBlock):
-    def __init__(self, config_path: str, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        config_path: str,
+        num_gpus: int = None,
+        learning_rate: float = 0.0001,
+        fp16: bool = True,
+        logging_steps: int = 100,
+        save_steps: int = 50,
+        per_device_train_batch_size: int = 1,
+        gradient_accumulation_steps: int = 1,
+        max_steps: int = 100,
+        **kwargs: Any,
+    ) -> None:
         """Initialize a trainer that trains a model on a dataset input.
 
         Args:
@@ -36,6 +49,19 @@ class BaseTrainerBlock(BaseBlock):
         """
         super().__init__(**kwargs)
         self._config_path = config_path
+
+        self._num_gpus = torch.cuda.device_count() if num_gpus is None else num_gpus
+
+        training_args = {
+            "learning_rate": learning_rate,
+            "fp16": fp16,
+            "logging_steps": logging_steps,
+            "save_steps": save_steps,
+            "per_device_train_batch_size": per_device_train_batch_size,
+            "gradient_accumulation_steps": gradient_accumulation_steps,
+            "max_steps": max_steps,
+        }
+        self._training_args = {k: v for k, v in training_args.items() if v is not None}
 
     def set_dataset(self, datastore: BaseDatastore, path: str):
         if os.path.isdir(path):

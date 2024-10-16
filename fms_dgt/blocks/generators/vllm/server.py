@@ -1,7 +1,6 @@
 # Standard
 from argparse import Namespace
 import asyncio
-import sys
 
 # Third Party
 from vllm.entrypoints.openai.api_server import run_server
@@ -38,7 +37,7 @@ async def monitor(parent_pid: int, check_interval: float):
     while True:
         await asyncio.sleep(check_interval)
         if not psutil.pid_exists(parent_pid):
-            sys.exit()
+            return
 
 
 if __name__ == "__main__":

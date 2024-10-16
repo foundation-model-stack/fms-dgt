@@ -1,5 +1,0 @@
-FROM python:3.10
-COPY dependencies.txt dependencies.txt
-RUN pip3 install -r dependencies.txt
-COPY train.py train.py
-CMD ["deepspeed", "python3", "-m" , "train.py"]

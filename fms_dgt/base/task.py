@@ -209,7 +209,7 @@ class SdgTask:
         prev_card = None
         if not self._restart_generation:
             prev_task_cards: List[Dict] = [
-                TaskRunCard(**card)
+                card
                 for card in task_card_datastore.load_data()
                 if card["build_id"] == self._task_card.build_id
             ]

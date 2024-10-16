@@ -49,7 +49,7 @@ class vLLMGenerator(LMGenerator):
         prefix_token_id: Optional[int] = None,
         tensor_parallel_size: int = 1,
         quantization: Optional[str] = None,
-        swap_space: int = None,
+        swap_space: int = 0,
         gpu_memory_utilization: float = 0.9,
         device: str = "cuda",
         data_parallel_size: int = 1,
@@ -74,6 +74,7 @@ class vLLMGenerator(LMGenerator):
         self._tensor_parallel_size = int(tensor_parallel_size)
         self._data_parallel_size = int(data_parallel_size)
         self._gpu_memory_utilization = float(gpu_memory_utilization)
+        self._swap_space = int(swap_space)
 
         self._pid = os.getpid()
         self._api_key = str(uuid.uuid4())
@@ -120,18 +121,21 @@ class vLLMGenerator(LMGenerator):
             self.model_id_or_path if model_id_or_path is None else model_id_or_path
         )
         cmd = [
-            (
+            [
                 "python",
                 os.path.join(os.path.dirname(os.path.abspath(__file__)), "server.py"),
-            ),
-            ("--pid", self._pid),
-            ("--check-interval", self._check_interval),
-            ("--api-key", self._api_key),
-            ("--host", self._host),
-            ("--port", self._port),
-            ("--model", model_id_or_path),
-            ("--tensor-parallel-size", self._tensor_parallel_size),
-            ("--gpu-memory-utilization", self._gpu_memory_utilization),
+            ],
+            ["--pid", self._pid],
+            ["--check-interval", self._check_interval],
+            ["--api-key", self._api_key],
+            ["--host", self._host],
+            ["--port", self._port],
+            ["--model", model_id_or_path],
+            ["--tensor-parallel-size", self._tensor_parallel_size],
+            ["--gpu-memory-utilization", self._gpu_memory_utilization],
+            ["--swap-space", self._swap_space],
+            ["--disable-log-requests"],
+            # ["--enable-prefix-caching"],
         ]
         cmd = [str(x) for entry in cmd for x in entry]
 

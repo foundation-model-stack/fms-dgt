@@ -10,7 +10,7 @@ from tqdm import tqdm, trange
 from fms_dgt.base.databuilder import TransformationDataBuilder
 from fms_dgt.base.registry import register_data_builder
 from fms_dgt.base.task import DEFAULT_OUTPUT_DIR
-from fms_dgt.blocks.generators.llm import LMGenerator
+from fms_dgt.blocks.generators.vllm import vLLMGenerator
 from fms_dgt.blocks.trainers import BaseTrainerBlock
 from fms_dgt.blocks.validators import BaseValidatorBlock
 from fms_dgt.constants import TASK_NAME_KEY
@@ -31,7 +31,7 @@ class StarTransformDataBuilder(TransformationDataBuilder):
     TASK_TYPE: StarTransformTask
 
     # llm1 is the main generator that will produce the synthetic examples
-    llm1: LMGenerator
+    llm1: vLLMGenerator
 
     # we are intentionally generic with val1 to maximize reuse
     val1: BaseValidatorBlock
@@ -93,7 +93,7 @@ class StarTransformDataBuilder(TransformationDataBuilder):
             task.save_final_data()
 
             # release model memory to allow for trainer
-            # self.llm1.release_model()
+            self.llm1.release_model()
 
             # train model
             model_id_or_path = self.trainer1.train(
