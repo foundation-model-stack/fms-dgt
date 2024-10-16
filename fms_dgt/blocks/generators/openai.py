@@ -93,7 +93,7 @@ class OpenaiCompletionsLM(LMGenerator):
         self._chat = False
 
         if self.batch_size is None:
-            self._batch_size = 1
+            self._batch_size = 10
 
         # Read from environment variable OPENAI_API_KEY
         # Set to EMPTY for local
@@ -194,7 +194,7 @@ class OpenaiChatCompletionsLM(OpenaiCompletionsLM):
         super().__init__(*args, **kwargs)
         self._chat = True
         if self.batch_size is None:
-            self._batch_size = 1
+            self._batch_size = 10
         if self.block_type == "openai-chat":
             sdg_logger.warning(f"OpenAI Chat models only support batch size of 1")
             self._batch_size = 1
