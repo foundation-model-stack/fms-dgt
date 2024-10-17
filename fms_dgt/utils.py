@@ -134,36 +134,27 @@ def load_yaml_config(yaml_path=None, yaml_config=None, yaml_dir=None, mode="full
             # If failed to load, ignore
             raise ex
 
-    def _include_str(to_include: str) -> List[str]:
-        try_files = [to_include, os.path.join(yaml_dir, to_include)]
-        # direct matches first
-        for try_file in try_files:
-            if os.path.isfile(try_file):
-                # return as list
-                return [load_file(try_file)]
-
-        # regex matches second
-        matching_files = glob.glob(os.path.join(yaml_dir, to_include))
-        if matching_files:
-            return [load_file(x) for x in matching_files]
-
-        raise ValueError(f"Could not match {to_include} with any file in {yaml_dir}")
-
     def _include(to_include: Any):
         if isinstance(to_include, list):
-            return [
-                y
-                for x in to_include
-                for y in (_include_str(x) if isinstance(x, str) else [_include(x)])
-            ]
+            ret_lst = []
+            for x in to_include:
+                contents = _include(x)
+                if isinstance(x, str) and isinstance(contents, list):
+                    ret_lst.extend(contents)
+                else:
+                    ret_lst.append(contents)
+            return ret_lst
         elif isinstance(to_include, dict):
             return {k: _include(v) for k, v in to_include.items()}
         elif isinstance(to_include, str):
-            return _include_str(to_include)
-        else:
-            raise ValueError(
-                f"Unhandled input format in 'include' directive: {to_include}"
-            )
+            if os.path.isfile(to_include):
+                return load_file(to_include)
+            elif os.path.isfile(os.path.join(yaml_dir, to_include)):
+                return load_file(os.path.join(yaml_dir, to_include))
+            matching_files = glob.glob(os.path.join(yaml_dir, to_include))
+            if matching_files:
+                return [load_file(x) for x in matching_files]
+        raise ValueError(f"Unhandled input format in 'include' directive: {to_include}")
 
     if mode == "simple":
         constructor_fn = ignore_constructor
