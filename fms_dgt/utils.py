@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, List, TypeVar, Union
 import copy
 import fnmatch
+import glob
 import importlib.util
 import json
 import logging
@@ -133,23 +134,32 @@ def load_yaml_config(yaml_path=None, yaml_config=None, yaml_dir=None, mode="full
             # If failed to load, ignore
             raise ex
 
-    def init_include(to_include: Any):
-        if type(to_include) == list:
-            return [init_include(x) for x in to_include]
-        elif type(to_include) == dict:
-            return {k: init_include(v) for k, v in to_include.items()}
-        elif type(to_include) == str:
-            if os.path.isfile(to_include):
-                # case where provided include is an absolute path
-                add_data = load_file(to_include)
-            elif os.path.isfile(os.path.join(yaml_dir, to_include)):
-                # case where provided include is a relative path
-                add_data = load_file(os.path.join(yaml_dir, to_include))
-            else:
-                raise ValueError(
-                    f"Should not include non-file paths in include directive: {to_include}"
-                )
-            return add_data
+    def _include_str(to_include: str) -> List[str]:
+        try_files = [to_include, os.path.join(yaml_dir, to_include)]
+        # direct matches first
+        for try_file in try_files:
+            if os.path.isfile(try_file):
+                # return as list
+                return [load_file(try_file)]
+
+        # regex matches second
+        matching_files = glob.glob(os.path.join(yaml_dir, to_include))
+        if matching_files:
+            return [load_file(x) for x in matching_files]
+
+        raise ValueError(f"Could not match {to_include} with any file in {yaml_dir}")
+
+    def _include(to_include: Any):
+        if isinstance(to_include, list):
+            return [
+                y
+                for x in to_include
+                for y in (_include_str(x) if isinstance(x, str) else [_include(x)])
+            ]
+        elif isinstance(to_include, dict):
+            return {k: _include(v) for k, v in to_include.items()}
+        elif isinstance(to_include, str):
+            return _include_str(to_include)
         else:
             raise ValueError(
                 f"Unhandled input format in 'include' directive: {to_include}"
@@ -179,7 +189,7 @@ def load_yaml_config(yaml_path=None, yaml_config=None, yaml_dir=None, mode="full
             to_include = [to_include]
 
         final_yaml_config = dict()
-        to_add = init_include(to_include)
+        to_add = _include(to_include)
         if type(to_include) == list:
             new_entry = merge_dictionaries(*to_add)
             final_yaml_config.update(new_entry)
