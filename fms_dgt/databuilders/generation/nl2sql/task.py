@@ -3,8 +3,19 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 # Local
-from fms_dgt.base.task import SdgData, SdgTask
+from fms_dgt.base.task import SdgData, SdgTask, SdgTaskConfig
 from fms_dgt.databuilders.generation.simple.task import InstructLabSdgData
+
+
+@dataclass
+class SqlSdgTaskConfig(SdgTaskConfig):
+    ddl_schema: str = ""
+    database_information: str = None
+    database_type: str = ""
+    ground_truth: str = None
+    query_logs: str = None
+    context: str = None
+    config_path: str = None
 
 
 @dataclass
@@ -30,19 +41,14 @@ class SqlSdgTask(SdgTask):
 
     INPUT_DATA_TYPE = SqlSdgData
     OUTPUT_DATA_TYPE = InstructLabSdgData
+    CONFIG_TYPE = SqlSdgTaskConfig
 
     def __init__(
         self,
-        ddl_schema: str = "",
-        database_information: str = None,
-        database_type: str = "",
-        ground_truth: str = None,
-        query_logs: str = None,
-        context: str = None,
-        config_path: str = None,
+        *args: Any,
         **kwargs: Any,
     ):
-        super().__init__(**kwargs)
+        super().__init__(*args, **kwargs)
         self._ddl_schema = ddl_schema
         self._db_info = database_information
         self._ground_truth = ground_truth

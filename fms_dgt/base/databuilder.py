@@ -15,7 +15,7 @@ from fms_dgt.base.task import SdgData, SdgTask, TransformTask
 from fms_dgt.blocks.generators.llm import CachingLM
 from fms_dgt.blocks.postprocessors import BasePostProcessingBlock
 from fms_dgt.constants import NAME_KEY, TYPE_KEY
-from fms_dgt.utils import all_annotations, sdg_logger
+from fms_dgt.utils import all_annotations, init_dataclass_from_dict, sdg_logger
 
 DEFAULT_MAX_STALLED_ATTEMPTS = 5
 DEFAULT_MAX_GEN_REQUESTS = 10
@@ -62,13 +62,8 @@ class DataBuilder(ABC):
             max_stalled_requests (int, optional): Maximum number of data generation loop iterations that do not return new data before terminating.
             task_kwargs (List[dict], optional): List of task_kwargs for each task to be executed by this data builder.
         """
-
-        if isinstance(config, DataBuilderConfig):
-            self._config = config
-        elif config is not None:
-            self._config = DataBuilderConfig(**config)
-        else:
-            self._config = DataBuilderConfig()
+        self._config = init_dataclass_from_dict(config, DataBuilderConfig)
+        self._task_kwargs = task_kwargs
 
         self._name = self.config.name
 
@@ -80,7 +75,7 @@ class DataBuilder(ABC):
         )
 
         # initialize tasks
-        self._init_tasks(task_kwargs)
+        self._init_tasks()
 
         # initializing generators / validators
         self._init_blocks()
@@ -159,17 +154,13 @@ class DataBuilder(ABC):
 
             setattr(self, obj_name, obj)
 
-    def _init_tasks(self, all_task_kwargs: List[dict]):
-        """Initializes the tasks for this data builder
-
-        Args:
-            all_task_kwargs (List[dict]): List of task_kwargs for each task to be executed by this data builder
-        """
+    def _init_tasks(self) -> None:
+        """Initializes the tasks for this data builder"""
         self._tasks: List[SdgTask] = [
-            self.TASK_TYPE(**task_kwargs) for task_kwargs in all_task_kwargs
+            self.TASK_TYPE(**task_kwargs) for task_kwargs in self._task_kwargs
         ]
 
-    def execute_tasks(self):
+    def execute_tasks(self) -> None:
         """Main entry point for task execution. Default behavior executes a loop until all tasks are complete, where each loop generates synthetic data."""
 
         # main entry point to task execution

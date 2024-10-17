@@ -1,6 +1,6 @@
 # Standard
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, List, Optional, TypeVar, Union
+from typing import Any, Dict, List, Mapping, Optional, TypeVar, Union
 import abc
 import os
 import random
@@ -10,12 +10,39 @@ from fms_dgt.base.datastore import BaseDatastore, DatastoreDataType
 from fms_dgt.base.registry import get_dataloader, get_datastore
 from fms_dgt.base.task_card import TaskRunCard
 from fms_dgt.constants import TYPE_KEY
-from fms_dgt.utils import group_data_by_attribute
+from fms_dgt.utils import group_data_by_attribute, init_dataclass_from_dict
 
 DEFAULT_OUTPUT_DIR = "output"
 DEFAULT_MACHINE_BATCH_SIZE = 10
 DEFAULT_SEED_BATCH_SIZE = 100
 DEFAULT_NUM_OUTPUTS = 2
+
+
+@dataclass
+class SdgTaskConfig(dict):
+    """Configuration for an SDG task
+
+    Attributes:
+        task_name (str): The name of the Task object.
+        task_description (str): A description of the SDG task is designed to solve.
+        created_by (str): The name of the individual / group who created the code assistant.
+        data_builder (str): The name of the data builder that should be used to process this task.
+        instruction_format (Optional[Dict[str, str]]): A dictionary template that can be used to translate intermediate data objects to instruction-tuning pairs
+        datastore (Optional[Dict]): A dictionary containing the configuration for the datastore.
+        seed_datastore (Optional[Dict]): A dictionary containing the configuration for the seed datastore.
+        dataloader (Optional[Dict]): A dictionary containing the configuration for the dataloader.
+        seed_examples (Optional[List[Any]]): A list of seed examples.
+    """
+
+    task_name: str
+    task_description: str
+    created_by: str
+    data_builder: str
+    instruction_format: Optional[Dict[str, str]] = None
+    datastore: Optional[Dict] = None
+    seed_datastore: Optional[Dict] = None
+    dataloader: Optional[Dict] = None
+    seed_examples: Optional[List[Any]] = None
 
 
 @dataclass
@@ -40,100 +67,83 @@ class SdgTask:
     OUTPUT_DATA_TYPE = (
         INPUT_DATA_TYPE  # default output data type is the main type of the task
     )
+    CONFIG_TYPE = SdgTaskConfig
 
     def __init__(
         self,
-        task_name: str,
-        task_description: str,
-        created_by: str,
-        data_builder: str,
         task_card: TaskRunCard,
-        instruction_format: Optional[Dict[str, str]] = None,
-        save_formatted_output: Optional[bool] = False,
+        config: Union[Mapping, CONFIG_TYPE] = None,
         output_dir: Optional[str] = DEFAULT_OUTPUT_DIR,
-        output_format: Optional[str] = "jsonl",
-        datastore: Optional[Dict] = None,
-        seed_datastore: Optional[Dict] = None,
+        save_formatted_output: Optional[bool] = False,
         restart_generation: Optional[bool] = False,
-        dataloader: Optional[Dict] = None,
         seed_batch_size: Optional[int] = DEFAULT_SEED_BATCH_SIZE,
         machine_batch_size: Optional[int] = DEFAULT_MACHINE_BATCH_SIZE,
-        seed_examples: Optional[List[Any]] = None,
         num_outputs_to_generate: Optional[int] = DEFAULT_NUM_OUTPUTS,
     ):
-        """Initializes the Task object
+        """Initializes data builder object.
 
         Args:
-            task_name (str): The name of the Task object.
-            task_description (str): A description of the SDG task is designed to solve.
-            created_by (str): The name of the individual / group who created the code assistant.
-            data_builder (str): The name of the data builder that should be used to process this task.
+            config (Union[Mapping, DataBuilderConfig], optional): Config specifying all databuilder settings.
             task_card (TaskCard): The task card containing all experiment information
-            instruction_format (Optional[Dict[str, str]]): A dictionary template that can be used to translate intermediate data objects to instruction-tuning pairs
             save_formatted_output (Optional[bool]): A boolean indicating whether to save outputs that have been reformatted
             output_dir (Optional[str]): The directory where the generated outputs will be saved.
-            output_format (Optional[str]): The format of the file where generated outputs are saved.
-            datastore (Optional[Dict]): A dictionary containing the configuration for the datastore.
-            seed_datastore (Optional[Dict]): A dictionary containing the configuration for the seed datastore.
             restart_generation (Optional[bool]): A boolean indicating whether to restart generation from scratch.
-            dataloader (Optional[Dict]): A dictionary containing the configuration for the dataloader.
             seed_batch_size (Optional[int]): The batch size used for seed examples.
             machine_batch_size (Optional[int]): The batch size used for machine examples.
-            seed_examples (Optional[List[Any]]): A list of seed examples.
             num_outputs_to_generate (Optional[int]): The number of outputs to generate.
         """
+        self._config = init_dataclass_from_dict(config, self.CONFIG_TYPE)
 
-        self._name = task_name
-        self._task_description = task_description
-        self._created_by = created_by
-        self._data_builder = data_builder
         self._task_card = task_card
-        self._restart_generation = restart_generation
-        self._seed_examples = seed_examples
-        self._num_outputs_to_generate = num_outputs_to_generate
-        self._output_format = output_format
+        self._store_name = self.task_card.task_name
         self._output_dir = output_dir
-        self._instruction_format = instruction_format
         self._save_formatted_output = save_formatted_output
-
-        self._store_name = self._task_card.task_name
-
+        self._restart_generation = restart_generation
         self._post_proc_id = 0
 
         self.machine_data = []
 
         self._seed_batch_size = seed_batch_size
-        if self._seed_batch_size < 0:
-            raise ValueError(
-                f"Cannot have negative value of {self._seed_batch_size} for seed_batch_size parameter"
-            )
-
-        self._machine_batch_size = (
-            machine_batch_size if machine_batch_size is not None else 100
-        )
-        if self._machine_batch_size < 0:
-            raise ValueError(
-                f"Cannot have negative value of {self._machine_batch_size} for machine_batch_size parameter"
-            )
+        self._machine_batch_size = machine_batch_size
+        self._num_outputs_to_generate = num_outputs_to_generate
+        for attr in [
+            "seed_batch_size",
+            "machine_batch_size",
+            "num_outputs_to_generate",
+        ]:
+            if getattr(self, f"_{attr}") < 0:
+                raise ValueError(
+                    f"Cannot have negative value of {getattr(self, f'_{attr}')} for {attr} parameter"
+                )
 
         # dataloader params
         self._dataloader_cfg = (
-            dataloader if dataloader is not None else {TYPE_KEY: "default"}
+            self.config.dataloader
+            if self.config.dataloader is not None
+            else {TYPE_KEY: "default"}
         )
 
         # datastore params
         base_store_cfg = {
             "restart": self._restart_generation,
             "output_dir": self._output_dir,
-            "task_card": self._task_card,
+            "task_card": self.task_card,
         }
         self._datastore_cfg = {
             **base_store_cfg,
-            **(datastore if datastore is not None else {TYPE_KEY: "default"}),
+            **(
+                self.config.datastore
+                if self.config.datastore is not None
+                else {TYPE_KEY: "default"}
+            ),
         }
         self._seed_datastore_cfg = {
             **base_store_cfg,
-            **(seed_datastore if seed_datastore is not None else {TYPE_KEY: "default"}),
+            **(
+                self.config.seed_datastore
+                if self.config.seed_datastore is not None
+                else {TYPE_KEY: "default"}
+            ),
         }
         self._task_card_datastore_cfg = {**base_store_cfg, **self._datastore_cfg}
 
@@ -146,13 +156,17 @@ class SdgTask:
         self._init_datastores()
 
     @property
+    def config(self) -> SdgTaskConfig:
+        return self._config
+
+    @property
     def name(self) -> str:
         """Returns name of task.
 
         Returns:
             str: Name of task
         """
-        return self._name
+        return self.config.task_name
 
     @property
     def task_description(self) -> str:
@@ -161,7 +175,7 @@ class SdgTask:
         Returns:
             str: Task description
         """
-        return self._task_description
+        return self.config.task_description
 
     @property
     def task_card(self) -> TaskRunCard:
@@ -179,7 +193,7 @@ class SdgTask:
         Returns:
             BaseDatastore: Datastore
         """
-        return self._datastore
+        return self.config.datastore
 
     def _save_task_card(self):
         """Saves experiment card to datastore."""
@@ -198,17 +212,17 @@ class SdgTask:
             prev_task_cards: List[Dict] = [
                 card
                 for card in task_card_datastore.load_data()
-                if card["build_id"] == self._task_card.build_id
+                if card["build_id"] == self.task_card.build_id
             ]
             if prev_task_cards:
                 prev_card = TaskRunCard(**prev_task_cards[-1])
-                self._task_card.run_id = prev_card.run_id
+                self.task_card.run_id = prev_card.run_id
 
         assert (
-            self._task_card.run_id is not None
+            self.task_card.run_id is not None
         ), "TaskCard.run_id cannot be set to None"
 
-        task_card_datastore.save_data([self._task_card.to_dict()])
+        task_card_datastore.save_data([self.task_card.to_dict()])
         task_card_datastore.close()
 
     def _init_dataloader(self) -> None:
@@ -217,7 +231,7 @@ class SdgTask:
         # init seed datastore for dataloader
         seed_ds_kwargs = {
             "store_name": os.path.join(self._store_name, "seed_data"),
-            "data": self._seed_examples,
+            "data": self.config.seed_examples,
             "data_type": DatastoreDataType.SEED,
             **self._seed_datastore_cfg,
             "restart": False,
@@ -295,7 +309,7 @@ class SdgTask:
             INPUT_DATA_TYPE: An instance of INPUT_DATA_TYPE.
         """
         return self.INPUT_DATA_TYPE(
-            task_name=kwargs.pop("task_name", self._name), **kwargs
+            task_name=kwargs.pop("task_name", self.name), **kwargs
         )
 
     def instantiate_output_example(self, **kwargs: Any) -> OUTPUT_DATA_TYPE:
@@ -320,11 +334,11 @@ class SdgTask:
         """
 
         assert (
-            self._instruction_format is not None
+            self.config.instruction_format is not None
         ), f"'instruction_format' cannot be None in method 'instantiate_instruction'"
 
         data = data if type(data) == dict else asdict(data)
-        output = dict(self._instruction_format)
+        output = dict(self.config.instruction_format)
         for k in output.keys():
             for ds_k, ds_v in data.items():
                 inp_key = "{{" + ds_k + "}}"
