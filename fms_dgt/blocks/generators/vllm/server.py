@@ -20,17 +20,14 @@ async def main(args: Namespace):
     monitor_task = monitor(pid, check_interval)
     server_task = run_server(args)
 
-    finished, unfinished = await asyncio.wait(
+    _, unfinished = await asyncio.wait(
         [monitor_task, server_task], return_when=asyncio.FIRST_COMPLETED
     )
-    for x in finished:
-        result = x.result()
-        if result:
-            # cancel the other tasks, we have a result. We need to wait for the cancellations
-            for task in unfinished:
-                task.cancel()
-            await asyncio.wait(unfinished)
-            return result
+
+    for task in unfinished:
+        task.cancel()
+
+    await asyncio.wait(unfinished)
 
 
 async def monitor(parent_pid: int, check_interval: float):
