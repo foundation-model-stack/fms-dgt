@@ -6,7 +6,20 @@ import json
 import random
 
 # Local
-from fms_dgt.base.task import SdgData, SdgTask
+from fms_dgt.base.task import SdgData, SdgTask, SdgTaskConfig
+
+
+@dataclass
+class ApiSdgTaskConfig(SdgTaskConfig):
+    task_instruction: str = None
+    api_specifications: Dict = None
+    exclude_api_groups: List[str] = None
+    min_func_count: int = 1
+    max_func_count: int = 1
+    check_arg_question_overlap: bool = True
+    intent_only: bool = False
+    single_function: bool = False
+    require_nested: bool = False
 
 
 @dataclass
@@ -47,35 +60,33 @@ class ApiSdgTask(SdgTask):
 
     INPUT_DATA_TYPE = ApiSdgData
     OUTPUT_DATA_TYPE = ApiSdgData
+    CONFIG_TYPE = ApiSdgTaskConfig
 
     def __init__(
         self,
-        task_instruction: str = None,
-        api_specifications: Dict = None,
-        exclude_api_groups: List[str] = None,
-        min_func_count: int = 1,
-        max_func_count: int = 1,
-        check_arg_question_overlap: bool = True,
-        intent_only: bool = False,
-        single_function: bool = False,
-        require_nested: bool = False,
+        *args: Any,
         **kwargs: Any,
     ):
-        super().__init__(**kwargs)
+        super().__init__(*args, **kwargs)
 
         self.all_api_specifications = {
             k: v
-            for k, v in api_specifications.items()
-            if (not exclude_api_groups) or k not in exclude_api_groups
+            for k, v in self.config.api_specifications.items()
+            if (not self.config.exclude_api_groups)
+            or k not in self.config.exclude_api_groups
         }
-        self._api_specs_w_exclusions = api_specifications
-        self._min_func_count = min_func_count
-        self._max_func_count = max_func_count
-        self._check_arg_question_overlap = check_arg_question_overlap
-        self._intent_only = intent_only
-        self._single_function = single_function
-        self._require_nested = require_nested
-        self._task_instruction = task_instruction
+        self._api_specs_w_exclusions = self.config.api_specifications
+        self._min_func_count = self.config.min_func_count
+        self._max_func_count = self.config.max_func_count
+        self._check_arg_question_overlap = self.config.check_arg_question_overlap
+        self._intent_only = self.config.intent_only
+        self._single_function = self.config.single_function
+        self._require_nested = self.config.require_nested
+        self._task_instruction = self.config.task_instruction
+
+    @property
+    def config(self) -> CONFIG_TYPE:
+        return self._config
 
     def instantiate_input_example(self, **kwargs: Any):
         return self.INPUT_DATA_TYPE(

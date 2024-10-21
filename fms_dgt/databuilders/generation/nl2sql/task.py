@@ -49,12 +49,16 @@ class SqlSdgTask(SdgTask):
         **kwargs: Any,
     ):
         super().__init__(*args, **kwargs)
-        self._ddl_schema = ddl_schema
-        self._db_info = database_information
-        self._ground_truth = ground_truth
-        self._query_logs = query_logs
-        self._context = context
-        self._config_path = config_path
+        self._ddl_schema = self.config.ddl_schema
+        self._db_info = self.config.database_information
+        self._ground_truth = self.config.ground_truth
+        self._query_logs = self.config.query_logs
+        self._context = self.config.context
+        self._config_path = self.config.config_path
+
+    @property
+    def config(self) -> CONFIG_TYPE:
+        return self._config
 
     def instantiate_input_example(self, **kwargs: Any):
         return self.INPUT_DATA_TYPE(

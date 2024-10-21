@@ -72,7 +72,7 @@ class SdgTask:
     def __init__(
         self,
         task_card: TaskRunCard,
-        config: Union[Mapping, CONFIG_TYPE] = None,
+        config: Mapping = None,
         output_dir: Optional[str] = DEFAULT_OUTPUT_DIR,
         save_formatted_output: Optional[bool] = False,
         restart_generation: Optional[bool] = False,
@@ -156,7 +156,7 @@ class SdgTask:
         self._init_datastores()
 
     @property
-    def config(self) -> SdgTaskConfig:
+    def config(self) -> CONFIG_TYPE:
         return self._config
 
     @property
