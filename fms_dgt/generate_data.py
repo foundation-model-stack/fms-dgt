@@ -130,19 +130,22 @@ def generate_data(
                 **builder_kwargs,
             }
 
+            # no nesting of errors
+            err = None
             try:
                 # first see if databuilder is loaded by default
                 data_builder: DataBuilder = get_data_builder(
                     builder_name, **all_builder_kwargs
                 )
             except KeyError as e:
-                if f"Attempted to load data builder '{builder_name}'" in str(e):
-                    utils.import_builder(builder_dir)
-                    data_builder: DataBuilder = get_data_builder(
-                        builder_name, **all_builder_kwargs
-                    )
-                else:
-                    raise e
+                err = e
+            if f"Attempted to load data builder '{builder_name}'" in str(err):
+                utils.import_builder(builder_dir)
+                data_builder: DataBuilder = get_data_builder(
+                    builder_name, **all_builder_kwargs
+                )
+            else:
+                raise err
 
             # TODO: ship this off
             data_builder.execute_tasks()
