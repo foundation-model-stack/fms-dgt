@@ -163,18 +163,18 @@ class DataBuilder(ABC):
     def execute_tasks(self) -> None:
         """Main entry point for task execution. Default behavior executes a loop until all tasks are complete, where each loop generates synthetic data."""
 
-        # main entry point to task execution
-        generating = self._tasks + []
-        completed: List[SdgTask] = []
-
         # load the LM-generated data
-        for task in generating:
+        for task in self._tasks:
             task.load_intermediate_data()
             if task.machine_data:
                 sdg_logger.debug(
                     "Loaded %s machine-generated data", len(task.machine_data)
                 )
             task.load_dataloader_state()
+
+        # main entry point to task execution
+        generating = [task for task in self._tasks if not task.is_complete()]
+        completed = [task for task in self._tasks if task.is_complete()]
 
         generate_start = time.time()
 
