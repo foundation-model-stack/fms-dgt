@@ -130,6 +130,7 @@ class LMGenerator(BaseBlock):
         method: str,
         res: Any,
         instance: Instance,
+        extra: Optional[dict[str, Any]] = None,
         until: Optional[List[str]] = None,
     ):
         if until is not None and type(res) == str:
@@ -137,6 +138,7 @@ class LMGenerator(BaseBlock):
                 if len(term) > 0:
                     res = res.split(term)[0]
         instance.result = res
+        instance.extra = extra
         self.cache_hook.add_partial(method, instance, res)
 
     @abc.abstractmethod
@@ -193,7 +195,12 @@ class LMGenerator(BaseBlock):
 
         outputs = []
         for inst in instances:
-            self.write_result(inst.data, inst.result, result_field)
+            self.write_result(
+                inst.data,
+                inst.result,
+                result_field,
+                extra=inst.extra,
+            )
             outputs.append(inst.data)
 
         return outputs
@@ -396,7 +403,12 @@ class CachingLM:
 
         outputs = []
         for inst in instances:
-            self.lm.write_result(inst.data, inst.result, result_field)
+            self.lm.write_result(
+                inst.data,
+                inst.result,
+                result_field,
+                extra=inst.extra,
+            )
             outputs.append(inst.data)
 
         return outputs

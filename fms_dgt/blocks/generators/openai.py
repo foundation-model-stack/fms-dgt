@@ -113,6 +113,9 @@ class OpenaiCompletionsLM(LMGenerator):
     def _extract_output(self, resp) -> str:
         return resp.text
 
+    def _extract_gen_token_count(self, resp) -> int:
+        return resp.usage.completion_tokens
+
     def generate_batch(
         self, requests: List[Instance], disable_tqdm: bool = False
     ) -> None:
@@ -145,10 +148,17 @@ class OpenaiCompletionsLM(LMGenerator):
                     **kwargs,
                 )
 
+                gen_token_count = self._extract_gen_token_count(response)
+
                 for resp, instance in zip(response.choices, chunk):
                     s = self._extract_output(resp)
+                    extra = {"gen_token_count": gen_token_count}
                     self.update_instance_with_result(
-                        "generate_batch", s, instance, until
+                        "generate_batch",
+                        s,
+                        instance,
+                        extra,
+                        until,
                     )
                     pbar.update(1)
 

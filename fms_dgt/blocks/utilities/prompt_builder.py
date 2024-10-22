@@ -33,6 +33,6 @@ class PromptBuilder(BaseBlock):
 
             outputs.append(x)
 
-            self.write_result(outputs[-1], prompt, result_field)
+            self.write_result(outputs[-1], prompt, result_field, extra=None)
 
         return outputs
