@@ -132,12 +132,7 @@ def get_block(block_name, *args: Any, **kwargs: Any):
     block_class = get_block_class(block_name)
 
     ret_block = (
-        ParallelBlock(
-            block_class,
-            parallel_config=kwargs.get(PARALLEL_CONFIG_KEY),
-            *args,
-            **kwargs,
-        )
+        ParallelBlock(block_class, *args, **kwargs)
         if PARALLEL_CONFIG_KEY in kwargs
         else block_class(*args, **kwargs)
     )
