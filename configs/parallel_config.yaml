@@ -1,0 +1,5 @@
+api_function_checking:
+  llm1:
+    num_workers: 1
+    num_cpus: 1
+    num_gpus: 0

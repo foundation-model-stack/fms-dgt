@@ -1,7 +1,7 @@
 # Standard
 from abc import ABC
 from dataclasses import dataclass
-from typing import Any, Iterable, List, Mapping, Optional, Union
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Union
 import json
 import time
 
@@ -52,8 +52,8 @@ class DataBuilder(ABC):
         config: Union[Mapping, DataBuilderConfig] = None,
         max_gen_requests: int = DEFAULT_MAX_GEN_REQUESTS,
         max_stalled_requests: int = DEFAULT_MAX_STALLED_ATTEMPTS,
-        task_kwargs: dict = None,
-        build_id: str = None,
+        task_kwargs: Dict = None,
+        parallel_config: Dict = None,
         **kwargs: Any,
     ) -> None:
         """Initializes data builder object.
@@ -62,12 +62,13 @@ class DataBuilder(ABC):
             config (Union[Mapping, DataBuilderConfig], optional): Config specifying all databuilder settings.
             max_gen_requests (int, optional): Maximum number of data generation loop iterations to execute before terminating.
             max_stalled_requests (int, optional): Maximum number of data generation loop iterations that do not return new data before terminating.
-            task_kwargs (List[dict], optional): List of task_kwargs for each task to be executed by this data builder.
+            task_kwargs (List[Dict], optional): List of task_kwargs for each task to be executed by this data builder.
+            parallel_config (Dict, optional): Config to use for parallelizing blocks
         """
         self._config = init_dataclass_from_dict(config, DataBuilderConfig)
 
         self._task_kwargs = task_kwargs
-        self._build_id = build_id
+        self._parallel_config = parallel_config
 
         self._max_gen_requests = (
             max_gen_requests if max_gen_requests is not None else float("inf")
@@ -79,6 +80,9 @@ class DataBuilder(ABC):
         # initialize tasks
         self._tasks: List[SdgTask] = []
         self._init_tasks()
+
+        # just grab first task's build_id
+        self._build_id = self._tasks[0].task_card.build_id
 
         # initializing generators / validators
         self._blocks: List[BaseBlock] = []
@@ -122,6 +126,10 @@ class DataBuilder(ABC):
 
         This method is intended to be overloaded when type checking is not necessary (e.g., in the case of the Pipeline class).
         """
+        assert len(self.config.blocks) == len(
+            [b.get("name") for b in self.config.blocks]
+        ), f"Duplicate block in '{self.name}' data builder detected"
+
         # TODO: need to handle nested blocks
         for obj_kwargs in self.config.blocks:
 
@@ -133,12 +141,6 @@ class DataBuilder(ABC):
             obj_name = obj_kwargs.get("name")
             obj_type = obj_kwargs.get(TYPE_KEY)
 
-            assert not any(
-                block.name == obj_name for block in self._blocks
-            ), f"Duplicate '{obj_name}' block in '{self.name}' data builder"
-
-            task_cards = [t.task_card for t in self._tasks]
-
             block_class = get_block_class(obj_type)
 
             # we type check when not using a pipeline
@@ -147,22 +149,28 @@ class DataBuilder(ABC):
                 obj_name in type_annotations
             ), f"Object {obj_name} is missing from definition of DataBuilder {self.__class__}"
 
-            obj_type = type_annotations[obj_name]
+            req_obj_type = type_annotations[obj_name]
 
             # double check types
-            assert issubclass(block_class, obj_type) or (
-                issubclass(block_class, CachingLM) and issubclass(obj_type, LMGenerator)
-            ), f"Type of retrieved object {obj.__class__} for {obj_name} does not match type {obj_type} specified in DataBuilder {self.__class__}"
+            assert issubclass(block_class, req_obj_type) or (
+                issubclass(block_class, CachingLM)
+                and issubclass(req_obj_type, LMGenerator)
+            ), f"Type of retrieved object {obj.__class__} for {obj_name} does not match type {req_obj_type} specified in DataBuilder {self.__class__}"
 
             obj_kwargs = {
                 "build_id": self._build_id,
                 "builder_name": self.name,
                 **obj_kwargs,
             }
-            if isinstance(obj, BaseParallelizableBlock):
-                obj = ParallelBlockWrapper(obj_type, obj_kwargs)
-            else:
-                obj = get_block(obj_type, **obj_kwargs)
+
+            obj = (
+                ParallelBlockWrapper(
+                    self._parallel_config.get(obj_name), block_class, obj_kwargs
+                )
+                if obj_name in self._parallel_config
+                and issubclass(block_class, BaseParallelizableBlock)
+                else get_block(obj_type, **obj_kwargs)
+            )
 
             setattr(self, obj_name, obj)
             self._blocks.append(obj)

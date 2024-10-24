@@ -19,12 +19,14 @@ class BaseParallelizableBlock(BaseBlock):
 class ParallelBlockWrapper:
     def __init__(
         self,
-        worker_ct: int,
-        num_cpus: int,
-        num_gpus: int,
+        parallel_config: Dict,
         block_class: Type[BaseBlock],
         block_kwargs: Dict,
     ):
+        worker_ct = parallel_config.get("worker_ct", 1)
+        num_cpus = parallel_config.get("num_cpus", 1)
+        num_gpus = parallel_config.get("num_gpus", 0)
+
         self._workers: List[ActorHandle] = []
         for _ in range(worker_ct):
             actor = ray.remote(num_cpus=num_cpus, num_gpus=num_gpus)(
@@ -42,7 +44,7 @@ class ParallelBlockWrapper:
         # TODO: relax assumption that input is a list
         partition_size = len(inputs) // len(self._workers)
         actor_results = [
-            self._workers[i].__call__.remote(
+            self._workers[i].generate.remote(
                 inputs[i * partition_size : (i + 1) * partition_size], *args, **kwargs
             )
             for i in range(len(self._workers))
