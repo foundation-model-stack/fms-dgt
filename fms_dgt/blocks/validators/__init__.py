@@ -54,7 +54,7 @@ class BaseValidatorBlock(BaseBlock):
             inp_args, inp_kwargs = self.get_args_kwargs(x, arg_fields, kwarg_fields)
             res = self._validate(*inp_args, **inp_kwargs)
             if res or not self._filter_invalids:
-                self.write_result(x, res, result_field)
+                self.write_result(x, res, result_field, extra=None)
                 outputs.append(x)
             if not res:
                 iter_args = arg_fields or self._arg_fields or []

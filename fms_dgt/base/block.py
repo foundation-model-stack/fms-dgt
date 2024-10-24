@@ -214,12 +214,14 @@ class BaseBlock(ABC):
         inp: DATASET_ROW_TYPE,
         res: Any,
         result_field: Optional[str] = None,
+        extra: Optional[dict[str, Any]] = None,
     ) -> None:
         """Writes the result of the data processing step to the input data row.
 
         Args:
             inp (DATASET_ROW_TYPE): Input data row
             res (Any): Result to be written to the input data row
+            extra (Optional[dict[str, Any]], optional): Extra data that might be returned by a generator block.
             result_field (Optional[str], optional): Name of the result field in the input data row.
         """
         result_field = result_field or self.result_field
@@ -228,6 +230,10 @@ class BaseBlock(ABC):
 
         if isinstance(inp, (dict, pd.DataFrame, Dataset)):
             inp[result_field] = res
+
+            if extra is not None:
+                inp["extra"] = extra
+
             return
 
         raise TypeError(f"Unexpected input type: {type(inp)}")

@@ -11,6 +11,8 @@ class Instance:
     kwargs: Optional[dict] = None
     result: Optional[Any] = None
 
+    extra: Optional[dict[str, Any]] = None
+
     data: Optional[Any] = None
     idx: Optional[int] = None
 

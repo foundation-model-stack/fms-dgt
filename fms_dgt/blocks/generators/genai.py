@@ -105,10 +105,12 @@ class GenAIGenerator(LMGenerator):
                     )
 
                     s = result.generated_text
+                    extra = {"gen_token_count": result.generated_token_count}
                     self.update_instance_with_result(
                         "generate_batch",
                         s,
                         instance,
+                        extra,
                         until,
                     )
                     pbar.update(1)

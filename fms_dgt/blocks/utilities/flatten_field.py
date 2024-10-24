@@ -31,6 +31,6 @@ class FlattenField(BaseBlock):
             to_flatten = inp_args[0] if type(inp_args[0]) == list else [inp_args[0]]
             for el in to_flatten:
                 outputs.append(copy.copy(x))
-                self.write_result(outputs[-1], el, result_field)
+                self.write_result(outputs[-1], el, result_field, extra=None)
 
         return outputs
