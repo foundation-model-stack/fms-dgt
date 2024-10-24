@@ -23,7 +23,6 @@ def generate_data(
     config_path: Optional[str] = None,
     include_builder_paths: Optional[List[str]] = None,
     build_id: Optional[str] = None,
-    parallel_config_path: Optional[str] = None,
 ):
     """Generate data for a set of tasks using their respective data builders
 
@@ -34,22 +33,19 @@ def generate_data(
         config_path (Optional[str], optional): A path to a configuration file.
         include_builder_paths (Optional[List[str]], optional): A list of paths to search for data builders.
         build_id (Optional[str], optional): An ID to associate with all of the tasks executed in this run.
-        parallel_config_path (Optional[str], optional): Path to config that can be used to parallelize blocks
     """
     data_paths = data_paths or []
     builder_overrides = None
     task_overrides = dict()
+    parallel_config = dict()
     if config_path:
         (
             addlt_data_paths,
             builder_overrides,
             task_overrides,
+            parallel_config,
         ) = utils.load_joint_config(config_path)
         data_paths.extend(addlt_data_paths)
-
-    parallel_config = dict()
-    if parallel_config_path:
-        parallel_config = utils.load_parallel_config(parallel_config_path)
 
     if not data_paths and not config_path:
         raise ValueError(

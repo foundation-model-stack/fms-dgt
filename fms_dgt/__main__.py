@@ -44,11 +44,6 @@ def add_base_args(parser: argparse.ArgumentParser):
         type=str,
         help="Build ID to identify SDG job",
     )
-    group.add_argument(
-        "--parallel-config-path",
-        type=str,
-        help="Path to config used for parallelizing databuilder block execution.",
-    )
     return group
 
 
