@@ -10,12 +10,13 @@ from tqdm import tqdm
 
 # Local
 from fms_dgt.base.block import BaseBlock, get_row_name
-from fms_dgt.base.registry import get_block
+from fms_dgt.base.multiprocessing import BaseParallelizableBlock, ParallelBlockWrapper
+from fms_dgt.base.registry import get_block, get_block_class
 from fms_dgt.base.task import SdgData, SdgTask, TransformTask
-from fms_dgt.blocks.generators.llm import CachingLM
+from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
 from fms_dgt.blocks.postprocessors import BasePostProcessingBlock
 from fms_dgt.constants import NAME_KEY, TYPE_KEY
-from fms_dgt.utils import all_annotations, sdg_logger
+from fms_dgt.utils import all_annotations, init_dataclass_from_dict, sdg_logger
 
 DEFAULT_MAX_STALLED_ATTEMPTS = 5
 DEFAULT_MAX_GEN_REQUESTS = 10
@@ -52,6 +53,7 @@ class DataBuilder(ABC):
         max_gen_requests: int = DEFAULT_MAX_GEN_REQUESTS,
         max_stalled_requests: int = DEFAULT_MAX_STALLED_ATTEMPTS,
         task_kwargs: dict = None,
+        build_id: str = None,
         **kwargs: Any,
     ) -> None:
         """Initializes data builder object.
@@ -62,15 +64,10 @@ class DataBuilder(ABC):
             max_stalled_requests (int, optional): Maximum number of data generation loop iterations that do not return new data before terminating.
             task_kwargs (List[dict], optional): List of task_kwargs for each task to be executed by this data builder.
         """
+        self._config = init_dataclass_from_dict(config, DataBuilderConfig)
 
-        if isinstance(config, DataBuilderConfig):
-            self._config = config
-        elif config is not None:
-            self._config = DataBuilderConfig(**config)
-        else:
-            self._config = DataBuilderConfig()
-
-        self._name = self.config.name
+        self._task_kwargs = task_kwargs
+        self._build_id = build_id
 
         self._max_gen_requests = (
             max_gen_requests if max_gen_requests is not None else float("inf")
@@ -80,9 +77,11 @@ class DataBuilder(ABC):
         )
 
         # initialize tasks
-        self._init_tasks(task_kwargs)
+        self._tasks: List[SdgTask] = []
+        self._init_tasks()
 
         # initializing generators / validators
+        self._blocks: List[BaseBlock] = []
         self._init_blocks()
 
         self.kwargs = kwargs
@@ -94,7 +93,7 @@ class DataBuilder(ABC):
         Returns:
             str: name string
         """
-        return self._name
+        return self.config.name
 
     @property
     def config(self) -> DataBuilderConfig:
@@ -123,8 +122,6 @@ class DataBuilder(ABC):
 
         This method is intended to be overloaded when type checking is not necessary (e.g., in the case of the Pipeline class).
         """
-        self._blocks: List[BaseBlock] = []
-
         # TODO: need to handle nested blocks
         for obj_kwargs in self.config.blocks:
 
@@ -142,7 +139,7 @@ class DataBuilder(ABC):
 
             task_cards = [t.task_card for t in self._tasks]
 
-            obj = get_block(obj_type, task_cards=task_cards, **obj_kwargs)
+            block_class = get_block_class(obj_type)
 
             # we type check when not using a pipeline
             type_annotations = all_annotations(type(self))
@@ -153,20 +150,27 @@ class DataBuilder(ABC):
             obj_type = type_annotations[obj_name]
 
             # double check types
-            assert isinstance(obj, obj_type) or (
-                isinstance(obj, CachingLM) and isinstance(obj.lm, obj_type)
+            assert issubclass(block_class, obj_type) or (
+                issubclass(block_class, CachingLM) and issubclass(obj_type, LMGenerator)
             ), f"Type of retrieved object {obj.__class__} for {obj_name} does not match type {obj_type} specified in DataBuilder {self.__class__}"
 
+            obj_kwargs = {
+                "build_id": self._build_id,
+                "builder_name": self.name,
+                **obj_kwargs,
+            }
+            if isinstance(obj, BaseParallelizableBlock):
+                obj = ParallelBlockWrapper(obj_type, obj_kwargs)
+            else:
+                obj = get_block(obj_type, **obj_kwargs)
+
             setattr(self, obj_name, obj)
+            self._blocks.append(obj)
 
-    def _init_tasks(self, all_task_kwargs: List[dict]):
-        """Initializes the tasks for this data builder
-
-        Args:
-            all_task_kwargs (List[dict]): List of task_kwargs for each task to be executed by this data builder
-        """
+    def _init_tasks(self):
+        """Initializes the tasks for this data builder"""
         self._tasks: List[SdgTask] = [
-            self.TASK_TYPE(**task_kwargs) for task_kwargs in all_task_kwargs
+            self.TASK_TYPE(**task_kwargs) for task_kwargs in self._task_kwargs
         ]
 
     def execute_tasks(self):

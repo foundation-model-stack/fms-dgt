@@ -200,6 +200,19 @@ def load_yaml_config(yaml_path=None, yaml_config=None, yaml_dir=None, mode="full
 T = TypeVar("T")
 
 
+def init_dataclass_from_dict(d_obj: Dict, inp_type: T) -> T:
+    if isinstance(d_obj, inp_type):
+        return d_obj
+    elif type(d_obj) == dict:
+        return inp_type(**d_obj)
+    elif d_obj is None:
+        return inp_type()
+    else:
+        raise ValueError(
+            f"Unhandled input type {type(d_obj)}, cannot convert to type {inp_type}"
+        )
+
+
 def group_data_by_attribute(data_list: List[T], attr: str) -> List[List[T]]:
     attr_values = set([getattr(data_item, attr) for data_item in data_list])
     return [

@@ -22,14 +22,15 @@ from sqlitedict import SqliteDict
 from tqdm import tqdm
 
 # Local
-from fms_dgt.base.block import DATASET_ROW_TYPE, DATASET_TYPE, BaseBlock
+from fms_dgt.base.block import DATASET_ROW_TYPE, DATASET_TYPE
 from fms_dgt.base.instance import Instance
+from fms_dgt.base.multiprocessing import BaseParallelizableBlock
 from fms_dgt.utils import sdg_logger
 
 MODEL_ID_OR_PATH = "model_id_or_path"
 
 
-class LMGenerator(BaseBlock):
+class LMGenerator(BaseParallelizableBlock):
     """Class for LLM Generators"""
 
     GENERATE = "generate"

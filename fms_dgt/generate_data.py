@@ -20,6 +20,7 @@ def generate_data(
     config_path: Optional[str] = None,
     include_builder_paths: Optional[List[str]] = None,
     build_id: Optional[str] = None,
+    parallel_workers: Optional[int] = None,
 ):
     """Generate data for a set of tasks using their respective data builders
 
@@ -30,6 +31,7 @@ def generate_data(
         config_path (Optional[str], optional): A path to a configuration file.
         include_builder_paths (Optional[List[str]], optional): A list of paths to search for data builders.
         build_id (Optional[str], optional): An ID to associate with all of the tasks executed in this run.
+        parallel_workers (Optional[int], optional): Parallelize blocks up to N workers
     """
     data_paths = data_paths or []
     builder_overrides = None
@@ -127,6 +129,8 @@ def generate_data(
                     for task_init in task_group
                     if task_init["data_builder"] == builder_name
                 ],
+                "parallel_workers": parallel_workers,
+                "build_id": build_id,
                 **builder_kwargs,
             }
 
