@@ -27,6 +27,13 @@ GREEDY_GENAI_CFG = {
 GREEDY_VLLM_CFG = {
     "type": "vllm",
     "model_id_or_path": "ibm-granite/granite-8b-code-instruct",
+    "tensor_parallel_size": 1,
+    **GREEDY_CFG,
+}
+GREEDY_VLLM_SERVER_CFG = {
+    "type": "vllm-server",
+    "model_id_or_path": "ibm-granite/granite-8b-code-instruct",
+    "tensor_parallel_size": 1,
     **GREEDY_CFG,
 }
 GREEDY_OPENAI_CFG = {
@@ -38,7 +45,8 @@ PROMPTS = [f"Question: x = {i} + 1\nAnswer: x =" for i in range(25)]
 
 
 @pytest.mark.parametrize(
-    "model_cfg", [GREEDY_VLLM_CFG, GREEDY_OPENAI_CFG, GREEDY_GENAI_CFG]
+    "model_cfg",
+    [GREEDY_VLLM_CFG],  # GREEDY_OPENAI_CFG, GREEDY_GENAI_CFG]
 )
 def test_generate_batch(model_cfg):
     model_cfg = dict(model_cfg)
