@@ -5,9 +5,7 @@ import dataclasses
 
 # Third Party
 from datasets import Dataset
-from ray.actor import ActorHandle
 import pandas as pd
-import ray
 
 # Local
 from fms_dgt.base.datastore import BaseDatastore, DatastoreDataType
