@@ -31,8 +31,8 @@ except ModuleNotFoundError:
 
 
 # TODO: this can be made more efficient for our purposes by rewriting the async code ourselves
-@register_block("vllm")
-class vLLMGenerator(LMGenerator):
+@register_block("vllm-server")
+class vLLMServerGenerator(LMGenerator):
     """vLLM Generator"""
 
     _DEFAULT_MAX_LENGTH = 2048
@@ -78,6 +78,7 @@ class vLLMGenerator(LMGenerator):
 
         self._pid = os.getpid()
         self._api_key = str(uuid.uuid4())
+
         self._host = "0.0.0.0"
         self._port = "9001"
         self._base_url = f"http://{self._host}:{self._port}/v1/"
