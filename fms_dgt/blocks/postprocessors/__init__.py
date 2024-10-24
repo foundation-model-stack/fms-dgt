@@ -138,7 +138,7 @@ class BasePostProcessingBlock(BaseBlock):
                 for batch in parquet_file.iter_batches(batch_size):
                     to_datastore.save_data(batch.to_pylist())
 
-    def generate(
+    def execute(
         self,
         datastores: List[Tuple[str, BaseDatastore, BaseDatastore]],
         *args,

@@ -37,13 +37,11 @@ def generate_data(
     data_paths = data_paths or []
     builder_overrides = None
     task_overrides = dict()
-    parallel_config = dict()
     if config_path:
         (
             addlt_data_paths,
             builder_overrides,
             task_overrides,
-            parallel_config,
         ) = utils.load_joint_config(config_path)
         data_paths.extend(addlt_data_paths)
 
@@ -131,7 +129,6 @@ def generate_data(
                 for task_init in task_inits
                 if task_init["data_builder"] == builder_name
             ],
-            "parallel_config": parallel_config.get(builder_name, dict()),
             **builder_kwargs,
         }
 

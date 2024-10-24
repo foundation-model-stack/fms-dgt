@@ -52,7 +52,7 @@ def test_dedup():
         processing_dir=test_root,
         restart=True,
     )
-    fdedup.generate([("mock_task", from_ds, to_ds)])
+    fdedup([("mock_task", from_ds, to_ds)])
 
     df = pd.DataFrame(to_ds.load_data())
 

@@ -75,7 +75,7 @@ class ApiDataBuilder(DataBuilder):
                 gen_inputs.append(inp)
 
         request_start = time.time()
-        llm_outputs = self.llm1.generate(
+        llm_outputs = self.llm1(
             gen_inputs,
             arg_fields=["prompt"],
             kwarg_fields=["stop_sequences"],
@@ -147,7 +147,7 @@ class ApiDataBuilder(DataBuilder):
         # filter invalid data
         outputs = [
             output["data"]
-            for output in self.val1.generate(
+            for output in self.val1(
                 val1_inputs,
                 arg_fields=["new_apis", "question", "answer"],
                 kwarg_fields=[
@@ -183,7 +183,7 @@ class ApiDataBuilder(DataBuilder):
         # filter rouge data
         outputs = [
             output["data"]
-            for output in self.val2.generate(
+            for output in self.val2(
                 val2_inputs,
                 context=all_instructions,
                 arg_fields=["to_check"],

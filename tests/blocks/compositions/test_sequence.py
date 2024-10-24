@@ -17,7 +17,7 @@ class TestBlockSequence:
         cfgs = [flatten_cfg1, flatten_cfg2]
         block_sequence = BlockSequence(cfgs)
         data = [{"arg": [[1, 2, 3], [4, 5, 6]]}]
-        outputs = block_sequence.generate(data)
+        outputs = block_sequence(data)
         for i in range(1, 7):
             assert (
                 outputs[i - 1]["arg"] == i

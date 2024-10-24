@@ -12,4 +12,6 @@ DATASET_TYPE = Union[Iterable[DATASET_ROW_TYPE], pd.DataFrame, Dataset]
 TYPE_KEY = "type"
 NAME_KEY = "name"
 
+PARALLEL_CONFIG_KEY = "parallel_config"
+
 DGT_DIR = os.path.split(os.path.dirname(os.path.abspath(__file__)))[0]

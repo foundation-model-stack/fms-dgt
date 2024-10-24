@@ -5,7 +5,9 @@ import dataclasses
 
 # Third Party
 from datasets import Dataset
+from ray.actor import ActorHandle
 import pandas as pd
+import ray
 
 # Local
 from fms_dgt.base.datastore import BaseDatastore, DatastoreDataType
@@ -95,9 +97,8 @@ class BaseBlock(ABC):
                     ),
                     "data_type": DatastoreDataType.BLOCK,
                     "schema": save_schema,
-                    **datastore,
-                    # we do not allow users to override store_name
                     "store_name": self.block_type,
+                    **datastore,
                 },
             )
 
@@ -262,8 +263,15 @@ class BaseBlock(ABC):
 
         raise TypeError(f"Unexpected input type: {type(inp)}")
 
+    def generate(self, *args, **kwargs):  # for interfacing with IL
+        return self(*args, **kwargs)
+
+    def __call__(self, *args, **kwargs) -> DATASET_TYPE:
+        """The generate function is the primary interface to a Block. Internally, it calls the `execute` method which contains the logic of the block."""
+        return self.execute(*args, **kwargs)
+
     @abstractmethod
-    def generate(
+    def execute(
         self,
         inputs: DATASET_TYPE,
         *,
@@ -272,7 +280,7 @@ class BaseBlock(ABC):
         result_field: Optional[str] = None,
         **kwargs,
     ) -> DATASET_TYPE:
-        """The generate function is the primary interface to a Block
+        """The `execute` function is the primary logic of a Block
 
         Args:
             inputs (BLOCK_INPUT_TYPE): A block operates over a logical iterable

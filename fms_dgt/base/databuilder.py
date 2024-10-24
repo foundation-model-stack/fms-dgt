@@ -10,12 +10,12 @@ from tqdm import tqdm
 
 # Local
 from fms_dgt.base.block import BaseBlock, get_row_name
-from fms_dgt.base.multiprocessing import BaseParallelizableBlock, ParallelBlockWrapper
+from fms_dgt.base.multiprocessing import ParallelBlock
 from fms_dgt.base.registry import get_block, get_block_class
 from fms_dgt.base.task import SdgData, SdgTask, TransformTask
 from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
 from fms_dgt.blocks.postprocessors import BasePostProcessingBlock
-from fms_dgt.constants import NAME_KEY, TYPE_KEY
+from fms_dgt.constants import NAME_KEY, PARALLEL_CONFIG_KEY, TYPE_KEY
 from fms_dgt.utils import all_annotations, init_dataclass_from_dict, sdg_logger
 
 DEFAULT_MAX_STALLED_ATTEMPTS = 5
@@ -53,7 +53,6 @@ class DataBuilder(ABC):
         max_gen_requests: int = DEFAULT_MAX_GEN_REQUESTS,
         max_stalled_requests: int = DEFAULT_MAX_STALLED_ATTEMPTS,
         task_kwargs: Dict = None,
-        parallel_config: Dict = None,
         **kwargs: Any,
     ) -> None:
         """Initializes data builder object.
@@ -63,12 +62,10 @@ class DataBuilder(ABC):
             max_gen_requests (int, optional): Maximum number of data generation loop iterations to execute before terminating.
             max_stalled_requests (int, optional): Maximum number of data generation loop iterations that do not return new data before terminating.
             task_kwargs (List[Dict], optional): List of task_kwargs for each task to be executed by this data builder.
-            parallel_config (Dict, optional): Config to use for parallelizing blocks
         """
         self._config = init_dataclass_from_dict(config, DataBuilderConfig)
 
         self._task_kwargs = task_kwargs
-        self._parallel_config = parallel_config
 
         self._max_gen_requests = (
             max_gen_requests if max_gen_requests is not None else float("inf")
@@ -163,14 +160,7 @@ class DataBuilder(ABC):
                 **obj_kwargs,
             }
 
-            obj = (
-                ParallelBlockWrapper(
-                    self._parallel_config.get(obj_name), block_class, obj_kwargs
-                )
-                if obj_name in self._parallel_config
-                and issubclass(block_class, BaseParallelizableBlock)
-                else get_block(obj_type, **obj_kwargs)
-            )
+            obj = get_block(obj_type, **obj_kwargs)
 
             setattr(self, obj_name, obj)
             self._blocks.append(obj)
@@ -334,7 +324,7 @@ class DataBuilder(ABC):
                     for task in completed_tasks
                 ]
                 # execute postprocessing
-                block.generate(block_inputs)
+                block(block_inputs)
                 # update datastores
                 datastore_assgns = {
                     task.name: [

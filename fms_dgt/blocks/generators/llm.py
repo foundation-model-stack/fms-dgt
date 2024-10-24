@@ -22,15 +22,14 @@ from sqlitedict import SqliteDict
 from tqdm import tqdm
 
 # Local
-from fms_dgt.base.block import DATASET_ROW_TYPE, DATASET_TYPE
+from fms_dgt.base.block import DATASET_ROW_TYPE, DATASET_TYPE, BaseBlock
 from fms_dgt.base.instance import Instance
-from fms_dgt.base.multiprocessing import BaseParallelizableBlock
 from fms_dgt.utils import sdg_logger
 
 MODEL_ID_OR_PATH = "model_id_or_path"
 
 
-class LMGenerator(BaseParallelizableBlock):
+class LMGenerator(BaseBlock):
     """Class for LLM Generators"""
 
     GENERATE = "generate"
@@ -155,7 +154,7 @@ class LMGenerator(BaseParallelizableBlock):
     def set_cache_hook(self, cache_hook) -> None:
         self.cache_hook = cache_hook
 
-    def generate(
+    def execute(
         self,
         inputs: DATASET_TYPE,
         *,
@@ -359,7 +358,10 @@ class CachingLM:
 
         return fn
 
-    def generate(
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        return self.execute(*args, **kwargs)
+
+    def execute(
         self,
         inputs: DATASET_TYPE,
         arg_fields: Optional[List[str]] = None,
