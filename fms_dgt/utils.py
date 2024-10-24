@@ -333,12 +333,6 @@ def load_joint_config(yaml_path: str):
     return data_paths, db_overrides, task_overrides, parallel_config
 
 
-def load_parallel_config(yaml_path: str):
-    with open(yaml_path, "r") as f:
-        config: dict = yaml.full_load(f)
-    return config
-
-
 def load_nested_paths(inp: Dict, base_dir: str = None):
     def _is_file(text: str) -> bool:
         return any([text.endswith(ext) for ext in [".json", ".yaml", ".txt"]])
