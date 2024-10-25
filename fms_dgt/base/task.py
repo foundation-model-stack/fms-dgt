@@ -448,12 +448,12 @@ class SdgTask:
 
     def finish(self) -> None:
         """Method for wrapping up task execution. Called after `is_complete` signals task has completed"""
-
-        self.save_final_data()
-
-        # close datastores
+        # close datastores, which may involve writing any buffered data
         self._dataloader_state_datastore.close()
         self._datastore.close()
+
+        # save final data
+        self.save_final_data()
         self._final_datastore.close()
 
 
