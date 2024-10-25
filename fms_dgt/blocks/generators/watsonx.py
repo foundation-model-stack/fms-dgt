@@ -1,6 +1,7 @@
 # Standard
 from typing import Any, List
 import copy
+import logging
 
 # Third Party
 from tqdm import tqdm
@@ -24,12 +25,17 @@ except ModuleNotFoundError:
     pass
 
 
+# Disable third party logging
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("ibm_watsonx_ai").setLevel(logging.WARNING)
+
+
 @register_block("watsonx")
 class WatsonXAIGenerator(LMGenerator):
     """WatsonX AI Generator"""
 
-    def __init__(self, **kwargs: Any):
-        super().__init__(**kwargs)
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
 
         try:
             # Third Party
@@ -87,41 +93,31 @@ class WatsonXAIGenerator(LMGenerator):
                     )
                 until = kwargs.get("stop_sequences", None)
 
-                # Initialize generation parameters
-                parameters = TextGenParameters(
-                    return_options=ReturnOptionProperties(
-                        input_text=True,
-                    ),
-                    **kwargs,
-                )
-
                 # Initialize model
                 model = Model(
                     model_id=kwargs.pop("model_id_or_path", self.model_id_or_path),
                     credentials=self._credentials,
                     project_id=self._watsonx_resource.project_id,
+                    params=TextGenParameters(
+                        **kwargs,
+                    ),
                 )
 
                 # Execute generation routine
-                responses = list(model.generate(prompt=inputs, params=parameters))
+                responses = model.generate(prompt=inputs)
 
                 # Process generated outputs
-                for instance in chunk:
-                    result = next(
-                        resp.results[0]
-                        for resp in responses
-                        if instance.args[0] == resp.results[0].input_text
-                    )
-
-                    s = result.generated_text
+                for idx, instance in enumerate(chunk):
                     self.update_instance_with_result(
                         "generate_batch",
-                        s,
+                        responses[idx]["results"][0]["generated_text"],
                         instance,
                         until,
                     )
                     pbar.update(1)
 
+                # Clean up model object
+                model = None
         pbar.close()
 
     def loglikelihood_batch(
@@ -143,7 +139,6 @@ class WatsonXAIGenerator(LMGenerator):
             for chunk in chunks:
                 # Prepare inputs
                 to_score = ["".join(instance.args) for instance in chunk]
-                to_tokenize = [instance.args[-1] for instance in chunk]
 
                 # all kwargs are identical within a chunk
                 gen_kwargs = next(iter(chunk)).kwargs
@@ -156,61 +151,48 @@ class WatsonXAIGenerator(LMGenerator):
                         f"Expected repr(kwargs) to be of type repr(dict) but got {kwargs}"
                     )
 
-                # Initialize generation parameters
-                score_params = TextGenParameters(
-                    temperature=1.0,
-                    decoding_method="greedy",
-                    max_new_tokens=1,
-                    min_new_tokens=0,
-                    return_options=ReturnOptionProperties(
-                        input_text=True,
-                        generated_tokens=True,
-                        input_tokens=True,
-                        token_logprobs=True,
-                    ),
-                )
-
                 # Initialize model
                 model = Model(
                     model_id=kwargs.pop("model_id_or_path", self.model_id_or_path),
                     credentials=self._credentials,
                     project_id=self._watsonx_resource.project_id,
+                    params=TextGenParameters(
+                        temperature=1.0,
+                        decoding_method="greedy",
+                        max_new_tokens=1,
+                        min_new_tokens=0,
+                        return_options=ReturnOptionProperties(
+                            generated_tokens=True,
+                            token_logprobs=True,
+                        ),
+                    ),
                 )
 
                 # Execute generation routine
-                score_responses = list(
-                    model.generate(prompt=to_score, params=score_params)
-                )
+                score_responses = model.generate(prompt=to_score)
 
-                # Execute tokenization routine
-                tok_responses = [
-                    model.tokenize(prompt=entry, return_tokens=True)
-                    for entry in to_tokenize
-                ]
+                for idx, instance in enumerate(chunk):
+                    score_result = score_responses[idx]["results"][0]
 
-                for instance in chunk:
-                    score_result = next(
-                        resp.results[0]
-                        for resp in score_responses
-                        if "".join(instance.args) == resp.results[0].input_text
-                    )
-                    tok_count = next(
-                        resp.token_count
-                        for resp in tok_responses
-                        if instance.args[-1] == resp.input_text
-                    )
-
-                    s = score_result.input_tokens
                     # tok_ct - 1 since first token in encoding is bos
-                    s_toks = s[-(tok_count - 1) :]
+                    generated_tokens = score_result["generated_tokens"][
+                        -(score_result["generated_token_count"] - 1) :
+                    ]
 
                     answer = sum(
-                        [tok.logprob for tok in s_toks if tok.logprob is not None]
+                        [
+                            tok["logprob"]
+                            for tok in generated_tokens
+                            if tok["logprob"] is not None
+                        ]
                     )
 
                     self.update_instance_with_result(
                         "loglikelihood_batch", answer, instance
                     )
                     pbar.update(1)
+
+                # Clean up model object
+                model = None
 
         pbar.close()

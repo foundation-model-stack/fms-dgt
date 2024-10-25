@@ -14,6 +14,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 from importlib.util import find_spec
 from typing import Any, Dict, List, Union
 import copy
+import logging
 
 # Third Party
 from tqdm import tqdm
@@ -31,6 +32,9 @@ try:
     from openai import OpenAI
 except ModuleNotFoundError:
     pass
+
+# Disable third party logging
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 def oa_completion(client, chat: bool = False, **kwargs):
