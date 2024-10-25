@@ -1,14 +1,7 @@
-# Standard
-from typing import List
-import copy
-import os
-import time
-
 # Third Party
 import pytest
 
 # Local
-from fms_dgt.base.instance import Instance
 from fms_dgt.blocks.validators.lm_judge import LMJudgeValidator
 
 LM_RESULT_FIELD = "lm_generation"
@@ -39,7 +32,7 @@ class TestLlmJudgeValidator:
                 "success_func": lambda x: any([num in x for num in ["2"]]),
             }
         ]
-        lm_judge.generate(
+        lm_judge(
             inputs,
             arg_fields=["success_func"],
             lm_arg_fields=["lm_input"],
@@ -54,7 +47,7 @@ class TestLlmJudgeValidator:
                 "success_func": lambda x: "false" in x,
             }
         ]
-        lm_judge.generate(
+        lm_judge(
             inputs,
             arg_fields=["success_func"],
             lm_arg_fields=["lm_input"],
@@ -69,7 +62,7 @@ class TestLlmJudgeValidator:
                 "success_func": lambda x: "yes" in x,
             }
         ]
-        lm_judge.generate(
+        lm_judge(
             inputs,
             arg_fields=["success_func"],
             lm_arg_fields=["lm_input"],

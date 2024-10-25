@@ -200,6 +200,19 @@ def load_yaml_config(yaml_path=None, yaml_config=None, yaml_dir=None, mode="full
 T = TypeVar("T")
 
 
+def init_dataclass_from_dict(d_obj: Dict, inp_type: T) -> T:
+    if isinstance(d_obj, inp_type):
+        return d_obj
+    elif type(d_obj) == dict:
+        return inp_type(**d_obj)
+    elif d_obj is None:
+        return inp_type()
+    else:
+        raise ValueError(
+            f"Unhandled input type {type(d_obj)}, cannot convert to type {inp_type}"
+        )
+
+
 def group_data_by_attribute(data_list: List[T], attr: str) -> List[List[T]]:
     attr_values = set([getattr(data_item, attr) for data_item in data_list])
     return [
@@ -287,7 +300,7 @@ def load_joint_config(yaml_path: str):
     with open(yaml_path, "r") as f:
         config: dict = yaml.full_load(f)
 
-    data_paths, db_overrides, task_overrides = [], dict(), dict()
+    data_paths, db_overrides, task_overrides = ([], dict(), dict())
 
     for k, v in config.items():
         if k in ["databuilders", "tasks"]:
@@ -301,9 +314,7 @@ def load_joint_config(yaml_path: str):
                 task_overrides = v
         elif k == "task_files":
             if type(v) != list:
-                raise ValueError(
-                    f"'task_files' field in config must be provided as a list"
-                )
+                raise ValueError(f"'{k}' field in config must be provided as a list")
             data_paths = v
         else:
             raise ValueError(

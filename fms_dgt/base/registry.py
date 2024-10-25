@@ -6,7 +6,9 @@ import re
 # Local
 from fms_dgt.base.dataloader import BaseDataloader
 from fms_dgt.base.datastore import BaseDatastore
+from fms_dgt.base.multiprocessing import ParallelBlock
 from fms_dgt.base.resource import BaseResource
+from fms_dgt.constants import PARALLEL_CONFIG_KEY
 from fms_dgt.utils import dynamic_import
 
 # TODO: better strategy needed, but this will eliminate some of the confusing errors people get when registering a new class.
@@ -106,11 +108,7 @@ def register_block(*names):
     return decorate
 
 
-def get_block(block_name, *args: Any, **kwargs: Any):
-
-    # Local
-    from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
-
+def get_block_class(block_name):
     if block_name not in BLOCK_REGISTRY:
         _dynamic_registration_import("register_block", block_name)
 
@@ -123,7 +121,22 @@ def get_block(block_name, *args: Any, **kwargs: Any):
             f"Attempted to load block '{block_name}', but no block for this name found! Supported block names: {known_keys}"
         )
 
-    ret_block = BLOCK_REGISTRY[block_name](*args, **kwargs)
+    return BLOCK_REGISTRY[block_name]
+
+
+def get_block(block_name, *args: Any, **kwargs: Any):
+
+    # Local
+    from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
+
+    block_class = get_block_class(block_name)
+
+    ret_block = (
+        ParallelBlock(block_class, *args, **kwargs)
+        if PARALLEL_CONFIG_KEY in kwargs
+        else block_class(*args, **kwargs)
+    )
+
     if isinstance(ret_block, LMGenerator) and "lm_cache" in kwargs:
         ret_block = CachingLM(ret_block, kwargs.get("lm_cache"))
 

@@ -36,6 +36,7 @@ dependencies = [
     "fastparquet>=2024.5.0",
     "psutil",
     "uvloop",
+    "ray[default]",
 ]
 
 [tool.setuptools.packages.find]

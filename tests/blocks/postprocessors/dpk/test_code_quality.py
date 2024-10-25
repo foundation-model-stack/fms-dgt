@@ -49,7 +49,7 @@ def test_codequality():
         tokenizer="codeparrot/codeparrot",
         restart=True,
     )
-    codequality.generate([("mock_task", from_ds, to_ds)])
+    codequality([("mock_task", from_ds, to_ds)])
 
     df = pd.DataFrame(to_ds.load_data())
 

@@ -51,7 +51,7 @@ def test_minhash():
         text_key="output",
         restart=True,
     )
-    minhash.generate([("mock_task", from_ds, to_ds)])
+    minhash([("mock_task", from_ds, to_ds)])
 
     df = pd.DataFrame(to_ds.load_data())
 

@@ -154,7 +154,7 @@ class LMGenerator(BaseBlock):
     def set_cache_hook(self, cache_hook) -> None:
         self.cache_hook = cache_hook
 
-    def generate(
+    def execute(
         self,
         inputs: DATASET_TYPE,
         *,
@@ -358,7 +358,10 @@ class CachingLM:
 
         return fn
 
-    def generate(
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        return self.execute(*args, **kwargs)
+
+    def execute(
         self,
         inputs: DATASET_TYPE,
         arg_fields: Optional[List[str]] = None,

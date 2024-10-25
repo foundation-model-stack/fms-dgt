@@ -35,10 +35,10 @@ class BlockSequence(BaseBlock):
     def blocks(self):
         return self._blocks
 
-    def generate(self, inputs: DATASET_TYPE):
+    def execute(self, inputs: DATASET_TYPE):
         block_data = inputs
         for block in self.blocks:
             sdg_logger.info("Running block %s", block.name)
             # initial block call will pass custom arg_fields / kwarg_fields / result_field
-            block_data = block.generate(block_data)
+            block_data = block(block_data)
         return block_data

@@ -11,7 +11,7 @@ from fms_dgt.base.registry import register_block
 class FlattenField(BaseBlock):
     """Flatten specified args"""
 
-    def generate(
+    def execute(
         self,
         inputs: DATASET_TYPE,
         *,

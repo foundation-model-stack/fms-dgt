@@ -32,4 +32,4 @@ class PipelineTransformation(TransformationDataBuilder):
                 yield res
 
     def __call__(self, data_pool: DATASET_TYPE):
-        return self._pipeline.generate(data_pool)
+        return self._pipeline(data_pool)

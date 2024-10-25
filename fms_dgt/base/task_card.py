@@ -12,8 +12,8 @@ class TaskRunCard:
 
     task_name: str  # name of task
     databuilder_name: str  # name of databuilder associated with task
-    task_spec: str  # json string capturing all of task settings
-    databuilder_spec: str  # json string capturing all of databuilder settings
+    task_spec: Optional[str] = None  # json string capturing task settings
+    databuilder_spec: Optional[str] = None  # json string capturing databuilder settings
     build_id: Optional[
         str
     ] = None  # id of entity executing the task (defaults to something generic)

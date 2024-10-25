@@ -115,7 +115,7 @@ class ApiLlmTransformDataBuilder(TransformationDataBuilder):
                 + "\nOutput:\n"
             )
             prompts.append({"prompt": prompt, "api": api})
-        outputs = self.llm1.generate(prompts)
+        outputs = self.llm1(prompts)
         for output in outputs:
             api_to_str[output["api"]] = output["result"].strip()
         return api_to_str
