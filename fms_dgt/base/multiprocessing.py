@@ -28,7 +28,7 @@ class ParallelBlock:
         for _ in range(worker_ct):
             actor = ray.remote(num_cpus=num_cpus, num_gpus=num_gpus)(
                 block_class
-            ).remote(**kwargs)
+            ).remote(*args, **kwargs)
             self._workers.append(actor)
 
     @property
