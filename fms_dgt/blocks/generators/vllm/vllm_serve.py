@@ -17,6 +17,9 @@ import os
 import subprocess
 import uuid
 
+# Third Party
+from dotenv import load_dotenv
+
 # Local
 from fms_dgt.base.registry import register_block
 from fms_dgt.blocks.generators.llm import LMGenerator
@@ -58,6 +61,8 @@ class vLLMServerGenerator(LMGenerator):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
+
+        load_dotenv()
 
         if not find_spec("vllm"):
             raise ModuleNotFoundError(

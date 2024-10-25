@@ -17,6 +17,7 @@ from typing import Any, List, Literal, Optional, Tuple
 import copy
 
 # Third Party
+from dotenv import load_dotenv
 from more_itertools import distribute
 from packaging.version import parse as parse_version
 from tqdm import tqdm
@@ -67,6 +68,8 @@ class vLLMGenerator(LMGenerator):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
+
+        load_dotenv()
 
         if not find_spec("vllm"):
             raise Exception(
