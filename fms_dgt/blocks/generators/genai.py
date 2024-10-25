@@ -46,6 +46,7 @@ class GenAIGenerator(LMGenerator):
         self._genai_resource: GenAIKeyResource = get_resource("genai", "GENAI_KEY")
 
         load_dotenv()
+
         credentials = Credentials(
             self._genai_resource.key, api_endpoint=os.getenv("GENAI_API", None)
         )
