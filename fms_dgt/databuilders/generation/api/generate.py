@@ -128,6 +128,7 @@ class ApiDataBuilder(DataBuilder):
                     "intent_only": new_instr.intent_only,
                     "require_nested": new_instr.require_nested,
                     "allow_subset": new_instr.allow_subset,
+                    "multi_output": new_instr.func_count_bounds[0] > 1,
                     "data": new_instr,
                 }
 
@@ -146,6 +147,7 @@ class ApiDataBuilder(DataBuilder):
                     "intent_only",
                     "require_nested",
                     "allow_subset",
+                    "multi_output",
                 ],
                 result_field="output",
             )

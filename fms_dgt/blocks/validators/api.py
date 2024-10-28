@@ -34,6 +34,7 @@ class APIGenSpecValidator(BaseValidatorBlock):
         check_arg_question_overlap: bool = True,
         intent_only: bool = False,
         require_nested: bool = False,
+        multi_output: bool = False,
         allow_subset: bool = False,
     ) -> bool:
 
@@ -58,6 +59,9 @@ class APIGenSpecValidator(BaseValidatorBlock):
             ]
         )
         api_names = set([api[_NAME] for api in api_info.values()])
+
+        if multi_output and len(set([str(x) for x in sep_components])) <= 1:
+            return False
 
         # all api names must be present, but no additional api names
         if (allow_subset and not component_names.issubset(api_names)) or (
