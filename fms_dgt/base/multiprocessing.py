@@ -1,6 +1,6 @@
 # Standard
 from dataclasses import dataclass
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, List, Optional, Type
 
 # Third Party
 from ray.actor import ActorHandle
@@ -17,6 +17,8 @@ class ParallelConfig:
     num_workers: int = 1
     num_cpus_per_worker: int = 1
     num_gpus_per_worker: int = 0
+    base_urls: Optional[List] = None
+    api_call_limit_per_worker: Optional[int] = None
 
 
 class ParallelBlock:
@@ -33,12 +35,16 @@ class ParallelBlock:
             parallel_config, ParallelConfig
         )
 
+        cfg_kwargs = dict()
+        if parallel_config.api_call_limit_per_worker:
+            cfg_kwargs["call_limit"] = parallel_config.api_call_limit_per_worker
+
         self._workers: List[ActorHandle] = []
         for _ in range(parallel_config.num_workers):
             actor = ray.remote(
                 num_cpus=parallel_config.num_cpus_per_worker,
                 num_gpus=parallel_config.num_gpus_per_worker,
-            )(block_class).remote(*args, **kwargs)
+            )(block_class).remote(*args, **{**kwargs, **cfg_kwargs})
             self._workers.append(actor)
 
     @property
