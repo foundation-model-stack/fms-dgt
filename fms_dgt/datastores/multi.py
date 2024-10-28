@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, TypeVar
 from fms_dgt.base.datastore import BaseDatastore
 from fms_dgt.base.registry import get_datastore, register_datastore
 from fms_dgt.constants import TYPE_KEY
+from fms_dgt.utils import sdg_logger
 
 T = TypeVar("T")
 
@@ -44,8 +45,18 @@ class MultiTargetDatastore(BaseDatastore):
 
     def save_data(self, *args, **kwargs) -> None:
         """Saves generated data to specified location"""
-        for datastore in self._datastores:
-            datastore.save_data(*args, **kwargs)
+
+        # save primary datastore first
+        self._primary_datastore.save_data(*args, **kwargs)
+
+        # try-catch for secondary
+        for datastore in self._datastores[1:]:
+            try:
+                datastore.save_data(*args, **kwargs)
+            except Exception as e:
+                sdg_logger.debug(
+                    f"Error encountered while uploading to secondary datastore:\n{str(e)}"
+                )
 
     def load_data(
         self,
