@@ -41,6 +41,11 @@ GREEDY_OPENAI_CFG = {
     "model_id_or_path": "gpt-3.5-turbo",
     **GREEDY_CFG,
 }
+GREEDY_WATSONX_CFG = {
+    "type": "watsonx",
+    "model_id_or_path": "granite-3-8b-instruct",
+    **GREEDY_CFG,
+}
 PROMPTS = [f"Question: x = {i} + 1\nAnswer: x =" for i in range(25)]
 
 

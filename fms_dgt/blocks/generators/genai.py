@@ -2,6 +2,7 @@
 from typing import Any, List
 import copy
 import os
+import logging
 
 # Third Party
 from tqdm import tqdm
@@ -26,6 +27,9 @@ try:
 except ModuleNotFoundError:
     pass
 
+# Disable third party logging
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 
 @register_block("genai")
 class GenAIGenerator(LMGenerator):
@@ -46,6 +50,7 @@ class GenAIGenerator(LMGenerator):
         self._genai_resource: GenAIKeyResource = get_resource("genai", "GENAI_KEY")
 
         load_dotenv()
+
         credentials = Credentials(
             self._genai_resource.key, api_endpoint=os.getenv("GENAI_API", None)
         )
