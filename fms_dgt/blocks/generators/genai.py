@@ -2,6 +2,7 @@
 from typing import Any, List
 import copy
 import os
+import logging
 
 # Third Party
 from tqdm import tqdm
@@ -25,6 +26,9 @@ try:
     )
 except ModuleNotFoundError:
     pass
+
+# Disable third party logging
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 @register_block("genai")
