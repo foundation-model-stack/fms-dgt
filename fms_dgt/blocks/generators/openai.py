@@ -24,7 +24,6 @@ from fms_dgt.base.instance import Instance
 from fms_dgt.base.registry import get_resource, register_block
 from fms_dgt.blocks.generators.llm import MODEL_ID_OR_PATH, LMGenerator
 from fms_dgt.resources.api import ApiKeyResource
-from fms_dgt.resources.openai import OpenAIKeyResource
 from fms_dgt.utils import sdg_logger
 import fms_dgt.blocks.generators.utils as generator_utils
 
