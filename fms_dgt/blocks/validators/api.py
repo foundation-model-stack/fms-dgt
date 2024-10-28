@@ -34,8 +34,7 @@ class APIGenSpecValidator(BaseValidatorBlock):
         check_arg_question_overlap: bool = True,
         intent_only: bool = False,
         require_nested: bool = False,
-        min_ct: int = 1,
-        max_ct: int = 1,
+        allow_subset: bool = False,
     ) -> bool:
 
         try:
@@ -51,10 +50,6 @@ class APIGenSpecValidator(BaseValidatorBlock):
         if len(set([str(x) for x in sep_components])) != len(sep_components):
             return False
 
-        # check target count was hit
-        if len(sep_components) < min_ct or len(sep_components) > max_ct:
-            return False
-
         # ensure api names are covered
         component_names = set(
             [
@@ -64,10 +59,9 @@ class APIGenSpecValidator(BaseValidatorBlock):
         )
         api_names = set([api[_NAME] for api in api_info.values()])
 
-        if not (
-            len(component_names.intersection(api_names))
-            == len(component_names)
-            == len(api_names)
+        # all api names must be present, but no additional api names
+        if (allow_subset and not component_names.issubset(api_names)) or (
+            not allow_subset and component_names.symmetric_difference(api_names)
         ):
             return False
 
@@ -112,7 +106,9 @@ class APIGenSpecValidator(BaseValidatorBlock):
                 jsonschema.exceptions.ValidationError,
                 jsonschema.exceptions.SchemaError,
             ) as e:
-                return False
+                # if error is about a var label, e.g., $var1, then ignore error. Otherwise, raise error
+                if not (require_nested and str(e).startswith("'$")):
+                    return False
 
             # now do individual arg checking
             for arg_name, arg_content in component_args.items():
