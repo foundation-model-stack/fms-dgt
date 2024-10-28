@@ -69,15 +69,19 @@ class ParallelBlock:
         # TODO: relax assumption that input is a list
         partition_size = max(len(inputs) // len(self._workers), 1)
         actor_results = []
-        for i in range(len(self._workers)):
-            if i * partition_size >= len(inputs):
-                continue
+        for worker_idx in range(len(self._workers)):
+            if worker_idx * partition_size >= len(inputs):
+                break
             actor_results.append(
-                self._workers[i].__call__.remote(
+                self._workers[worker_idx].__call__.remote(
                     (
-                        inputs[i * partition_size :]
-                        if (i == len(self._workers) - 1)
-                        else inputs[i * partition_size : (i + 1) * partition_size]
+                        inputs[worker_idx * partition_size :]
+                        if (worker_idx == len(self._workers) - 1)
+                        else inputs[
+                            worker_idx
+                            * partition_size : (worker_idx + 1)
+                            * partition_size
+                        ]
                     ),
                     *args,
                     **kwargs,
