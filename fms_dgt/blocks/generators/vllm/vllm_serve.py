@@ -58,6 +58,8 @@ class vLLMServerGenerator(LMGenerator):
         data_parallel_size: int = 1,
         check_interval: int = 10,
         lora_local_path: str = None,
+        host="0.0.0.0",
+        port="9001",
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
@@ -84,8 +86,8 @@ class vLLMServerGenerator(LMGenerator):
         self._pid = os.getpid()
         self._api_key = str(uuid.uuid4())
 
-        self._host = "0.0.0.0"
-        self._port = "9001"
+        self._host = host
+        self._port = port
         self._base_url = f"http://{self._host}:{self._port}/v1/"
         self._vllm = OpenaiCompletionsLM(
             api_key=self._api_key, base_url=self._base_url, **kwargs
