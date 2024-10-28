@@ -152,4 +152,4 @@ def generate_data(
         data_builder.execute_tasks()
 
         # TODO: cleanup
-        del data_builder
+        data_builder.close()

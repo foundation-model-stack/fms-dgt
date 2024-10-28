@@ -72,6 +72,10 @@ class ParallelBlock:
         """
         return self._workers
 
+    def close(self):
+        for worker in self._workers:
+            ray.kill(worker)
+
     def generate(self, *args, **kwargs):  # for interfacing with IL
         return self(*args, **kwargs)
 

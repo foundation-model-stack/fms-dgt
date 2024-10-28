@@ -261,6 +261,10 @@ class BaseBlock(ABC):
 
         raise TypeError(f"Unexpected input type: {type(inp)}")
 
+    def close(self):
+        """Default function for safely deallocating all resources used by a block"""
+        pass
+
     def generate(self, *args, **kwargs):  # for interfacing with IL
         return self(*args, **kwargs)
 

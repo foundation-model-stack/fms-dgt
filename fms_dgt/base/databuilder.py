@@ -171,6 +171,10 @@ class DataBuilder(ABC):
             self.TASK_TYPE(**task_kwargs) for task_kwargs in self._task_kwargs
         ]
 
+    def close(self):
+        for block in self._blocks:
+            block.close()
+
     def execute_tasks(self):
         """Main entry point for task execution. Default behavior executes a loop until all tasks are complete, where each loop generates synthetic data."""
 
