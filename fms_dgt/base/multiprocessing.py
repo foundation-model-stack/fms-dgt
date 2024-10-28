@@ -1,6 +1,6 @@
 # Standard
 from dataclasses import dataclass
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, List, Optional, Type
 
 # Third Party
 from ray.actor import ActorHandle
@@ -17,6 +17,7 @@ class ParallelConfig:
     num_workers: int = 1
     num_cpus_per_worker: int = 1
     num_gpus_per_worker: int = 0
+    worker_configs: Optional[List[Dict]] = None
 
 
 class ParallelBlock:
@@ -33,12 +34,33 @@ class ParallelBlock:
             parallel_config, ParallelConfig
         )
 
+        worker_cfgs: Dict = {
+            worker_idx: dict() for worker_idx in range(parallel_config.num_workers)
+        }
+        if parallel_config.worker_configs is not None and not isinstance(
+            parallel_config.worker_configs, list
+        ):
+            raise ValueError(
+                f"If [worker_configs] field is specified, it must be given as list"
+            )
+        for cfg in parallel_config.worker_configs:
+            if not cfg.get("workers"):
+                raise ValueError(f"Must identify list of worker ids in [workers] field")
+            for worker_idx in cfg.pop("workers"):
+                if type(worker_idx) != int:
+                    raise ValueError(
+                        f"Worker ids must be integers, not [{worker_idx}] which is of type {type(worker_idx)}"
+                    )
+                worker_cfgs[worker_idx] = cfg
+
         self._workers: List[ActorHandle] = []
-        for _ in range(parallel_config.num_workers):
+        for worker_idx in range(parallel_config.num_workers):
             actor = ray.remote(
                 num_cpus=parallel_config.num_cpus_per_worker,
                 num_gpus=parallel_config.num_gpus_per_worker,
-            )(block_class).remote(*args, **kwargs)
+            )(block_class).remote(
+                *args, **{**kwargs, **worker_cfgs.get(worker_idx, dict())}
+            )
             self._workers.append(actor)
 
     @property
