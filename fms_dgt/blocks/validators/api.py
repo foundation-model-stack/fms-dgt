@@ -101,7 +101,8 @@ class APIGenSpecValidator(BaseValidatorBlock):
 
             # validate schema
             try:
-                validate(component_args, matching_api["parameters"])
+                if _PARAM in matching_api:
+                    validate(component_args, matching_api[_PARAM])
             except (
                 jsonschema.exceptions.ValidationError,
                 jsonschema.exceptions.SchemaError,
