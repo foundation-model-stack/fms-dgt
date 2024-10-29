@@ -23,7 +23,7 @@ class LMJudgeValidator(BaseValidatorBlock):
         )
         self.blocks = [self._llm_generator]
 
-    def generate(
+    def execute(
         self,
         inputs: DATASET_TYPE,
         *,
@@ -37,7 +37,7 @@ class LMJudgeValidator(BaseValidatorBlock):
     ):
 
         # simplify generation here
-        llm_outputs = self._llm_generator.generate(
+        llm_outputs = self._llm_generator(
             inputs,
             arg_fields=lm_arg_fields,
             kwarg_fields=lm_kwarg_fields,

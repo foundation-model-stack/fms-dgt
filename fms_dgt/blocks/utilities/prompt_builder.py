@@ -15,7 +15,7 @@ class PromptBuilder(BaseBlock):
         with open(prompt_path, "r") as f:
             self._prompt = f.read().strip()
 
-    def generate(
+    def execute(
         self,
         inputs: DATASET_TYPE,
         *,

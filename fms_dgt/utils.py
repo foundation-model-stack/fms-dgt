@@ -300,7 +300,7 @@ def load_joint_config(yaml_path: str):
     with open(yaml_path, "r") as f:
         config: dict = yaml.full_load(f)
 
-    data_paths, db_overrides, task_overrides = [], dict(), dict()
+    data_paths, db_overrides, task_overrides = ([], dict(), dict())
 
     for k, v in config.items():
         if k in ["databuilders", "tasks"]:
@@ -314,9 +314,7 @@ def load_joint_config(yaml_path: str):
                 task_overrides = v
         elif k == "task_files":
             if type(v) != list:
-                raise ValueError(
-                    f"'task_files' field in config must be provided as a list"
-                )
+                raise ValueError(f"'{k}' field in config must be provided as a list")
             data_paths = v
         else:
             raise ValueError(

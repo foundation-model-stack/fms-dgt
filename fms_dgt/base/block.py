@@ -39,7 +39,8 @@ class BaseBlock(ABC):
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
-        task_cards: Optional[List[TaskRunCard]] = None,
+        build_id: Optional[str] = None,
+        builder_name: Optional[str] = None,
         datastore: Optional[Dict] = None,
         save_schema: Optional[List[str]] = None,
     ) -> None:
@@ -54,7 +55,8 @@ class BaseBlock(ABC):
             arg_fields (Optional[List[str]], optional): A list of field names to use as positional arguments.
             kwarg_fields (Optional[List[str]], optional): A list of field names to use as keyword arguments.
             result_field (Optional[str], optional): Name of the result field in the input data row that the computation of the block will be written to.
-            task_cards (Optional[TaskRunCard], optional): A list of all task cards this block is associated with.
+            build_id (Optional[str], optional): ID to identify a particular SDG run.
+            builder_name (Optional[str], optional): Name of the calling databuilder
             datastore (Optional[Dict]): A dictionary containing the configuration for the datastore.
             save_schema (Optional[List[str]], optional): The schema of the data that should be saved.
 
@@ -74,7 +76,6 @@ class BaseBlock(ABC):
         self._arg_fields = arg_fields
         self._kwarg_fields = kwarg_fields
         self._result_field = result_field
-        self._task_cards = task_cards
 
         self._save_schema = (
             save_schema
@@ -84,16 +85,18 @@ class BaseBlock(ABC):
         # datastore params
         self._datastore = None
         if datastore is not None:
-            canon_task_card = self._task_cards[0] if self._task_cards else None
             self._datastore = get_datastore(
                 datastore.get(TYPE_KEY),
                 **{
-                    "task_card": canon_task_card,
+                    "task_card": TaskRunCard(
+                        task_name=self.block_type,
+                        databuilder_name=builder_name,
+                        build_id=build_id,
+                    ),
                     "data_type": DatastoreDataType.BLOCK,
                     "schema": save_schema,
+                    "store_name": self.block_type,
                     **datastore,
-                    # we do not allow users to override store_name
-                    "store_name": f"{self.block_type}",
                 },
             )
 
@@ -258,8 +261,19 @@ class BaseBlock(ABC):
 
         raise TypeError(f"Unexpected input type: {type(inp)}")
 
+    def close(self):
+        """Method for safely deallocating all resources used by a block"""
+        pass
+
+    def generate(self, *args, **kwargs):  # for interfacing with IL
+        return self(*args, **kwargs)
+
+    def __call__(self, *args, **kwargs) -> DATASET_TYPE:
+        """The generate function is the primary interface to a Block. Internally, it calls the `execute` method which contains the logic of the block."""
+        return self.execute(*args, **kwargs)
+
     @abstractmethod
-    def generate(
+    def execute(
         self,
         inputs: DATASET_TYPE,
         *,
@@ -268,7 +282,7 @@ class BaseBlock(ABC):
         result_field: Optional[str] = None,
         **kwargs,
     ) -> DATASET_TYPE:
-        """The generate function is the primary interface to a Block
+        """The `execute` function is the primary logic of a Block
 
         Args:
             inputs (BLOCK_INPUT_TYPE): A block operates over a logical iterable

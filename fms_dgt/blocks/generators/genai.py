@@ -1,8 +1,8 @@
 # Standard
 from typing import Any, List
 import copy
-import os
 import logging
+import os
 
 # Third Party
 from tqdm import tqdm
@@ -11,7 +11,7 @@ from tqdm import tqdm
 from fms_dgt.base.instance import Instance
 from fms_dgt.base.registry import get_resource, register_block
 from fms_dgt.blocks.generators.llm import LMGenerator
-from fms_dgt.resources.genai import GenAIKeyResource
+from fms_dgt.resources.api import ApiKeyResource
 import fms_dgt.blocks.generators.utils as generator_utils
 
 try:
@@ -35,7 +35,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 class GenAIGenerator(LMGenerator):
     """GenAI Generator"""
 
-    def __init__(self, **kwargs: Any):
+    def __init__(self, call_limit: int = 10, **kwargs: Any):
         super().__init__(**kwargs)
 
         try:
@@ -47,7 +47,9 @@ class GenAIGenerator(LMGenerator):
                 "please install these via `pip install -r fms_dgt[genai]`",
             )
 
-        self._genai_resource: GenAIKeyResource = get_resource("genai", "GENAI_KEY")
+        self._genai_resource: ApiKeyResource = get_resource(
+            "api", key_name="GENAI_KEY", call_limit=call_limit
+        )
 
         load_dotenv()
 
