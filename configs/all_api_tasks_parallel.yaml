@@ -4,7 +4,7 @@ databuilders:
       - name: llm1
         type: vllm-server
         temperature: 0.5
-        model_id_or_path: ibm-granite/granite-8b-code-instruct
+        model_id_or_path: < path to model, e.g., .cache/huggingface/hub/models--ibm-granite--granite-8b-code-instruct/snapshots/... >
         parallel_config:
           num_workers: 2
           num_cpus_per_worker: 2
@@ -22,7 +22,7 @@ databuilders:
       - name: llm1
         type: vllm-server
         temperature: 0.5
-        model_id_or_path: ibm-granite/granite-8b-code-instruct
+        model_id_or_path: < path to model, e.g., .cache/huggingface/hub/models--ibm-granite--granite-8b-code-instruct/snapshots/... >
         parallel_config:
           num_workers: 2
           num_cpus_per_worker: 2
