@@ -11,6 +11,7 @@ import logging
 import os
 
 # Third Party
+import pandas as pd
 import yaml
 
 log_level = getattr(logging, os.getenv("LOG_LEVEL", "info").upper())
@@ -126,6 +127,8 @@ def load_yaml_config(yaml_path=None, yaml_config=None, yaml_dir=None, mode="full
         try:
             if path.endswith(".yaml"):
                 data = load_yaml_config(yaml_path=path, mode=mode)
+            elif path.endswith(".parquet"):
+                data = pd.read_parquet(path, engine="fastparquet").to_dict("records")
             else:
                 with open(path, "r") as f:
                     data = f.read()
