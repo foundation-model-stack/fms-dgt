@@ -9,6 +9,7 @@ import pandas as pd
 DATASET_ROW_TYPE = Union[Dict[str, Any], pd.Series]
 DATASET_TYPE = Union[Iterable[DATASET_ROW_TYPE], pd.DataFrame, Dataset]
 
+# these are variable names that we try to reuse across the codebase
 TYPE_KEY = "type"
 NAME_KEY = "name"
 

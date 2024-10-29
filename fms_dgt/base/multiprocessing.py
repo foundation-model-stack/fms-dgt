@@ -73,8 +73,10 @@ class ParallelBlock:
         return self._workers
 
     def close(self):
-        for worker in self._workers:
-            ray.kill(worker)
+        while self._workers:
+            worker = self._workers.pop()
+            # must wait on each close call
+            ray.get(worker.close.remote())
 
     def generate(self, *args, **kwargs):  # for interfacing with IL
         return self(*args, **kwargs)

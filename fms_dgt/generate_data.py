@@ -132,24 +132,24 @@ def generate_data(
             **builder_kwargs,
         }
 
-        data_builder = None
+        data_builder: DataBuilder = None
         try:
             # first see if databuilder is loaded by default
-            data_builder: DataBuilder = get_data_builder(
-                builder_name, **all_builder_kwargs
-            )
+            data_builder = get_data_builder(builder_name, **all_builder_kwargs)
         except KeyError as e:
             if f"Attempted to load data builder '{builder_name}'" not in str(e):
                 raise e
 
         if data_builder is None:
             utils.import_builder(builder_dir)
-            data_builder: DataBuilder = get_data_builder(
-                builder_name, **all_builder_kwargs
-            )
+            data_builder = get_data_builder(builder_name, **all_builder_kwargs)
 
-        # TODO: ship this off
+        # ship this off
         data_builder.execute_tasks()
 
-        # TODO: cleanup
+        # cleanup databuilder
         data_builder.close()
+        del data_builder
+
+    # cleanup ray
+    ray.shutdown()
