@@ -1,5 +1,6 @@
 # Standard
 from typing import Any, Dict, Iterable, List, Optional
+import json
 import random
 import time
 
@@ -12,7 +13,6 @@ from fms_dgt.blocks.validators.api import APIGenSpecValidator, ApiGenSpecYesNoVa
 from fms_dgt.blocks.validators.rouge import RougeDedupValidator
 from fms_dgt.databuilders.generation.api.task import ApiSdgData, ApiSdgTask
 from fms_dgt.utils import sdg_logger
-import fms_dgt.databuilders.generation.api.utils as api_utils
 
 
 class ApiDataBuilder(DataBuilder):
@@ -127,16 +127,8 @@ class ApiDataBuilder(DataBuilder):
                     "check_arg_question_overlap": new_instr.check_arg_question_overlap,
                     "intent_only": new_instr.intent_only,
                     "require_nested": new_instr.require_nested,
-                    "min_ct": (
-                        new_instr.func_count_bounds[0]
-                        if new_instr.single_function
-                        else len(new_instr.positive_functions)
-                    ),
-                    "max_ct": (
-                        new_instr.func_count_bounds[1]
-                        if new_instr.single_function
-                        else len(new_instr.positive_functions)
-                    ),
+                    "allow_subset": new_instr.allow_subset,
+                    "multi_output": new_instr.func_count_bounds[0] > 1,
                     "data": new_instr,
                 }
 
@@ -154,8 +146,8 @@ class ApiDataBuilder(DataBuilder):
                     "check_arg_question_overlap",
                     "intent_only",
                     "require_nested",
-                    "min_ct",
-                    "max_ct",
+                    "allow_subset",
+                    "multi_output",
                 ],
                 result_field="output",
             )
@@ -212,7 +204,7 @@ class ApiDataBuilder(DataBuilder):
         prompt_strings = [grouped_data[0].instruction]
         for instr in grouped_data:
             # TODO: cache string transform
-            instr_api_specification = api_utils.api_spec_to_str(
+            instr_api_specification = _api_spec_to_str(
                 instr.api_specifications,
                 instr.positive_functions,
                 instr.task_name,
@@ -246,7 +238,7 @@ class ApiDataBuilder(DataBuilder):
         if new_instr.single_function:
             new_pos_apis = [new_pos_apis[0]]
 
-        new_api_specification = api_utils.api_spec_to_str(
+        new_api_specification = _api_spec_to_str(
             api_specification_groups[new_group],
             new_pos_apis,
             new_instr.task_name,
@@ -278,3 +270,20 @@ class ApiDetectionDataBuilder(ApiDataBuilder):
     # llm1 is the main generator that will produce the synthetic examples
     llm1: LMGenerator
     val1: APIGenSpecValidator
+
+
+###
+# Utilities
+###
+
+
+def _api_spec_to_str(
+    api_group: Dict,
+    pos_functions: List[str],
+    task_name: str,
+):
+    api_infos = [api_group[api_id] for api_id in set(pos_functions)]
+    if "parallel_single" in task_name:
+        api_infos = [api_infos[0]]
+    random.shuffle(api_infos)
+    return "\n".join([json.dumps(api_info, indent=4) for api_info in api_infos])
