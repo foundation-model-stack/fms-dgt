@@ -6,29 +6,21 @@ from fms_dgt.blocks.validators.api import APIGenSpecValidator, ApiGenSpecYesNoVa
 
 single_intent_kwargs = {
     "intent_only": True,
-    "min_ct": 1,
-    "max_ct": 1,
 }
 
 multi_intent_kwargs = {
     "intent_only": True,
-    "min_ct": 2,
-    "max_ct": 2,
 }
 
 parallel_kwargs = {
     "check_arg_question_overlap": True,
     "intent_only": False,
-    "min_ct": 2,
-    "max_ct": 2,
 }
 
 parallel_nested_kwargs = {
     "check_arg_question_overlap": True,
     "intent_only": False,
     "require_nested": True,
-    "min_ct": 2,
-    "max_ct": 2,
 }
 
 
