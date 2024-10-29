@@ -1,5 +1,6 @@
 # Standard
 from typing import Dict, List, Optional
+import gc
 import json
 import os
 
@@ -93,11 +94,11 @@ def generate_data(
         ).items()
     )
 
-    # TODO: data
-    """ray.init(address: str | None = None, *, num_cpus: int | None = None, num_gpus: int | None = None, resources: Dict[str, float] | None = None, labels: Dict[str, str] | None = None, object_store_memory: int | None = None, local_mode: bool = False, ignore_reinit_error: bool = False, include_dashboard: bool | None = None, dashboard_host: str = '127.0.0.1', dashboard_port: int | None = None, job_config: ray.job_config.JobConfig = None, configure_logging: bool = True, logging_level: int = 'info', logging_format: str | None = None, logging_config: LoggingConfig | None = None, log_to_driver: bool | None = None, namespace: str | None = None, runtime_env: Dict[str, Any] | RuntimeEnv | None = None, storage: str | None = None, **kwargs)"""
-    ray.init()
-
     for builder_name, builder_cfg in all_builder_cfgs:
+
+        # TODO: data
+        """ray.init(address: str | None = None, *, num_cpus: int | None = None, num_gpus: int | None = None, resources: Dict[str, float] | None = None, labels: Dict[str, str] | None = None, object_store_memory: int | None = None, local_mode: bool = False, ignore_reinit_error: bool = False, include_dashboard: bool | None = None, dashboard_host: str = '127.0.0.1', dashboard_port: int | None = None, job_config: ray.job_config.JobConfig = None, configure_logging: bool = True, logging_level: int = 'info', logging_format: str | None = None, logging_config: LoggingConfig | None = None, log_to_driver: bool | None = None, namespace: str | None = None, runtime_env: Dict[str, Any] | RuntimeEnv | None = None, storage: str | None = None, **kwargs)"""
+        ray.init()
 
         # we batch together tasks at the level of data builders
         builder_info = builder_index.builder_index[builder_name]
@@ -151,5 +152,7 @@ def generate_data(
         data_builder.close()
         del data_builder
 
-    # cleanup ray
-    ray.shutdown()
+        # cleanup ray
+        ray.shutdown()
+
+        gc.collect()

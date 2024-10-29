@@ -20,9 +20,13 @@ async def main(args: Namespace):
     monitor_task = monitor(pid, check_interval)
     server_task = run_server(args)
 
-    _, unfinished = await asyncio.wait(
+    finished, unfinished = await asyncio.wait(
         [monitor_task, server_task], return_when=asyncio.FIRST_COMPLETED
     )
+
+    for task in finished:
+        # this will raise an exception if there was one
+        task.exception()
 
     for task in unfinished:
         task.cancel()
