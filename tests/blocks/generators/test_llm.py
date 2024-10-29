@@ -65,7 +65,7 @@ def test_generate_batch(model_cfg):
 
     inputs_copy = copy.deepcopy(inputs)
 
-    lm.generate(inputs, arg_fields=["prompt"], result_field="output")
+    lm(inputs, arg_fields=["prompt"], result_field="output")
 
     for i, inp in enumerate(inputs):
         assert (
@@ -87,7 +87,7 @@ def test_loglikelihood_batch(model_cfg):
 
     inputs_copy = copy.deepcopy(inputs)
 
-    lm.generate(
+    lm(
         inputs,
         arg_fields=["prompt1", "prompt2"],
         result_field="output",
@@ -150,7 +150,7 @@ def test_lm_caching():
     post_cache_inputs = copy.deepcopy(non_cache_inputs)
 
     non_cache_time = time.time()
-    lm.generate(non_cache_inputs, arg_fields=["prompt"], result_field="output")
+    lm(non_cache_inputs, arg_fields=["prompt"], result_field="output")
     non_cache_time = time.time() - non_cache_time
 
     cache_lm = CachingLM(
@@ -159,11 +159,11 @@ def test_lm_caching():
     )
 
     pre_cache_time = time.time()
-    cache_lm.generate(pre_cache_inputs, arg_fields=["prompt"], result_field="output")
+    cache_lm(pre_cache_inputs, arg_fields=["prompt"], result_field="output")
     pre_cache_time = time.time() - pre_cache_time
 
     post_cache_time = time.time()
-    cache_lm.generate(post_cache_inputs, arg_fields=["prompt"], result_field="output")
+    cache_lm(post_cache_inputs, arg_fields=["prompt"], result_field="output")
     post_cache_time = time.time() - post_cache_time
 
     os.remove(cache_path)
@@ -204,7 +204,7 @@ def test_vllm_remote_batch():
 
     inputs_copy = copy.deepcopy(inputs)
 
-    lm.generate(inputs, arg_fields=["prompt"], result_field="output")
+    lm(inputs, arg_fields=["prompt"], result_field="output")
 
     for i, inp in enumerate(inputs):
         assert (
@@ -220,7 +220,7 @@ def test_vllm_remote_batch():
 
     # inputs_copy = copy.deepcopy(inputs)
 
-    # lm.generate(
+    # lm(
     #     inputs,
     #     arg_fields=["prompt1", "prompt2"],
     #     result_field="output",
@@ -255,7 +255,7 @@ def test_vllm_tensor_parallel():
 
     inputs_copy = copy.deepcopy(inputs)
 
-    lm.generate(inputs, arg_fields=["prompt"], result_field="output")
+    lm(inputs, arg_fields=["prompt"], result_field="output")
 
     for i, inp in enumerate(inputs):
         assert (

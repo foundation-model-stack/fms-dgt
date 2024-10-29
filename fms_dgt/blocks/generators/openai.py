@@ -23,7 +23,7 @@ from tqdm import tqdm
 from fms_dgt.base.instance import Instance
 from fms_dgt.base.registry import get_resource, register_block
 from fms_dgt.blocks.generators.llm import MODEL_ID_OR_PATH, LMGenerator
-from fms_dgt.resources.openai import OpenAIKeyResource
+from fms_dgt.resources.api import ApiKeyResource
 from fms_dgt.utils import sdg_logger
 import fms_dgt.blocks.generators.utils as generator_utils
 
@@ -76,6 +76,7 @@ class OpenaiCompletionsLM(LMGenerator):
     def __init__(
         self,
         api_key: str = "EMPTY",
+        call_limit: int = 10,
         base_url: str = None,
         auto_chat_template: bool = False,
         **kwargs: Any,
@@ -104,8 +105,8 @@ class OpenaiCompletionsLM(LMGenerator):
         if self.base_url:
             self.client = openai.OpenAI(api_key=api_key, base_url=self.base_url)
         else:
-            self._openai_resource: OpenAIKeyResource = get_resource(
-                "openai", "OPENAI_API_KEY"
+            self._openai_resource: ApiKeyResource = get_resource(
+                "api", key_name="OPENAI_API_KEY", call_limit=call_limit
             )
             self.client = OpenAI(api_key=self._openai_resource.key)
             if auto_chat_template:

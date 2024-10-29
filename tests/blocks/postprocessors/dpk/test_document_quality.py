@@ -66,7 +66,7 @@ def test_docquality():
         doc_content_column="output",
         restart=True,
     )
-    docquality.generate([("mock_task", from_ds, to_ds)])
+    docquality([("mock_task", from_ds, to_ds)])
 
     df = pd.DataFrame(to_ds.load_data())
 

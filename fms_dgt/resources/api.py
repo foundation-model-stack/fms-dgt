@@ -5,9 +5,11 @@ import os
 from dotenv import load_dotenv
 
 # Local
+from fms_dgt.base.registry import register_resource
 from fms_dgt.base.resource import BaseResource
 
 
+@register_resource("api")
 class ApiKeyResource(BaseResource):
     def __init__(self, key_name: str, call_limit: int):
         super().__init__(key_name)
