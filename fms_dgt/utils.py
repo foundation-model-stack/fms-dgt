@@ -129,6 +129,12 @@ def load_yaml_config(yaml_path=None, yaml_config=None, yaml_dir=None, mode="full
                 data = load_yaml_config(yaml_path=path, mode=mode)
             elif path.endswith(".parquet"):
                 data = pd.read_parquet(path, engine="fastparquet").to_dict("records")
+            elif path.endswith(".jsonl"):
+                data = []
+                with open(path, "r", encoding="utf-8") as file:
+                    for line in file:
+                        json_obj = json.loads(line)
+                        data.append(json_obj)
             else:
                 with open(path, "r") as f:
                     data = f.read()
