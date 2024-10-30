@@ -62,6 +62,7 @@ class vLLMServerGenerator(LMGenerator):
         host="0.0.0.0",
         port="8001",
         pid=None,
+        api_key=None,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
@@ -86,7 +87,7 @@ class vLLMServerGenerator(LMGenerator):
         self._swap_space = int(swap_space)
 
         self._pid = pid if pid is not None else os.getpid()
-        self._api_key = str(uuid.uuid4())
+        self._api_key = api_key if api_key is not None else str(uuid.uuid4())
 
         self._host = host
         self._port = port
