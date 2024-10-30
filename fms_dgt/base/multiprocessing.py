@@ -35,6 +35,9 @@ class RayBlock(BaseBlock):
         *args,
         **kwargs: Dict,
     ):
+        # allow BaseBlock functions to be used
+        super().__init__(*args, **kwargs)
+
         ray_config: RayConfig = init_dataclass_from_dict(ray_config, RayConfig)
 
         worker_cfgs: Dict = {
@@ -104,7 +107,7 @@ class RayBlock(BaseBlock):
             if worker_idx * partition_size >= len(inputs):
                 break
             actor_results.append(
-                self._workers[worker_idx].__call__.remote(
+                self._workers[worker_idx].execute.remote(
                     (
                         inputs[worker_idx * partition_size :]
                         if (worker_idx == len(self._workers) - 1)
