@@ -79,10 +79,14 @@ class RayBlock(BaseBlock):
         return self._workers
 
     def close(self):
+        # first workers
         for worker in self._workers:
             # must wait on each close call
             ray.get(worker.close.remote())
             ray.kill(worker)
+
+        # now base block
+        super().close()
 
     def generate(self, *args, **kwargs):  # for interfacing with IL
         return self(*args, **kwargs)
