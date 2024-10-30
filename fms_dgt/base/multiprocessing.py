@@ -7,6 +7,7 @@ from ray.actor import ActorHandle
 import ray
 
 # Local
+from fms_dgt.base.block import BaseBlock
 from fms_dgt.constants import DATASET_TYPE
 from fms_dgt.utils import init_dataclass_from_dict
 
@@ -24,7 +25,7 @@ class RayConfig:
             self.worker_configs = []
 
 
-class RayBlock:
+class RayBlock(BaseBlock):
     """This class contains the functionality for turning a standard block into a ray block"""
 
     def __init__(
@@ -34,6 +35,9 @@ class RayBlock:
         *args,
         **kwargs: Dict,
     ):
+        # allow BaseBlock functions to be used
+        super().__init__(*args, **kwargs)
+
         ray_config: RayConfig = init_dataclass_from_dict(ray_config, RayConfig)
 
         worker_cfgs: Dict = {
@@ -83,7 +87,7 @@ class RayBlock:
     def generate(self, *args, **kwargs):  # for interfacing with IL
         return self(*args, **kwargs)
 
-    def __call__(self, inputs: DATASET_TYPE, *args: Any, **kwargs: Any) -> DATASET_TYPE:
+    def execute(self, inputs: DATASET_TYPE, *args: Any, **kwargs: Any) -> DATASET_TYPE:
         """Distributes input list amongst workers according to ray config
 
         Args:
@@ -103,7 +107,7 @@ class RayBlock:
             if worker_idx * partition_size >= len(inputs):
                 break
             actor_results.append(
-                self._workers[worker_idx].__call__.remote(
+                self._workers[worker_idx].execute.remote(
                     (
                         inputs[worker_idx * partition_size :]
                         if (worker_idx == len(self._workers) - 1)
