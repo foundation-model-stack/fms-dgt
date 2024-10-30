@@ -80,7 +80,7 @@ class SdgTask:
         machine_batch_size: Optional[int] = DEFAULT_MACHINE_BATCH_SIZE,
         num_outputs_to_generate: Optional[int] = DEFAULT_NUM_OUTPUTS,
     ):
-        """Initializes data builder object.
+        """Initializes task object.
 
         Args:
             config (Union[Mapping, DataBuilderConfig], optional): Config specifying all databuilder settings.

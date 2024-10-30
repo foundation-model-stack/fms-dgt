@@ -126,7 +126,8 @@ def generate_data(
                         build_id=build_id,
                     ),
                     # other params
-                    **{**task_init, **task_kwargs},
+                    CONFIG_KEY: task_init,
+                    **task_kwargs,
                 }
                 for task_init in task_inits
                 if task_init["data_builder"] == builder_name
