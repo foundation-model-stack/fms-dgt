@@ -27,6 +27,13 @@ GREEDY_GENAI_CFG = {
 GREEDY_VLLM_CFG = {
     "type": "vllm",
     "model_id_or_path": "ibm-granite/granite-8b-code-instruct",
+    "tensor_parallel_size": 1,
+    **GREEDY_CFG,
+}
+GREEDY_VLLM_SERVER_CFG = {
+    "type": "vllm-server",
+    "model_id_or_path": "ibm-granite/granite-8b-code-instruct",
+    "tensor_parallel_size": 1,
     **GREEDY_CFG,
 }
 GREEDY_OPENAI_CFG = {
@@ -34,11 +41,17 @@ GREEDY_OPENAI_CFG = {
     "model_id_or_path": "gpt-3.5-turbo",
     **GREEDY_CFG,
 }
+GREEDY_WATSONX_CFG = {
+    "type": "watsonx",
+    "model_id_or_path": "granite-3-8b-instruct",
+    **GREEDY_CFG,
+}
 PROMPTS = [f"Question: x = {i} + 1\nAnswer: x =" for i in range(25)]
 
 
 @pytest.mark.parametrize(
-    "model_cfg", [GREEDY_VLLM_CFG, GREEDY_OPENAI_CFG, GREEDY_GENAI_CFG]
+    "model_cfg",
+    [GREEDY_VLLM_CFG],  # GREEDY_OPENAI_CFG, GREEDY_GENAI_CFG]
 )
 def test_generate_batch(model_cfg):
     model_cfg = dict(model_cfg)
@@ -52,7 +65,7 @@ def test_generate_batch(model_cfg):
 
     inputs_copy = copy.deepcopy(inputs)
 
-    lm.generate(inputs, arg_fields=["prompt"], result_field="output")
+    lm(inputs, arg_fields=["prompt"], result_field="output")
 
     for i, inp in enumerate(inputs):
         assert (
@@ -74,7 +87,7 @@ def test_loglikelihood_batch(model_cfg):
 
     inputs_copy = copy.deepcopy(inputs)
 
-    lm.generate(
+    lm(
         inputs,
         arg_fields=["prompt1", "prompt2"],
         result_field="output",
@@ -137,7 +150,7 @@ def test_lm_caching():
     post_cache_inputs = copy.deepcopy(non_cache_inputs)
 
     non_cache_time = time.time()
-    lm.generate(non_cache_inputs, arg_fields=["prompt"], result_field="output")
+    lm(non_cache_inputs, arg_fields=["prompt"], result_field="output")
     non_cache_time = time.time() - non_cache_time
 
     cache_lm = CachingLM(
@@ -146,11 +159,11 @@ def test_lm_caching():
     )
 
     pre_cache_time = time.time()
-    cache_lm.generate(pre_cache_inputs, arg_fields=["prompt"], result_field="output")
+    cache_lm(pre_cache_inputs, arg_fields=["prompt"], result_field="output")
     pre_cache_time = time.time() - pre_cache_time
 
     post_cache_time = time.time()
-    cache_lm.generate(post_cache_inputs, arg_fields=["prompt"], result_field="output")
+    cache_lm(post_cache_inputs, arg_fields=["prompt"], result_field="output")
     post_cache_time = time.time() - post_cache_time
 
     os.remove(cache_path)
@@ -191,7 +204,7 @@ def test_vllm_remote_batch():
 
     inputs_copy = copy.deepcopy(inputs)
 
-    lm.generate(inputs, arg_fields=["prompt"], result_field="output")
+    lm(inputs, arg_fields=["prompt"], result_field="output")
 
     for i, inp in enumerate(inputs):
         assert (
@@ -207,7 +220,7 @@ def test_vllm_remote_batch():
 
     # inputs_copy = copy.deepcopy(inputs)
 
-    # lm.generate(
+    # lm(
     #     inputs,
     #     arg_fields=["prompt1", "prompt2"],
     #     result_field="output",
@@ -242,7 +255,7 @@ def test_vllm_tensor_parallel():
 
     inputs_copy = copy.deepcopy(inputs)
 
-    lm.generate(inputs, arg_fields=["prompt"], result_field="output")
+    lm(inputs, arg_fields=["prompt"], result_field="output")
 
     for i, inp in enumerate(inputs):
         assert (

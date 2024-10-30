@@ -6,29 +6,21 @@ from fms_dgt.blocks.validators.api import APIGenSpecValidator, ApiGenSpecYesNoVa
 
 single_intent_kwargs = {
     "intent_only": True,
-    "min_ct": 1,
-    "max_ct": 1,
 }
 
 multi_intent_kwargs = {
     "intent_only": True,
-    "min_ct": 2,
-    "max_ct": 2,
 }
 
 parallel_kwargs = {
     "check_arg_question_overlap": True,
     "intent_only": False,
-    "min_ct": 2,
-    "max_ct": 2,
 }
 
 parallel_nested_kwargs = {
     "check_arg_question_overlap": True,
     "intent_only": False,
     "require_nested": True,
-    "min_ct": 2,
-    "max_ct": 2,
 }
 
 
@@ -54,7 +46,7 @@ def test_single_intent():
             **single_intent_kwargs,
         }
     ]
-    validator.generate(
+    validator(
         test_instance,
         arg_fields=["a", "b", "c"],
         kwarg_fields=list(single_intent_kwargs.keys()),
@@ -81,7 +73,7 @@ def test_multi_intent():
             **multi_intent_kwargs,
         }
     ]
-    validator.generate(
+    validator(
         test_instance,
         arg_fields=["a", "b", "c"],
         kwarg_fields=list(multi_intent_kwargs.keys()),
@@ -109,7 +101,7 @@ def test_parallel_single():
             **parallel_kwargs,
         }
     ]
-    validator.generate(
+    validator(
         test_instance,
         arg_fields=["a", "b", "c"],
         kwarg_fields=list(parallel_kwargs.keys()),
@@ -132,7 +124,7 @@ def test_parallel_single():
             **parallel_kwargs,
         }
     ]
-    validator.generate(
+    validator(
         test_instance,
         arg_fields=["a", "b", "c"],
         kwarg_fields=list(parallel_kwargs.keys()),
@@ -169,7 +161,7 @@ def test_parallel_multiple():
             "check_arg_question_overlap": False,
         }
     ]
-    validator.generate(
+    validator(
         test_instance,
         arg_fields=["a", "b", "c"],
         kwarg_fields=list(parallel_kwargs.keys()) + ["check_arg_question_overlap"],
@@ -193,7 +185,7 @@ def test_parallel_multiple():
             **parallel_kwargs,
         }
     ]
-    validator.generate(
+    validator(
         test_instance,
         arg_fields=["a", "b", "c"],
         kwarg_fields=list(parallel_kwargs.keys()),
@@ -218,7 +210,7 @@ def test_parallel_multiple():
             **parallel_kwargs,
         }
     ]
-    validator.generate(
+    validator(
         test_instance,
         arg_fields=["a", "b", "c"],
         kwarg_fields=list(parallel_kwargs.keys()),
@@ -252,7 +244,7 @@ def test_parallel_nested():
             **parallel_nested_kwargs,
         }
     ]
-    validator.generate(
+    validator(
         test_instance,
         arg_fields=["a", "b", "c"],
         kwarg_fields=list(parallel_nested_kwargs.keys()),
@@ -275,7 +267,7 @@ def test_parallel_nested():
             **parallel_nested_kwargs,
         }
     ]
-    validator.generate(
+    validator(
         test_instance,
         arg_fields=["a", "b", "c"],
         kwarg_fields=list(parallel_nested_kwargs.keys()),
@@ -298,7 +290,7 @@ def test_yes_no():
                 "c": arg_inp,
             }
         ]
-        validator.generate(
+        validator(
             test_instance,
             arg_fields=["a", "b", "c"],
             result_field="result",

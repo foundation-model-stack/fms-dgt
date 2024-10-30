@@ -17,6 +17,10 @@ import os
 import subprocess
 import uuid
 
+# Third Party
+from dotenv import load_dotenv
+import psutil
+
 # Local
 from fms_dgt.base.registry import register_block
 from fms_dgt.blocks.generators.llm import LMGenerator
@@ -31,8 +35,8 @@ except ModuleNotFoundError:
 
 
 # TODO: this can be made more efficient for our purposes by rewriting the async code ourselves
-@register_block("vllm")
-class vLLMGenerator(LMGenerator):
+@register_block("vllm-server")
+class vLLMServerGenerator(LMGenerator):
     """vLLM Generator"""
 
     _DEFAULT_MAX_LENGTH = 2048
@@ -55,9 +59,15 @@ class vLLMGenerator(LMGenerator):
         data_parallel_size: int = 1,
         check_interval: int = 10,
         lora_local_path: str = None,
+        host="0.0.0.0",
+        port="8001",
+        pid=None,
+        api_key=None,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
+
+        load_dotenv()
 
         if not find_spec("vllm"):
             raise ModuleNotFoundError(
@@ -76,10 +86,11 @@ class vLLMGenerator(LMGenerator):
         self._gpu_memory_utilization = float(gpu_memory_utilization)
         self._swap_space = int(swap_space)
 
-        self._pid = os.getpid()
-        self._api_key = str(uuid.uuid4())
-        self._host = "0.0.0.0"
-        self._port = "9001"
+        self._pid = pid if pid is not None else os.getpid()
+        self._api_key = api_key if api_key is not None else str(uuid.uuid4())
+
+        self._host = host
+        self._port = port
         self._base_url = f"http://{self._host}:{self._port}/v1/"
         self._vllm = OpenaiCompletionsLM(
             api_key=self._api_key, base_url=self._base_url, **kwargs
@@ -139,16 +150,61 @@ class vLLMGenerator(LMGenerator):
         ]
         cmd = [str(x) for entry in cmd for x in entry]
 
+        sdg_logger.info(f"Starting vllm server with command:\n{' '.join(cmd)}")
+
         self._vllm_process = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
 
+        lines = []
         while True:
-            line = self._vllm_process.stdout.readline()
-            if "Avg prompt throughput:" in line.decode("utf-8"):
+            # grab lines from both sdtout and stderr
+            lines.append(
+                "\n".join(
+                    [
+                        proc.readline().decode("utf-8").strip()
+                        for proc in [
+                            self._vllm_process.stdout,
+                            self._vllm_process.stderr,
+                        ]
+                    ]
+                ).strip()
+            )
+
+            # check for running process
+            if any(
+                [
+                    t_str in lines[-1]
+                    for t_str in ["Uvicorn running on socket", "Avg prompt throughput:"]
+                ]
+            ):
+                sdg_logger.info(
+                    "Server has been initialized, detailed log is provided below:\n\n"
+                    + "*" * 50
+                    + "\n".join([l for l in lines if l])
+                    + "\n\n"
+                    + "*" * 50
+                )
                 break
             elif self._vllm_process.poll() is not None:
+                # if process has error'd out, kill it
+                sdg_logger.error(
+                    "Error in vllm server instance. The full traceback is provided below:\n\n"
+                    + "*" * 50
+                    + "\n".join([l for l in lines if l])
+                    + "\n\n"
+                    + "*" * 50
+                )
                 raise SystemError(f"Underlying vllm process has terminated!")
 
     def release_model(self):
-        self._vllm_process.kill()
+        sdg_logger.info(f"Releasing model by killing process {self._vllm_process.pid}")
+        base_proc = psutil.Process(self._vllm_process.pid)
+        for child_proc in base_proc.children(recursive=True):
+            child_proc.kill()
+        base_proc.kill()
+
+    def close(self):
+        self.release_model()

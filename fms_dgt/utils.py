@@ -11,6 +11,7 @@ import logging
 import os
 
 # Third Party
+import pandas as pd
 import yaml
 
 log_level = getattr(logging, os.getenv("LOG_LEVEL", "info").upper())
@@ -126,6 +127,14 @@ def load_yaml_config(yaml_path=None, yaml_config=None, yaml_dir=None, mode="full
         try:
             if path.endswith(".yaml"):
                 data = load_yaml_config(yaml_path=path, mode=mode)
+            elif path.endswith(".parquet"):
+                data = pd.read_parquet(path, engine="fastparquet").to_dict("records")
+            elif path.endswith(".jsonl"):
+                data = []
+                with open(path, "r", encoding="utf-8") as file:
+                    for line in file:
+                        json_obj = json.loads(line)
+                        data.append(json_obj)
             else:
                 with open(path, "r") as f:
                     data = f.read()
@@ -300,7 +309,7 @@ def load_joint_config(yaml_path: str):
     with open(yaml_path, "r") as f:
         config: dict = yaml.full_load(f)
 
-    data_paths, db_overrides, task_overrides = [], dict(), dict()
+    data_paths, db_overrides, task_overrides = ([], dict(), dict())
 
     for k, v in config.items():
         if k in ["databuilders", "tasks"]:
@@ -314,9 +323,7 @@ def load_joint_config(yaml_path: str):
                 task_overrides = v
         elif k == "task_files":
             if type(v) != list:
-                raise ValueError(
-                    f"'task_files' field in config must be provided as a list"
-                )
+                raise ValueError(f"'{k}' field in config must be provided as a list")
             data_paths = v
         else:
             raise ValueError(

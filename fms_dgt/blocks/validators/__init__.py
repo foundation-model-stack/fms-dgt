@@ -22,7 +22,7 @@ class BaseValidatorBlock(BaseBlock):
         super().__init__(**kwargs)
         self._filter_invalids = filter
 
-    def generate(
+    def execute(
         self,
         inputs: DATASET_TYPE,
         *,
@@ -30,7 +30,7 @@ class BaseValidatorBlock(BaseBlock):
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[List[str]] = None,
     ) -> DATASET_TYPE:
-        """The generate function is the primary interface to a Block. For validator blocks, the implementation differs from BaseBlock in that the result is always a boolean value indicating whether the validation succeeded or failed. In addition, the validator block can optionally filter out invalid inputs that would return False instead of writing the result to the input.
+        """The execute function is the primary interface to a Block. For validator blocks, the implementation differs from BaseBlock in that the result is always a boolean value indicating whether the validation succeeded or failed. In addition, the validator block can optionally filter out invalid inputs that would return False instead of writing the result to the input.
 
         Args:
             inputs (BLOCK_INPUT_TYPE): A block operates over a logical iterable

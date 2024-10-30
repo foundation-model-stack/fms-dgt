@@ -106,11 +106,7 @@ def register_block(*names):
     return decorate
 
 
-def get_block(block_name, *args: Any, **kwargs: Any):
-
-    # Local
-    from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
-
+def get_block_class(block_name):
     if block_name not in BLOCK_REGISTRY:
         _dynamic_registration_import("register_block", block_name)
 
@@ -123,7 +119,24 @@ def get_block(block_name, *args: Any, **kwargs: Any):
             f"Attempted to load block '{block_name}', but no block for this name found! Supported block names: {known_keys}"
         )
 
-    ret_block = BLOCK_REGISTRY[block_name](*args, **kwargs)
+    return BLOCK_REGISTRY[block_name]
+
+
+def get_block(block_name, *args: Any, **kwargs: Any):
+
+    # Local
+    from fms_dgt.base.multiprocessing import RayBlock
+    from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
+    from fms_dgt.constants import RAY_CONFIG_KEY
+
+    block_class = get_block_class(block_name)
+
+    ret_block = (
+        RayBlock(block_class, *args, **kwargs)
+        if RAY_CONFIG_KEY in kwargs
+        else block_class(*args, **kwargs)
+    )
+
     if isinstance(ret_block, LMGenerator) and "lm_cache" in kwargs:
         ret_block = CachingLM(ret_block, kwargs.get("lm_cache"))
 

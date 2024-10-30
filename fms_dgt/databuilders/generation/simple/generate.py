@@ -75,7 +75,7 @@ class SimpleInstructDataBuilder(DataBuilder):
 
         request_start = time.time()
 
-        llm_outputs = self.llm1.generate(inputs)
+        llm_outputs = self.llm1(inputs)
         request_duration = time.time() - request_start
 
         post_process_start = time.time()
@@ -120,7 +120,7 @@ class SimpleInstructDataBuilder(DataBuilder):
         # filter rouge data
         outputs = [
             output["data"]
-            for output in self.val1.generate(
+            for output in self.val1(
                 val_inputs,
                 context=all_instructions,
                 arg_fields=["to_check"],

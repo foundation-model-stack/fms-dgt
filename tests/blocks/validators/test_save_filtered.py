@@ -27,9 +27,7 @@ def test_matches():
         threshold=1.0,
         datastore={"type": "default", "store_name": "rouge", "output_dir": tmp_cache},
     )
-    validator.generate(
-        inputs, context=all_data, arg_fields=["a"], result_field="result"
-    )
+    validator(inputs, context=all_data, arg_fields=["a"], result_field="result")
     assert inputs[0]["result"] and not inputs[1]["result"] and not inputs[2]["result"]
 
     shutil.rmtree(tmp_cache)

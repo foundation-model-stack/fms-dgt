@@ -1,7 +1,11 @@
 # Standard
 from typing import Dict, List, Optional
+import gc
 import json
 import os
+
+# Third Party
+import ray
 
 # Local
 from fms_dgt.base.databuilder import DataBuilder
@@ -91,66 +95,65 @@ def generate_data(
         ).items()
     )
 
-    # get execution order for tasks
-    task_map = {task_init["task_name"]: task_init for task_init in task_inits}
-    # groups in ordering come first, everything else grouped at the end
-    task_groups = [task_inits]
-    for task_group in task_groups:
-        for builder_name, builder_cfg in all_builder_cfgs:
+    for builder_name, builder_cfg in all_builder_cfgs:
 
-            # we batch together tasks at the level of data builders
-            builder_info = builder_index.builder_index[builder_name]
-            builder_dir = builder_info.get("builder_dir")
-            if isinstance(builder_cfg, tuple):
-                _, builder_cfg = builder_cfg
-                if builder_cfg is None:
-                    continue
+        # TODO: data
+        """ray.init(address: str | None = None, *, num_cpus: int | None = None, num_gpus: int | None = None, resources: Dict[str, float] | None = None, labels: Dict[str, str] | None = None, object_store_memory: int | None = None, local_mode: bool = False, ignore_reinit_error: bool = False, include_dashboard: bool | None = None, dashboard_host: str = '127.0.0.1', dashboard_port: int | None = None, job_config: ray.job_config.JobConfig = None, configure_logging: bool = True, logging_level: int = 'info', logging_format: str | None = None, logging_config: LoggingConfig | None = None, log_to_driver: bool | None = None, namespace: str | None = None, runtime_env: Dict[str, Any] | RuntimeEnv | None = None, storage: str | None = None, **kwargs)"""
+        ray.init()
 
-            sdg_logger.debug("Builder config for %s: %s", builder_name, builder_cfg)
+        # we batch together tasks at the level of data builders
+        builder_info = builder_index.builder_index[builder_name]
+        builder_dir = builder_info.get("builder_dir")
+        if isinstance(builder_cfg, tuple):
+            _, builder_cfg = builder_cfg
+            if builder_cfg is None:
+                continue
 
-            all_builder_kwargs = {
-                CONFIG_KEY: builder_cfg,
-                "task_kwargs": [
-                    {
-                        # get task card
-                        "task_card": TaskRunCard(
-                            task_name=task_init.get("task_name"),
-                            databuilder_name=task_init.get("data_builder"),
-                            task_spec=json.dumps({**task_init, **task_kwargs}),
-                            databuilder_spec=json.dumps(
-                                utils.load_nested_paths(builder_cfg, builder_dir)
-                            ),
-                            build_id=build_id,
+        sdg_logger.debug("Builder config for %s: %s", builder_name, builder_cfg)
+
+        all_builder_kwargs = {
+            CONFIG_KEY: builder_cfg,
+            "task_kwargs": [
+                {
+                    # get task card
+                    "task_card": TaskRunCard(
+                        task_name=task_init.get("task_name"),
+                        databuilder_name=task_init.get("data_builder"),
+                        task_spec=json.dumps({**task_init, **task_kwargs}),
+                        databuilder_spec=json.dumps(
+                            utils.load_nested_paths(builder_cfg, builder_dir)
                         ),
-                        # other params
-                        **task_kwargs,
-                        CONFIG_KEY: task_init,
-                    }
-                    for task_init in task_group
-                    if task_init["data_builder"] == builder_name
-                ],
-                **builder_kwargs,
-            }
+                        build_id=build_id,
+                    ),
+                    # other params
+                    **{**task_init, **task_kwargs},
+                }
+                for task_init in task_inits
+                if task_init["data_builder"] == builder_name
+            ],
+            **builder_kwargs,
+        }
 
-            # no nesting of errors
-            err = None
-            try:
-                # first see if databuilder is loaded by default
-                data_builder: DataBuilder = get_data_builder(
-                    builder_name, **all_builder_kwargs
-                )
-            except KeyError as e:
-                err = e
-            if f"Attempted to load data builder '{builder_name}'" in str(err):
-                utils.import_builder(builder_dir)
-                data_builder: DataBuilder = get_data_builder(
-                    builder_name, **all_builder_kwargs
-                )
-            else:
-                raise err
+        data_builder: DataBuilder = None
+        try:
+            # first see if databuilder is loaded by default
+            data_builder = get_data_builder(builder_name, **all_builder_kwargs)
+        except KeyError as e:
+            if f"Attempted to load data builder '{builder_name}'" not in str(e):
+                raise e
 
-            # TODO: ship this off
-            data_builder.execute_tasks()
+        if data_builder is None:
+            utils.import_builder(builder_dir)
+            data_builder = get_data_builder(builder_name, **all_builder_kwargs)
 
-            # TODO: cleanup
-            del data_builder
+        # ship this off
+        data_builder.execute_tasks()
+
+        # cleanup databuilder
+        data_builder.close()
+        del data_builder
+
+        # cleanup ray
+        ray.shutdown()
+
+        gc.collect()

@@ -20,6 +20,7 @@ class ApiSdgTaskConfig(SdgTaskConfig):
     intent_only: bool = False
     single_function: bool = False
     require_nested: bool = False
+    allow_subset: bool = False
 
 
 @dataclass
@@ -37,6 +38,7 @@ class ApiSdgData(SdgData):
     intent_only: bool
     single_function: bool
     require_nested: bool
+    allow_subset: bool
 
     def make_clear_copy(self):
         new_instr: ApiSdgData = copy.copy(self)
@@ -83,6 +85,7 @@ class ApiSdgTask(SdgTask):
         self._single_function = self.config.single_function
         self._require_nested = self.config.require_nested
         self._task_instruction = self.config.task_instruction
+        self._allow_subset = self.config.allow_subset
 
     @property
     def config(self) -> CONFIG_TYPE:
@@ -98,6 +101,7 @@ class ApiSdgTask(SdgTask):
             positive_functions=kwargs.get("positive_functions"),
             instruction=self._task_instruction,
             func_count_bounds=[self._min_func_count, self._max_func_count],
+            allow_subset=self._allow_subset,
             check_arg_question_overlap=self._check_arg_question_overlap,
             intent_only=self._intent_only,
             single_function=self._single_function,

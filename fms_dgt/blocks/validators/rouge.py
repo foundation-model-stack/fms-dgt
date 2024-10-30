@@ -39,7 +39,7 @@ class RougeDedupValidator(BaseValidatorBlock):
                 self._cache[inp] = self.scorer._tokenizer.tokenize(inp)
             return self._cache[inp]
 
-    def generate(
+    def execute(
         self,
         inputs: DATASET_TYPE,
         *,
