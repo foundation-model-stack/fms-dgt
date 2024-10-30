@@ -12,7 +12,7 @@ from fms_dgt.utils import init_dataclass_from_dict
 
 
 @dataclass
-class ParallelConfig:
+class RayConfig:
 
     num_workers: int = 1
     num_cpus_per_worker: int = 1
@@ -20,30 +20,28 @@ class ParallelConfig:
     worker_configs: Optional[List[Dict]] = None
 
 
-class ParallelBlock:
-    """This class contains the functionality for turning a standard block into a parallelized block"""
+class RayBlock:
+    """This class contains the functionality for turning a standard block into a ray block"""
 
     def __init__(
         self,
         block_class: Type,
-        parallel_config: Dict,
+        ray_config: Dict,
         *args,
         **kwargs: Dict,
     ):
-        parallel_config: ParallelConfig = init_dataclass_from_dict(
-            parallel_config, ParallelConfig
-        )
+        ray_config: RayConfig = init_dataclass_from_dict(ray_config, RayConfig)
 
         worker_cfgs: Dict = {
-            worker_idx: dict() for worker_idx in range(parallel_config.num_workers)
+            worker_idx: dict() for worker_idx in range(ray_config.num_workers)
         }
-        if parallel_config.worker_configs is not None and not isinstance(
-            parallel_config.worker_configs, list
+        if ray_config.worker_configs is not None and not isinstance(
+            ray_config.worker_configs, list
         ):
             raise ValueError(
                 f"If [worker_configs] field is specified, it must be given as list"
             )
-        for cfg in parallel_config.worker_configs:
+        for cfg in ray_config.worker_configs:
             if not cfg.get("workers"):
                 raise ValueError(f"Must identify list of worker ids in [workers] field")
             for worker_idx in cfg.pop("workers"):
@@ -54,10 +52,10 @@ class ParallelBlock:
                 worker_cfgs[worker_idx] = cfg
 
         self._workers: List[ActorHandle] = []
-        for worker_idx in range(parallel_config.num_workers):
+        for worker_idx in range(ray_config.num_workers):
             actor = ray.remote(
-                num_cpus=parallel_config.num_cpus_per_worker,
-                num_gpus=parallel_config.num_gpus_per_worker,
+                num_cpus=ray_config.num_cpus_per_worker,
+                num_gpus=ray_config.num_gpus_per_worker,
             )(block_class).remote(
                 *args, **{**kwargs, **worker_cfgs.get(worker_idx, dict())}
             )
@@ -82,7 +80,7 @@ class ParallelBlock:
         return self(*args, **kwargs)
 
     def __call__(self, inputs: DATASET_TYPE, *args: Any, **kwargs: Any) -> DATASET_TYPE:
-        """Distributes input list amongst workers according to parallel config
+        """Distributes input list amongst workers according to ray config
 
         Args:
             inputs (DATASET_TYPE): Input data to process

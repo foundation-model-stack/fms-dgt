@@ -6,9 +6,9 @@ import re
 # Local
 from fms_dgt.base.dataloader import BaseDataloader
 from fms_dgt.base.datastore import BaseDatastore
-from fms_dgt.base.multiprocessing import ParallelBlock
+from fms_dgt.base.multiprocessing import RayBlock
 from fms_dgt.base.resource import BaseResource
-from fms_dgt.constants import PARALLEL_CONFIG_KEY
+from fms_dgt.constants import RAY_CONFIG_KEY
 from fms_dgt.utils import dynamic_import
 
 # TODO: better strategy needed, but this will eliminate some of the confusing errors people get when registering a new class.
@@ -132,8 +132,8 @@ def get_block(block_name, *args: Any, **kwargs: Any):
     block_class = get_block_class(block_name)
 
     ret_block = (
-        ParallelBlock(block_class, *args, **kwargs)
-        if PARALLEL_CONFIG_KEY in kwargs
+        RayBlock(block_class, *args, **kwargs)
+        if RAY_CONFIG_KEY in kwargs
         else block_class(*args, **kwargs)
     )
 

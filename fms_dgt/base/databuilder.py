@@ -10,12 +10,11 @@ from tqdm import tqdm
 
 # Local
 from fms_dgt.base.block import BaseBlock, get_row_name
-from fms_dgt.base.multiprocessing import ParallelBlock
 from fms_dgt.base.registry import get_block, get_block_class
 from fms_dgt.base.task import SdgData, SdgTask, TransformTask
 from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
 from fms_dgt.blocks.postprocessors import BasePostProcessingBlock
-from fms_dgt.constants import NAME_KEY, PARALLEL_CONFIG_KEY, TYPE_KEY
+from fms_dgt.constants import NAME_KEY, TYPE_KEY
 from fms_dgt.utils import all_annotations, init_dataclass_from_dict, sdg_logger
 
 DEFAULT_MAX_STALLED_ATTEMPTS = 5
