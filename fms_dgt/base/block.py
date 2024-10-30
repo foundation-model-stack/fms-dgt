@@ -43,6 +43,7 @@ class BaseBlock(ABC):
         builder_name: Optional[str] = None,
         datastore: Optional[Dict] = None,
         save_schema: Optional[List[str]] = None,
+        **kwargs: Any,
     ) -> None:
         """A block is a unit of computation that takes in some inputs and produces an output. It is intended to be specialized algorithms
             or processes that teams can contribute for others to use to build their pipelines.
