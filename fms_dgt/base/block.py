@@ -101,6 +101,8 @@ class BaseBlock(ABC):
                 },
             )
 
+        self._blocks: List[BaseBlock] = []
+
     @property
     def name(self) -> str:
         """Returns the name of the block
@@ -264,7 +266,8 @@ class BaseBlock(ABC):
 
     def close(self):
         """Method for safely deallocating all resources used by a block"""
-        pass
+        for block in self._blocks:
+            block.close()
 
     def generate(self, *args, **kwargs):  # for interfacing with IL
         return self(*args, **kwargs)

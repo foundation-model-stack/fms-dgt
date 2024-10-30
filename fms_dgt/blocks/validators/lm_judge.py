@@ -21,7 +21,8 @@ class LMJudgeValidator(BaseValidatorBlock):
         self._llm_generator: LMGenerator = get_block(
             lm_config.get(TYPE_KEY), **lm_config
         )
-        self.blocks = [self._llm_generator]
+
+        self._blocks.append(self._llm_generator)
 
     def execute(
         self,
