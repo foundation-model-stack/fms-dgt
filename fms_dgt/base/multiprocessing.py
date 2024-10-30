@@ -41,7 +41,7 @@ class RayBlock:
             raise ValueError(
                 f"If [worker_configs] field is specified, it must be given as list"
             )
-        for cfg in ray_config.worker_configs:
+        for cfg in ray_config.worker_configs or []:
             if not cfg.get("workers"):
                 raise ValueError(f"Must identify list of worker ids in [workers] field")
             for worker_idx in cfg.pop("workers"):
