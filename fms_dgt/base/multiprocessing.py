@@ -19,6 +19,10 @@ class RayConfig:
     num_gpus_per_worker: int = 0
     worker_configs: Optional[List[Dict]] = None
 
+    def __post_init__(self):
+        if self.worker_configs is None:
+            self.worker_configs = []
+
 
 class RayBlock:
     """This class contains the functionality for turning a standard block into a ray block"""
@@ -35,13 +39,13 @@ class RayBlock:
         worker_cfgs: Dict = {
             worker_idx: dict() for worker_idx in range(ray_config.num_workers)
         }
-        if ray_config.worker_configs is not None and not isinstance(
-            ray_config.worker_configs, list
-        ):
+
+        if not isinstance(ray_config.worker_configs, list):
             raise ValueError(
                 f"If [worker_configs] field is specified, it must be given as list"
             )
-        for cfg in ray_config.worker_configs or []:
+
+        for cfg in ray_config.worker_configs:
             if not cfg.get("workers"):
                 raise ValueError(f"Must identify list of worker ids in [workers] field")
             for worker_idx in cfg.pop("workers"):
