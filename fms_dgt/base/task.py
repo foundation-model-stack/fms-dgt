@@ -71,8 +71,8 @@ class SdgTask:
 
     def __init__(
         self,
+        config: Union[Mapping, SdgTaskConfig],
         task_card: TaskRunCard,
-        config: Mapping = None,
         output_dir: Optional[str] = DEFAULT_OUTPUT_DIR,
         save_formatted_output: Optional[bool] = False,
         restart_generation: Optional[bool] = False,
@@ -460,17 +460,21 @@ class TransformTask(SdgTask):
 
     def __init__(
         self,
+        config: Union[Mapping, SdgTaskConfig],
         *args,
-        dataloader: Optional[Dict] = None,
         seed_batch_size: int = 10,
         machine_batch_size: int = 0,
         **kwargs,
     ):
-        if dataloader is None:
-            dataloader = {TYPE_KEY: "default", "loop_over_data": False}
+        config = init_dataclass_from_dict(config, self.CONFIG_TYPE)
+
+        # adjust dataloader to not loop
+        if config.dataloader is None:
+            config.dataloader = {TYPE_KEY: "default", "loop_over_data": False}
+
         super().__init__(
+            config=config,
             *args,
-            dataloader=dataloader,
             seed_batch_size=seed_batch_size,
             machine_batch_size=machine_batch_size,
             **kwargs,

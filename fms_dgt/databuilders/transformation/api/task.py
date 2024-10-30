@@ -35,11 +35,7 @@ class ApiTransformTask(TransformTask):
         api_specifications: Dict = None,
         **kwargs,
     ):
-        super().__init__(
-            *args,
-            **kwargs,
-        )
-
+        super().__init__(*args, **kwargs)
         self._seed_api_group = seed_api_group
         self._api_specifications = api_specifications
 

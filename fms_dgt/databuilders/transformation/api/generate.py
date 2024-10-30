@@ -130,8 +130,8 @@ class ApiSnipsAtisTransformDataBuilder(TransformationDataBuilder):
     # llm1 is the main generator that will produce the synthetic examples
     llm1: LMGenerator
 
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
         # Third Party
         import spacy
 

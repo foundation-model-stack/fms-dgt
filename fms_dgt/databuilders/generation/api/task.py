@@ -64,13 +64,8 @@ class ApiSdgTask(SdgTask):
     OUTPUT_DATA_TYPE = ApiSdgData
     CONFIG_TYPE = ApiSdgTaskConfig
 
-    def __init__(
-        self,
-        *args: Any,
-        **kwargs: Any,
-    ):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
-
         self.all_api_specifications = {
             k: v
             for k, v in self.config.api_specifications.items()

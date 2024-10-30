@@ -30,13 +30,6 @@ class Nl2SqlDataBuilder(DataBuilder):
 
     TASK_TYPE: SdgTask = SqlSdgTask
 
-    def __init__(
-        self,
-        *args: Any,
-        **kwargs: Any,
-    ):
-        super().__init__(*args, **kwargs)
-
     # llm1 is a code generator for the synthetic examples
     llm1: LMGenerator
 

@@ -115,6 +115,8 @@ def generate_data(
             CONFIG_KEY: builder_cfg,
             "task_kwargs": [
                 {
+                    # config is required
+                    CONFIG_KEY: task_init,
                     # get task card
                     "task_card": TaskRunCard(
                         task_name=task_init.get("task_name"),
@@ -126,7 +128,6 @@ def generate_data(
                         build_id=build_id,
                     ),
                     # other params
-                    CONFIG_KEY: task_init,
                     **task_kwargs,
                 }
                 for task_init in task_inits

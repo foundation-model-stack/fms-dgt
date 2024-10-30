@@ -43,11 +43,7 @@ class SqlSdgTask(SdgTask):
     OUTPUT_DATA_TYPE = InstructLabSdgData
     CONFIG_TYPE = SqlSdgTaskConfig
 
-    def __init__(
-        self,
-        *args: Any,
-        **kwargs: Any,
-    ):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self._ddl_schema = self.config.ddl_schema
         self._db_info = self.config.database_information
