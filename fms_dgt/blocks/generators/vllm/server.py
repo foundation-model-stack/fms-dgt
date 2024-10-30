@@ -26,7 +26,7 @@ async def main(args: Namespace):
 
     for task in finished:
         # this will raise an exception if there was one
-        task.exception()
+        task.result()
 
     for task in unfinished:
         task.cancel()
