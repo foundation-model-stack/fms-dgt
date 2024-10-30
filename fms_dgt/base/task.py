@@ -19,7 +19,7 @@ DEFAULT_NUM_OUTPUTS = 2
 
 
 @dataclass
-class SdgTaskConfig(dict):
+class SdgTaskConfig:
     """Configuration for an SDG task
 
     Attributes:
@@ -46,7 +46,7 @@ class SdgTaskConfig(dict):
 
 
 @dataclass
-class SdgData(abc.ABC):
+class SdgData:
     """This class is intended to hold the seed / machine generated instruction data"""
 
     task_name: str
