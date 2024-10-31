@@ -1,7 +1,6 @@
 # Standard
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Mapping, Optional, TypeVar, Union
-import abc
 import os
 import random
 
@@ -17,10 +16,14 @@ DEFAULT_MACHINE_BATCH_SIZE = 10
 DEFAULT_SEED_BATCH_SIZE = 100
 DEFAULT_NUM_OUTPUTS = 2
 
+###
+# Task config
+###
+
 
 @dataclass
 class SdgTaskConfig:
-    """Configuration for an SDG task
+    """Configuration for an SDG task, specifies what the qna.yaml files should look like
 
     Attributes:
         task_name (str): The name of the Task object.
@@ -45,6 +48,11 @@ class SdgTaskConfig:
     seed_examples: Optional[List[Any]] = None
 
 
+###
+# Data class
+###
+
+
 @dataclass
 class SdgData:
     """This class is intended to hold the seed / machine generated instruction data"""
@@ -60,13 +68,16 @@ class SdgData:
         return asdict(self)
 
 
+###
+# Main task class
+###
+
+
 class SdgTask:
     """This class is intended to hold general task information"""
 
     INPUT_DATA_TYPE = SdgData
-    OUTPUT_DATA_TYPE = (
-        INPUT_DATA_TYPE  # default output data type is the main type of the task
-    )
+    OUTPUT_DATA_TYPE = INPUT_DATA_TYPE  # default output data type is same as input
     CONFIG_TYPE = SdgTaskConfig
 
     def __init__(
@@ -283,9 +294,19 @@ class SdgTask:
         )
 
     def set_postprocess_datastore(self, datastore: BaseDatastore):
+        """Sets default postprocess datastore (which is used to gather data for final_datastore)
+
+        Args:
+            datastore (BaseDatastore): Datastore to set
+        """
         self._pp_datastore = datastore
 
-    def make_postprocess_datastore(self):
+    def make_postprocess_datastore(self) -> BaseDatastore:
+        """Creates a new postprocessing datastore
+
+        Returns:
+            BaseDatastore: Datastore to be used for holding outputs of postprocessing blocks
+        """
         # init post processing datastore
         self._post_proc_id += 1
         pp_ds_kwargs = {
@@ -451,7 +472,7 @@ class SdgTask:
 
 
 ###
-# Transformation data classes
+# Transformation task class
 ###
 
 
@@ -480,6 +501,10 @@ class TransformTask(SdgTask):
             **kwargs,
         )
 
+
+###
+# Utilities
+###
 
 T = TypeVar("T")
 

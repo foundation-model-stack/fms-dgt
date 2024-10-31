@@ -1,6 +1,6 @@
 # Standard
 from dataclasses import asdict
-from typing import Any, Iterable, List, Set, Tuple
+from typing import Iterable, List, Set, Tuple
 
 # Local
 from fms_dgt.base.databuilder import DataBuilder
