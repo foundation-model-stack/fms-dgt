@@ -93,7 +93,7 @@ class DataBuilder(ABC):
         self._blocks: List[BaseBlock] = []
         self._init_blocks()
 
-        self.kwargs = kwargs
+        self._kwargs = kwargs
 
     @property
     def name(self) -> str:

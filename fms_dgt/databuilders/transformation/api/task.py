@@ -9,9 +9,16 @@ import re
 
 # Local
 from fms_dgt.base.registry import register_datastore
-from fms_dgt.base.task import SdgData, TransformTask
+from fms_dgt.base.task import SdgData, SdgTaskConfig, TransformTask
 from fms_dgt.datastores.default import DefaultDatastore
 from fms_dgt.utils import sdg_logger
+
+
+@dataclass
+class ApiTransformTaskConfig(SdgTaskConfig):
+
+    seed_api_group: Optional[str] = None
+    api_specifications: Optional[Dict] = None
 
 
 @dataclass
@@ -27,17 +34,16 @@ class ApiTransformTask(TransformTask):
 
     INPUT_DATA_TYPE = ApiTransformData
     OUTPUT_DATA_TYPE = ApiTransformData
+    CONFIG_TYPE = ApiTransformTaskConfig
 
     def __init__(
         self,
         *args,
-        seed_api_group: str = None,
-        api_specifications: Dict = None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
-        self._seed_api_group = seed_api_group
-        self._api_specifications = api_specifications
+        self._seed_api_group = self.config.seed_api_group
+        self._api_specifications = self.config.api_specifications
 
     def instantiate_input_example(self, **kwargs: Any):
         return self.INPUT_DATA_TYPE(

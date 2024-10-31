@@ -30,7 +30,7 @@ class SdgTaskConfig:
         task_description (str): A description of the SDG task is designed to solve.
         created_by (str): The name of the individual / group who created the code assistant.
         data_builder (str): The name of the data builder that should be used to process this task.
-        instruction_format (Optional[Dict[str, str]]): A dictionary template that can be used to translate intermediate data objects to instruction-tuning pairs
+        instruction_format (Optional[Dict[str, str]]): A dictionary template that can be used to translate intermediate data objects to instruction-tuning pairs.
         datastore (Optional[Dict]): A dictionary containing the configuration for the datastore.
         seed_datastore (Optional[Dict]): A dictionary containing the configuration for the seed datastore.
         dataloader (Optional[Dict]): A dictionary containing the configuration for the dataloader.
@@ -90,12 +90,13 @@ class SdgTask:
         seed_batch_size: Optional[int] = DEFAULT_SEED_BATCH_SIZE,
         machine_batch_size: Optional[int] = DEFAULT_MACHINE_BATCH_SIZE,
         num_outputs_to_generate: Optional[int] = DEFAULT_NUM_OUTPUTS,
+        **kwargs: Any,
     ):
         """Initializes task object.
 
         Args:
             config (Union[Mapping, DataBuilderConfig], optional): Config specifying all databuilder settings.
-            task_card (TaskCard): The task card containing all experiment information
+            task_card (TaskCard): The task card containing all experiment information.
             save_formatted_output (Optional[bool]): A boolean indicating whether to save outputs that have been reformatted
             output_dir (Optional[str]): The directory where the generated outputs will be saved.
             restart_generation (Optional[bool]): A boolean indicating whether to restart generation from scratch.
@@ -104,6 +105,8 @@ class SdgTask:
             num_outputs_to_generate (Optional[int]): The number of outputs to generate.
         """
         self._config = init_dataclass_from_dict(config, self.CONFIG_TYPE)
+
+        self._kwargs = kwargs
 
         self._task_card = task_card
         self._store_name = self.task_card.task_name
@@ -260,6 +263,8 @@ class SdgTask:
         self._dataloader_state_datastore = get_datastore(
             self._datastore_cfg.get(TYPE_KEY), **dls_ds_kwargs
         )
+
+        self._dataloader_state: Any = None
 
         # init dataloader itself
         self._dataloader = get_dataloader(
@@ -451,14 +456,16 @@ class SdgTask:
                 self._final_datastore.save_data(to_add)
 
     def save_dataloader_state(self):
-        self._dataloader_state_datastore.save_data(
-            [{"state": self._dataloader.get_state()}]
-        )
+        curr_state = self._dataloader.get_state()
+        if self._dataloader_state != curr_state:
+            self._dataloader_state = curr_state
+            self._dataloader_state_datastore.save_data([{"state": curr_state}])
 
     def load_dataloader_state(self):
         prev_state = self._dataloader_state_datastore.load_data()
         if prev_state:
             self._dataloader.set_state(prev_state[-1]["state"])
+            self._dataloader_state = prev_state
 
     def finish(self) -> None:
         """Method for wrapping up task execution. Called after `is_complete` signals task has completed"""
