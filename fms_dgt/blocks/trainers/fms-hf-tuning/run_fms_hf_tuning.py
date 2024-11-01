@@ -41,15 +41,6 @@ class FmsTuningBlock(BaseTrainerBlock):
         data_path = os.path.join(output_dir, "dataset", "data.jsonl")
         self.set_dataset(datastore, data_path)
 
-        # --model_name_or_path $MODEL_PATH  \
-        # --tokenizer_name_or_path $MODEL_PATH \ # This field is optional and if not specified, tokenizer from model_name_or_path will be used
-        # --training_data_path $TRAIN_DATA_PATH  \
-        # --output_dir $OUTPUT_PATH  \
-        # --num_train_epochs 5  \
-        # --per_device_train_batch_size 4  \
-        # --gradient_accumulation_steps 4  \
-        # --learning_rate 1e-5
-
         cmd = [
             [
                 ("accelerate launch" if self._num_gpus > 1 else "python"),
@@ -64,7 +55,7 @@ class FmsTuningBlock(BaseTrainerBlock):
         cmd = [str(x) for entry in cmd for x in entry]
 
         sdg_logger.info(f"Starting training with command:\n\t{' '.join(cmd)}")
-        input("HERE")
+
         # run and wait for result
         try:
             process = subprocess.Popen(

@@ -78,12 +78,11 @@ class StarTransformDataBuilder(TransformationDataBuilder):
 
             generate_start = time.time()
 
-            # TODO: uncomment
-            # new_data: List[Dict] = []
-            # for generated_inst in self.call_with_task_list([task]):
-            #     task.save_intermediate_data(generated_inst)
-            #     new_data.append(generated_inst)
-            #     task.save_dataloader_state()
+            new_data: List[Dict] = []
+            for generated_inst in self.call_with_task_list([task]):
+                task.save_intermediate_data(generated_inst)
+                new_data.append(generated_inst)
+                task.save_dataloader_state()
 
             generate_duration = time.time() - generate_start
             sdg_logger.info(
@@ -112,9 +111,6 @@ class StarTransformDataBuilder(TransformationDataBuilder):
         self,
         input_data: List[StarSdgData],
     ) -> Iterable[Dict]:
-
-        # TODO: REMOVE
-        input_data = input_data[:20]
 
         llm_inputs = []
         for qa_pair in tqdm(input_data, desc="Data Transformation"):
@@ -145,8 +141,5 @@ class StarTransformDataBuilder(TransformationDataBuilder):
                 )
 
     def correct_response(self, answer: str, response: str):
-        # TODO: REMOVE THIS
-        return answer
-        ###
         if answer.strip() in response:
             return answer
