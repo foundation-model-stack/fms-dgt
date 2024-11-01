@@ -143,7 +143,9 @@ class ApiSnipsAtisTransformDataBuilder(TransformationDataBuilder):
     def __call__(
         self, instruction_data: List[ApiSnipsAtisTransformData]
     ) -> Iterable[ApiTransformData]:
+
         outputs = []
+
         for data in tqdm(instruction_data, "snips_atis Transformation"):
             try:
                 text = data.text
@@ -248,6 +250,8 @@ class ApiSnipsAtisTransformDataBuilder(TransformationDataBuilder):
                 )
             except IndexError:
                 pass
+
+        return outputs
 
 
 def split_string_on_delimiters(string, delimiters, max_splits=None):
