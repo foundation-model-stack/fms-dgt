@@ -63,6 +63,7 @@ sentencepiece = ["sentencepiece>=0.1.98"]
 sql = ["pydantic>=2.4.2", "pydantic-settings>=2.0.3", "pyyaml>=6.0.1", "sqlglot==23.11.2"]
 testing = ["pytest", "pytest-cov", "pytest-xdist"]
 vllm = ["vllm"]
+trainer = ["fms-hf-tuning", "fms-hf-tuning[dev]", "fms-hf-tuning[flash-attn]", "fms-hf-tuning[fms-accel]"]
 dpk =  [
         "data_prep_toolkit @ git+https://github.com/IBM/data-prep-kit.git#subdirectory=data-processing-lib/python",
         "data_prep_toolkit_ray @ git+https://github.com/IBM/data-prep-kit.git#subdirectory=data-processing-lib/ray",

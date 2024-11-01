@@ -7,10 +7,10 @@
 from dataclasses import asdict, dataclass
 from typing import Any
 import abc
+import json
 import os
 
 # Third Party
-from datasets import Dataset
 import torch
 
 # Local
@@ -33,12 +33,13 @@ class BaseTrainerBlock(BaseBlock):
         config_path: str,
         num_gpus: int = None,
         learning_rate: float = 0.0001,
-        fp16: bool = True,
         logging_steps: int = 100,
         save_steps: int = 50,
         per_device_train_batch_size: int = 1,
         gradient_accumulation_steps: int = 1,
         max_steps: int = 100,
+        log_level: str = "debug",
+        save_total_limit: int = 1,
         **kwargs: Any,
     ) -> None:
         """Initialize a trainer that trains a model on a dataset input.
@@ -54,40 +55,23 @@ class BaseTrainerBlock(BaseBlock):
 
         training_args = {
             "learning_rate": learning_rate,
-            "fp16": fp16,
             "logging_steps": logging_steps,
             "save_steps": save_steps,
             "per_device_train_batch_size": per_device_train_batch_size,
             "gradient_accumulation_steps": gradient_accumulation_steps,
             "max_steps": max_steps,
+            "save_total_limit": save_total_limit,
+            "log_level": log_level,
         }
         self._training_args = {k: v for k, v in training_args.items() if v is not None}
 
         self._kwargs = kwargs
 
-    def set_dataset(self, datastore: BaseDatastore, path: str):
-        if os.path.isdir(path):
-            if os.listdir(path):
-                # if data already exists, continue
-                return
-        else:
-            os.makedirs(path)
-
-        # TODO: Improve this
-
-        dataset = Dataset.from_list(
-            [
-                TrainerData(
-                    **{
-                        k: v
-                        for k, v in d.items()
-                        if k in TrainerData.__dataclass_fields__
-                    }
-                ).to_dict()
-                for d in datastore.load_data()
-            ]
-        )
-        dataset.save_to_disk(path)
+    def set_dataset(self, datastore: BaseDatastore, jsonl_path: str):
+        os.makedirs(os.path.dirname(jsonl_path), exist_ok=True)
+        with open(jsonl_path, "w") as f:
+            for d in datastore.load_data():
+                f.write(json.dumps(d) + "\n")
 
     def execute(self, *args: Any, **kwargs: Any) -> str:
         return self.train(*args, **kwargs)
@@ -114,6 +98,10 @@ class BaseTrainerBlock(BaseBlock):
             str: Path to model that was trained
         """
         raise NotImplementedError
+
+
+class TrainingException(Exception):
+    pass
 
 
 def make_model_dir(output_path: str):

@@ -1,5 +1,4 @@
 # Standard
-import json
 import os
 import subprocess
 import time
@@ -8,8 +7,7 @@ import time
 from fms_dgt.base.datastore import BaseDatastore
 from fms_dgt.base.registry import register_block
 from fms_dgt.blocks.trainers import BaseTrainerBlock
-from fms_dgt.blocks.trainers.deepspeed.train import TrainingException
-from fms_dgt.blocks.trainers.trainer import make_model_dir
+from fms_dgt.blocks.trainers.trainer import TrainingException, make_model_dir
 from fms_dgt.utils import sdg_logger
 
 ###
@@ -17,12 +15,19 @@ from fms_dgt.utils import sdg_logger
 ###
 
 
-@register_block("deepspeed")
-class DeepspeedTrainerBlock(BaseTrainerBlock):
-    def __init__(self, *args, check_interval: int = 10, **kwargs):
+@register_block("fms-hf-tuning")
+class FmsTuningBlock(BaseTrainerBlock):
+    def __init__(
+        self,
+        *args,
+        data_formatter_template: str = None,
+        torch_dtype: str = "bfloat16",
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
-        self._pid = os.getpid()
-        self._check_interval = check_interval
+        if data_formatter_template:
+            self._training_args["data_formatter_template"] = data_formatter_template
+        self._training_args["torch_dtype"] = torch_dtype
 
     def train(
         self,
@@ -33,29 +38,33 @@ class DeepspeedTrainerBlock(BaseTrainerBlock):
 
         model_dir = make_model_dir(output_dir)
 
-        data_path = os.path.join(output_dir, "dataset")
+        data_path = os.path.join(output_dir, "dataset", "data.jsonl")
         self.set_dataset(datastore, data_path)
+
+        # --model_name_or_path $MODEL_PATH  \
+        # --tokenizer_name_or_path $MODEL_PATH \ # This field is optional and if not specified, tokenizer from model_name_or_path will be used
+        # --training_data_path $TRAIN_DATA_PATH  \
+        # --output_dir $OUTPUT_PATH  \
+        # --num_train_epochs 5  \
+        # --per_device_train_batch_size 4  \
+        # --gradient_accumulation_steps 4  \
+        # --learning_rate 1e-5
 
         cmd = [
             [
-                "deepspeed",
-                f"--num_gpus={self._num_gpus}",
-                os.path.join(os.path.dirname(os.path.abspath(__file__)), "train.py"),
+                ("accelerate launch" if self._num_gpus > 1 else "python"),
+                "-m",
+                "tuning.sft_trainer",
             ],
-            ["--data-path", data_path],
-            ["--config-path", self._config_path],
-            ["--model-id-or-path", model_id_or_path],
+            ["--model_name_or_path", model_id_or_path],
+            ["--training_data_path", data_path],
             ["--output-dir", model_dir],
-            [
-                "--training-args",
-                json.dumps(self._training_args).replace("'", '"'),
-            ],
-        ]
+        ] + [[f"--{k}", v] for k, v in self._training_args.items()]
 
         cmd = [str(x) for entry in cmd for x in entry]
 
         sdg_logger.info(f"Starting training with command:\n\t{' '.join(cmd)}")
-
+        input("HERE")
         # run and wait for result
         try:
             process = subprocess.Popen(
@@ -63,7 +72,7 @@ class DeepspeedTrainerBlock(BaseTrainerBlock):
             )
             while process.poll() is None:
                 for proc in [process.stdout, process.stderr]:
-                    sdg_logger.info(proc.readline().decode("utf-8").strip())
+                    sdg_logger.info(proc.read().decode("utf-8").strip())
                 time.sleep(1)
             out, err = (
                 process.stdout.read().decode("utf-8").strip(),

@@ -16,7 +16,7 @@ blocks:
       - stop_sequences
     result_field: result
   - name: trainer1
-    type: deepspeed
+    type: fms-hf-tuning
     config_path: /dccstor/cfm-tst/fms-sdg/fms_dgt/databuilders/transformation/star/trainer_configs/ds_config.json
     # training args
     learning_rate: 0.0001
