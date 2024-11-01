@@ -63,6 +63,8 @@ class BaseTrainerBlock(BaseBlock):
         }
         self._training_args = {k: v for k, v in training_args.items() if v is not None}
 
+        self._kwargs = kwargs
+
     def set_dataset(self, datastore: BaseDatastore, path: str):
         if os.path.isdir(path):
             if os.listdir(path):
@@ -87,6 +89,9 @@ class BaseTrainerBlock(BaseBlock):
         )
         dataset.save_to_disk(path)
 
+    def execute(self, *args: Any, **kwargs: Any) -> str:
+        return self.train(*args, **kwargs)
+
     @abc.abstractmethod
     def train(
         self,
@@ -108,9 +113,6 @@ class BaseTrainerBlock(BaseBlock):
         Returns:
             str: Path to model that was trained
         """
-        raise NotImplementedError
-
-    def generate(self, *args, **kwargs) -> Any:
         raise NotImplementedError
 
 

@@ -70,11 +70,6 @@ def add_builder_args(parser: argparse.ArgumentParser):
         type=int,
         help="Maximum number of attempts allowed to solve tasks where no data is produced",
     )
-    group.add_argument(
-        "--local_rank",
-        type=int,
-        default=0,
-    )
     return group
 
 

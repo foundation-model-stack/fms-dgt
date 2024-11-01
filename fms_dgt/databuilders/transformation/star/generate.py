@@ -1,5 +1,5 @@
 # Standard
-from typing import Dict, Iterable, List
+from typing import Any, Dict, Iterable, List
 import os
 import time
 
@@ -10,7 +10,7 @@ from tqdm import tqdm, trange
 from fms_dgt.base.databuilder import TransformationDataBuilder
 from fms_dgt.base.registry import register_data_builder
 from fms_dgt.base.task import DEFAULT_OUTPUT_DIR
-from fms_dgt.blocks.generators.vllm import vLLMGenerator
+from fms_dgt.blocks.generators.vllm import vLLMServerGenerator
 from fms_dgt.blocks.trainers import BaseTrainerBlock
 from fms_dgt.blocks.validators import BaseValidatorBlock
 from fms_dgt.constants import TASK_NAME_KEY
@@ -31,7 +31,7 @@ class StarTransformDataBuilder(TransformationDataBuilder):
     TASK_TYPE: StarTransformTask
 
     # llm1 is the main generator that will produce the synthetic examples
-    llm1: vLLMGenerator
+    llm1: vLLMServerGenerator
 
     # we are intentionally generic with val1 to maximize reuse
     val1: BaseValidatorBlock
@@ -41,10 +41,11 @@ class StarTransformDataBuilder(TransformationDataBuilder):
 
     def __init__(
         self,
+        *args: Any,
         max_iters: int = 2,
-        **kwargs,
+        **kwargs: Any,
     ):
-        super().__init__(**kwargs)
+        super().__init__(*args, **kwargs)
         self._max_iters = max_iters
 
     def execute_tasks(self):
@@ -77,11 +78,12 @@ class StarTransformDataBuilder(TransformationDataBuilder):
 
             generate_start = time.time()
 
-            new_data: List[Dict] = []
-            for generated_inst in self.call_with_task_list([task]):
-                task.save_intermediate_data(generated_inst)
-                new_data.append(generated_inst)
-                task.save_dataloader_state()
+            # TODO: uncomment
+            # new_data: List[Dict] = []
+            # for generated_inst in self.call_with_task_list([task]):
+            #     task.save_intermediate_data(generated_inst)
+            #     new_data.append(generated_inst)
+            #     task.save_dataloader_state()
 
             generate_duration = time.time() - generate_start
             sdg_logger.info(
@@ -96,7 +98,7 @@ class StarTransformDataBuilder(TransformationDataBuilder):
             self.llm1.release_model()
 
             # train model
-            model_id_or_path = self.trainer1.train(
+            model_id_or_path = self.trainer1(
                 model_id_or_path=model_id_or_path,
                 output_dir=curr_iter_dir,
                 datastore=task.datastore,
@@ -124,7 +126,7 @@ class StarTransformDataBuilder(TransformationDataBuilder):
             )
 
         # NOTE: unlike in the other tutorials, we have provided 'arg_fields' / 'kwarg_fields' / 'result_field' in the data builder's config, thus we do not need to specify them here
-        llm_outputs = self.llm1.generate(llm_inputs)
+        llm_outputs = self.llm1(llm_inputs)
 
         for output in llm_outputs:
             orig_qa: StarSdgData = output["data"]

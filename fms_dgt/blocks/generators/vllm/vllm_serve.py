@@ -150,12 +150,10 @@ class vLLMServerGenerator(LMGenerator):
         ]
         cmd = [str(x) for entry in cmd for x in entry]
 
-        sdg_logger.info(f"Starting vllm server with command:\n{' '.join(cmd)}")
+        sdg_logger.info(f"Starting vllm server with command:\n\t{' '.join(cmd)}")
 
         self._vllm_process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
 
         lines = []

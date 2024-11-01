@@ -151,7 +151,7 @@ class DataBuilder(ABC):
             assert issubclass(block_class, req_obj_type) or (
                 issubclass(block_class, CachingLM)
                 and issubclass(req_obj_type, LMGenerator)
-            ), f"Type of retrieved object {obj.__class__} for {obj_name} does not match type {req_obj_type} specified in DataBuilder {self.__class__}"
+            ), f"Type of retrieved object {block_class} for {obj_name} does not match type {req_obj_type} specified in DataBuilder {self.__class__}"
 
             obj_kwargs = {
                 "build_id": self._build_id,
