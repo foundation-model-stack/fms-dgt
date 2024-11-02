@@ -1,0 +1,14 @@
+name: cot_transform
+blocks:
+  - name: llm1
+    type: vllm-server
+    decoding_method: sample
+    temperature: 0.5
+    max_new_tokens: 1024
+    min_new_tokens: 1
+    # model_id_or_path: /dccstor/cfm-tst/fms-sdg/.cache/huggingface/hub/models--mistralai--Mistral-7B-Instruct-v0.1/snapshots/2dcff66eac0c01dc50e4c41eea959968232187fe
+    model_id_or_path: /dccstor/cfm-tst/fms-sdg/.cache/huggingface/hub/models--ibm-granite--granite-8b-code-instruct/snapshots/c4d3fcd4a373406a803105099fb32f8be9b5e36c/
+  - name: val1
+    type: always_true
+metadata:
+  version: 1.0

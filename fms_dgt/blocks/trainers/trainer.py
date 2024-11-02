@@ -5,7 +5,7 @@
 
 # Standard
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, List
 import abc
 import json
 import os
@@ -16,6 +16,7 @@ import torch
 # Local
 from fms_dgt.base.block import BaseBlock
 from fms_dgt.base.datastore import BaseDatastore
+from fms_dgt.utils import sdg_logger
 
 
 @dataclass
@@ -67,11 +68,12 @@ class BaseTrainerBlock(BaseBlock):
 
         self._kwargs = kwargs
 
-    def set_dataset(self, datastore: BaseDatastore, jsonl_path: str):
+    def set_dataset(self, datastores: List[BaseDatastore], jsonl_path: str):
         os.makedirs(os.path.dirname(jsonl_path), exist_ok=True)
         with open(jsonl_path, "w") as f:
-            for d in datastore.load_data():
-                f.write(json.dumps(d) + "\n")
+            for datastore in datastores:
+                for d in datastore.load_data():
+                    f.write(json.dumps(d) + "\n")
 
     def execute(self, *args: Any, **kwargs: Any) -> str:
         return self.train(*args, **kwargs)
@@ -81,7 +83,7 @@ class BaseTrainerBlock(BaseBlock):
         self,
         model_id_or_path: str,
         output_dir: str,
-        datastore: BaseDatastore,
+        datastores: List[BaseDatastore],
         *args,
         **kwargs,
     ) -> str:
@@ -98,6 +100,12 @@ class BaseTrainerBlock(BaseBlock):
             str: Path to model that was trained
         """
         raise NotImplementedError
+
+    def release_model(self):
+        pass
+
+    def close(self):
+        self.release_model()
 
 
 class TrainingException(Exception):

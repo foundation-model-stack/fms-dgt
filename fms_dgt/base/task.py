@@ -37,9 +37,7 @@ class SdgTask:
     """This class is intended to hold general task information"""
 
     INPUT_DATA_TYPE = SdgData
-    OUTPUT_DATA_TYPE = (
-        INPUT_DATA_TYPE  # default output data type is the main type of the task
-    )
+    OUTPUT_DATA_TYPE: SdgData = None
 
     def __init__(
         self,
@@ -82,6 +80,8 @@ class SdgTask:
             seed_examples (Optional[List[Any]]): A list of seed examples.
             num_outputs_to_generate (Optional[int]): The number of outputs to generate.
         """
+        if self.OUTPUT_DATA_TYPE is None:
+            self.OUTPUT_DATA_TYPE = self.INPUT_DATA_TYPE
 
         self._name = task_name
         self._task_description = task_description
@@ -96,7 +96,7 @@ class SdgTask:
         self._instruction_format = instruction_format
         self._save_formatted_output = save_formatted_output
 
-        self._store_name = self._task_card.task_name
+        self._store_name = self._name
 
         self._post_proc_id = 0
 
@@ -249,6 +249,8 @@ class SdgTask:
             self._datastore_cfg.get(TYPE_KEY), **dls_ds_kwargs
         )
 
+        self._dataloader_state: Any = None
+
         # init dataloader itself
         self._dataloader = get_dataloader(
             self._dataloader_cfg.get(TYPE_KEY),
@@ -311,7 +313,7 @@ class SdgTask:
             task_name=kwargs.pop("task_name", self._name), **kwargs
         )
 
-    def instantiate_output_example(self, **kwargs: Any) -> OUTPUT_DATA_TYPE:
+    def instantiate_output_example(self, **kwargs: Any) -> OUTPUT_DATA_TYPE:  # type: ignore
         """Instantiate an output example for this task. Designed to be overridden with custom initialization.
 
         Args:
@@ -322,7 +324,7 @@ class SdgTask:
         """
         return self.OUTPUT_DATA_TYPE(**kwargs)
 
-    def instantiate_instruction(self, data: OUTPUT_DATA_TYPE) -> Dict:
+    def instantiate_instruction(self, data: OUTPUT_DATA_TYPE) -> Dict:  # type: ignore
         """Instantiates an instruction-tuning pair from output data instance.
 
         Args:
@@ -437,9 +439,10 @@ class SdgTask:
         return self._final_datastore.load_data()
 
     def save_dataloader_state(self):
-        self._dataloader_state_datastore.save_data(
-            [{"state": self._dataloader.get_state()}]
-        )
+        curr_state = self._dataloader.get_state()
+        if self._dataloader_state != curr_state:
+            self._dataloader_state = curr_state
+            self._dataloader_state_datastore.save_data([{"state": curr_state}])
 
     def load_dataloader_state(self):
         prev_state = self._dataloader_state_datastore.load_data()

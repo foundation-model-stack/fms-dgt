@@ -1,7 +1,11 @@
 # Standard
+from typing import List
 import os
 import subprocess
 import time
+
+# Third Party
+import psutil
 
 # Local
 from fms_dgt.base.datastore import BaseDatastore
@@ -33,13 +37,13 @@ class FmsTuningBlock(BaseTrainerBlock):
         self,
         model_id_or_path: str,
         output_dir: str,
-        datastore: BaseDatastore,
+        datastores: List[BaseDatastore],
     ) -> str:
 
         model_dir = make_model_dir(output_dir)
 
         data_path = os.path.join(output_dir, "dataset", "data.jsonl")
-        self.set_dataset(datastore, data_path)
+        self.set_dataset(datastores, data_path)
 
         cmd = [
             [
@@ -77,6 +81,7 @@ class FmsTuningBlock(BaseTrainerBlock):
                 raise TrainingException(
                     f"Training failed for command:\n\t{' '.join(cmd)}"
                 )
+            process.kill()
         except Exception as e:
             process.kill()
             raise e
@@ -85,3 +90,6 @@ class FmsTuningBlock(BaseTrainerBlock):
 
         # return last model
         return final_model
+
+    def release_model(self):
+        pass

@@ -1,0 +1,7 @@
+task_name: star_cot_transform
+created_by: IBM
+data_builder: star_transform
+task_description: STaR algorithm for bootstrapping reasoning
+include:
+  tasks:
+    - ../cot/qna.yaml
