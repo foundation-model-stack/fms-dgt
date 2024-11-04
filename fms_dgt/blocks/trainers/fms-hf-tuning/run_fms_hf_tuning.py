@@ -1,5 +1,5 @@
 # Standard
-from typing import List
+from typing import List, Type
 import os
 import subprocess
 import time
@@ -66,30 +66,43 @@ class FmsTuningBlock(BaseTrainerBlock):
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
             while process.poll() is None:
-                for proc in [process.stdout, process.stderr]:
-                    sdg_logger.info(proc.read().decode("utf-8").strip())
+                _disp_proc(process)
                 time.sleep(1)
-            out, err = (
-                process.stdout.read().decode("utf-8").strip(),
-                process.stderr.read().decode("utf-8").strip(),
-            )
-            if out:
-                sdg_logger.info(out)
-            if err:
-                sdg_logger.error(err)
+            _disp_proc(process)
             if process.returncode != 0:
                 raise TrainingException(
                     f"Training failed for command:\n\t{' '.join(cmd)}"
                 )
             process.kill()
         except Exception as e:
+            _disp_proc(process)
             process.kill()
             raise e
 
-        final_model = os.path.join(model_dir, "last")
+        if not os.listdir(model_dir):
+            raise SystemError(
+                f"No checkpoints at model directory {model_dir} were found"
+            )
+
+        final_model = "-0"
+        for checkpoint in os.listdir(model_dir):
+            if checkpoint.startswith("checkpoint") and int(
+                checkpoint.split("-")[-1]
+            ) >= int(final_model.split("-")[-1]):
+                final_model = os.path.join(model_dir, checkpoint)
 
         # return last model
         return final_model
 
     def release_model(self):
         pass
+
+
+def _disp_proc(process: Type[psutil.Popen]):
+    return
+    stdout, stderr = process.communicate()
+    stdout, stderr = stdout.decode().strip(), stderr.decode().strip()
+    if stdout:
+        sdg_logger.info(stdout)
+    if stderr:
+        sdg_logger.error(stderr)

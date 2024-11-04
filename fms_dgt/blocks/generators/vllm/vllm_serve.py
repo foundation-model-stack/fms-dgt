@@ -12,8 +12,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 # Standard
 from importlib.util import find_spec
-from typing import Any, Literal, Optional
+from typing import Any, List, Literal, Optional, Tuple
 import os
+import random
+import socket
 import subprocess
 import uuid
 
@@ -59,10 +61,10 @@ class vLLMServerGenerator(LMGenerator):
         data_parallel_size: int = 1,
         check_interval: int = 10,
         lora_local_path: str = None,
-        host="0.0.0.0",
-        port="8001",
-        pid=None,
-        api_key=None,
+        host: str = "0.0.0.0",
+        port: int = None,
+        pid: int = None,
+        api_key: str = None,
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
@@ -90,7 +92,7 @@ class vLLMServerGenerator(LMGenerator):
         self._api_key = api_key if api_key is not None else str(uuid.uuid4())
 
         self._host = host
-        self._port = port
+        self._port = _get_open_port(host) if port is None else port
         self._base_url = f"http://{self._host}:{self._port}/v1/"
         self._vllm = OpenaiCompletionsLM(
             api_key=self._api_key, base_url=self._base_url, **kwargs
@@ -206,3 +208,18 @@ class vLLMServerGenerator(LMGenerator):
 
     def close(self):
         self.release_model()
+
+
+def _get_open_port(host: str, address_range: Tuple[int, int] = (8000, 8100)):
+    for port in range(*address_range):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            sock.bind((host, port))
+            sock.close()
+            sdg_logger.info(f"Port [{port}] is available for host [{host}]")
+            return port
+        except Exception:
+            sock.close()
+    raise Exception(
+        f"Could not find available port for host [{host}] in address range {address_range}"
+    )

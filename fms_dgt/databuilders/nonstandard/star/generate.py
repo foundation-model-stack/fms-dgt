@@ -1,12 +1,11 @@
 # Standard
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union
-import copy
+from typing import Any, Dict, Mapping, Optional, Tuple, Union
+import gc
 import os
-import time
 
 # Third Party
-from tqdm import tqdm, trange
+from tqdm import trange
 
 # Local
 from fms_dgt.base.databuilder import DataBuilder, DataBuilderConfig
@@ -71,7 +70,7 @@ class StarTransformDataBuilder(DataBuilder):
         # first round
         target_databuilder, curr_iter_dir = self._init_iteration_data_builder(0)
 
-        model_id_or_path = target_databuilder.llm1.model_id_or_path
+        model_id_or_path = getattr(target_databuilder, "llm1").model_id_or_path
         assert os.path.exists(model_id_or_path), f"Must use a local model!"
 
         for iteration in trange(self._max_iters, desc="Bootstrap Iteration"):
@@ -92,6 +91,7 @@ class StarTransformDataBuilder(DataBuilder):
 
             # delete databuilder
             del target_databuilder
+            gc.collect()
 
             # reload model with newly created
             if iteration != self._max_iters - 1:
@@ -135,7 +135,7 @@ class StarTransformDataBuilder(DataBuilder):
             raise ValueError(
                 f"Target databuilder must have an [llm1] block to be used with STaR algorithm"
             )
-        if not isinstance(target_databuilder.llm1, vLLMServerGenerator):
+        if not isinstance(getattr(target_databuilder, "llm1"), vLLMServerGenerator):
             raise ValueError(
                 f"llm1 must be an instance of vLLMServerGenerator to be used with STaR algorithm"
             )
@@ -144,9 +144,5 @@ class StarTransformDataBuilder(DataBuilder):
                 raise ValueError(
                     f"Datastore for task [{task.name}] must be of type DefaultDatastore"
                 )
-
-        # assign model to be used
-        if model_id_or_path is not None:
-            target_databuilder.llm1.init_model(model_id_or_path)
 
         return target_databuilder, curr_iter_dir
