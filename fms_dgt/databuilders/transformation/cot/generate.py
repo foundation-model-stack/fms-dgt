@@ -26,9 +26,6 @@ class CotTransformDataBuilder(TransformationDataBuilder):
 
     def __call__(self, input_data: List[CotSdgData]) -> Iterable[Dict]:
 
-        # TODO: remove this
-        input_data = input_data[:10]
-
         llm_inputs = []
         for qa_pair in tqdm(input_data, desc="Data Transformation"):
 

@@ -27,7 +27,7 @@ import psutil
 from fms_dgt.base.registry import register_block
 from fms_dgt.blocks.generators.llm import LMGenerator
 from fms_dgt.blocks.generators.openai import OpenaiCompletionsLM
-from fms_dgt.utils import sdg_logger
+from fms_dgt.utils import get_one_line_from_process, sdg_logger
 
 try:
     # Third Party
@@ -161,18 +161,7 @@ class vLLMServerGenerator(LMGenerator):
         lines = []
         while True:
             # grab lines from both sdtout and stderr
-            lines.append(
-                "\n".join(
-                    [
-                        proc.readline().decode("utf-8").strip()
-                        for proc in [
-                            self._vllm_process.stdout,
-                            self._vllm_process.stderr,
-                        ]
-                    ]
-                ).strip()
-            )
-
+            lines.append(get_one_line_from_process(self._vllm_process))
             # check for running process
             if any(
                 [

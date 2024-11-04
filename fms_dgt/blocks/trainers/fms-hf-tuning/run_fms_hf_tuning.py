@@ -1,18 +1,15 @@
 # Standard
-from typing import List, Type
+from typing import List
 import os
 import subprocess
 import time
-
-# Third Party
-import psutil
 
 # Local
 from fms_dgt.base.datastore import BaseDatastore
 from fms_dgt.base.registry import register_block
 from fms_dgt.blocks.trainers import BaseTrainerBlock
 from fms_dgt.blocks.trainers.trainer import TrainingException, make_model_dir
-from fms_dgt.utils import sdg_logger
+from fms_dgt.utils import get_one_line_from_process, sdg_logger
 
 ###
 # Trainer itself
@@ -65,17 +62,26 @@ class FmsTuningBlock(BaseTrainerBlock):
             process = subprocess.Popen(
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
+
             while process.poll() is None:
-                _disp_proc(process)
+                # write output from stdout
+                while to_write := get_one_line_from_process(process):
+                    sdg_logger.info(to_write)
+                # sleep so we aren't doing this so frequently
                 time.sleep(1)
-            _disp_proc(process)
+
+            # write anything remaining from stdout
+            while to_write := get_one_line_from_process(process):
+                sdg_logger.info(to_write)
+
             if process.returncode != 0:
                 raise TrainingException(
                     f"Training failed for command:\n\t{' '.join(cmd)}"
                 )
             process.kill()
         except Exception as e:
-            _disp_proc(process)
+            while to_write := get_one_line_from_process(process):
+                sdg_logger.info(to_write)
             process.kill()
             raise e
 
@@ -96,13 +102,3 @@ class FmsTuningBlock(BaseTrainerBlock):
 
     def release_model(self):
         pass
-
-
-def _disp_proc(process: Type[psutil.Popen]):
-    return
-    stdout, stderr = process.communicate()
-    stdout, stderr = stdout.decode().strip(), stderr.decode().strip()
-    if stdout:
-        sdg_logger.info(stdout)
-    if stderr:
-        sdg_logger.error(stderr)
