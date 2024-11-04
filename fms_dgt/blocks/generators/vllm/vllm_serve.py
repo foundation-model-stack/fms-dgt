@@ -194,9 +194,6 @@ class vLLMServerGenerator(LMGenerator):
             child_proc.kill()
         base_proc.kill()
 
-    def close(self):
-        self.release_model()
-
 
 def _get_open_port(host: str, address_range: Tuple[int, int] = (8000, 8100)):
     for port in range(*address_range):
