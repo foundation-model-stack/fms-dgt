@@ -14,11 +14,13 @@ from fms_dgt.base.registry import get_block, get_block_class
 from fms_dgt.base.task import SdgData, SdgTask, TransformTask
 from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
 from fms_dgt.blocks.postprocessors import BasePostProcessingBlock
-from fms_dgt.constants import NAME_KEY, TYPE_KEY
+from fms_dgt.constants import NAME_KEY, TASK_NAME_KEY, TYPE_KEY
 from fms_dgt.utils import all_annotations, init_dataclass_from_dict, sdg_logger
 
 DEFAULT_MAX_STALLED_ATTEMPTS = 5
 DEFAULT_MAX_GEN_REQUESTS = 10
+
+_POST_PROC_BLOCK_GROUP_LBL = "postprocessors"
 
 
 @dataclass
@@ -33,11 +35,14 @@ class DataBuilderConfig(dict):
 
     name: Optional[str] = None
     blocks: Optional[dict] = None
+    block_groups: Optional[Dict[str, List]] = None
     metadata: Optional[dict] = None
 
     def __post_init__(self) -> None:
         if self.blocks is None:
             self.blocks = []
+        if self.block_groups is None:
+            self.block_groups = dict()
 
 
 class DataBuilder(ABC):
@@ -65,6 +70,7 @@ class DataBuilder(ABC):
         self._config = init_dataclass_from_dict(config, DataBuilderConfig)
 
         self._task_kwargs = task_kwargs
+        self._block_groups = self.config.block_groups
 
         self._max_gen_requests = (
             max_gen_requests if max_gen_requests is not None else float("inf")
@@ -139,19 +145,16 @@ class DataBuilder(ABC):
 
             block_class = get_block_class(obj_type)
 
-            # we type check when not using a pipeline
+            # we type check all blocks specified in the main databuilder definition
             type_annotations = all_annotations(type(self))
-            assert (
-                obj_name in type_annotations
-            ), f"Object {obj_name} is missing from definition of DataBuilder {self.__class__}"
+            if obj_name in type_annotations:
+                req_obj_type = type_annotations[obj_name]
 
-            req_obj_type = type_annotations[obj_name]
-
-            # double check types
-            assert issubclass(block_class, req_obj_type) or (
-                issubclass(block_class, CachingLM)
-                and issubclass(req_obj_type, LMGenerator)
-            ), f"Type of retrieved object {obj.__class__} for {obj_name} does not match type {req_obj_type} specified in DataBuilder {self.__class__}"
+                # double check types
+                assert issubclass(block_class, req_obj_type) or (
+                    issubclass(block_class, CachingLM)
+                    and issubclass(req_obj_type, LMGenerator)
+                ), f"Type of retrieved object {block_class} for {obj_name} does not match type {req_obj_type} specified in DataBuilder {self.__class__}"
 
             obj_kwargs = {
                 "build_id": self._build_id,
@@ -310,24 +313,40 @@ class DataBuilder(ABC):
         Args:
             completed_tasks (List[SdgTask]): tasks that have been completed and can undergo postprocessing
         """
+
         post_proc_blocks = [
-            b for b in self.blocks if isinstance(b, BasePostProcessingBlock)
+            b
+            for b in self.blocks
+            if b.name in self._block_groups.get(_POST_PROC_BLOCK_GROUP_LBL, dict())
         ]
         if post_proc_blocks:
             datastore_assgns = {
                 task.name: [task.datastore, task.make_postprocess_datastore()]
                 for task in completed_tasks
             }
-            for i, block in enumerate(post_proc_blocks, start=1):
-                block_inputs = [
-                    (
-                        task.name,
-                        *datastore_assgns[task.name],
-                    )
-                    for task in completed_tasks
-                ]
+            for block in post_proc_blocks:
                 # execute postprocessing
-                block(block_inputs)
+                if isinstance(block, BasePostProcessingBlock):
+                    block_inputs = [
+                        (
+                            task.name,
+                            *datastore_assgns[task.name],
+                        )
+                        for task in completed_tasks
+                    ]
+                    block(block_inputs)
+                else:
+                    block_inputs = [
+                        d
+                        for task in completed_tasks
+                        for d in datastore_assgns[task.name][0].load_data()
+                    ]
+                    block_outputs = block(block_inputs)
+                    for task in completed_tasks:
+                        datastore_assgns[task.name][1].save_data(
+                            [d for d in block_outputs if d[TASK_NAME_KEY] == task.name]
+                        )
+
                 # update datastores
                 datastore_assgns = {
                     task.name: [
@@ -336,6 +355,7 @@ class DataBuilder(ABC):
                     ]
                     for task in completed_tasks
                 }
+
             for task in completed_tasks:
                 task.set_postprocess_datastore(datastore_assgns[task.name][-1])
                 # load_intermediate_data loads from postprocess datastore

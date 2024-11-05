@@ -18,5 +18,10 @@ blocks:
     type: rouge_scorer
     filter: true
     threshold: 0.5
+    arg_fields:
+      - input
+block_groups:
+  postprocessors:
+    - val2
 metadata:
   version: 1.0
