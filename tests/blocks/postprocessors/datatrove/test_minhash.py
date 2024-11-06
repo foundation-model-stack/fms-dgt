@@ -7,7 +7,6 @@ import pandas as pd
 
 # Local
 from fms_dgt.blocks.postprocessors.datatrove.minhash_dedup import MinHashDatatrove
-from fms_dgt.datastores.default import DefaultDatastore
 
 
 def test_minhash():

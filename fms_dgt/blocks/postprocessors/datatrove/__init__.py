@@ -6,11 +6,11 @@ import os
 import pyarrow.parquet as pq
 
 # Local
-from fms_dgt.blocks.postprocessors import BaseDatastoreProcessingBlock
+from fms_dgt.blocks.postprocessors import BaseLargeScaleProcessingBlock
 from fms_dgt.constants import DATASET_TYPE
 
 
-class BaseDatatroveBlock(BaseDatastoreProcessingBlock):
+class BaseDatatroveBlock(BaseLargeScaleProcessingBlock):
     """Base Class for all Postprocessors"""
 
     def __init__(

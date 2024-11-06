@@ -14,11 +14,11 @@ from doc_quality_transform_python import DocQualityPythonTransformConfiguration
 
 # Local
 from fms_dgt.base.registry import register_block
-from fms_dgt.blocks.postprocessors import BaseDatastoreProcessingBlock
+from fms_dgt.blocks.postprocessors import BaseLargeScaleProcessingBlock
 
 
 @register_block("document_quality")
-class DocumentQualityPostprocessing(BaseDatastoreProcessingBlock):
+class DocumentQualityPostprocessing(BaseLargeScaleProcessingBlock):
     """Base Class for all Postprocessors"""
 
     def __init__(

@@ -14,8 +14,8 @@ from fms_dgt.base.block import BaseBlock
 from fms_dgt.constants import DATASET_TYPE, TASK_NAME_KEY
 
 
-class BaseDatastoreProcessingBlock(BaseBlock):
-    """Base Class for all blocks that are intended to operate over datastores (i.e., both input / output). The primary use for these is to
+class BaseLargeScaleProcessingBlock(BaseBlock):
+    """Base Class for all blocks that are intended to operate over files. The primary use for these is to
     more effecively interface with systems designed for high-volume data processing (e.g., DPK).
     """
 
@@ -27,7 +27,7 @@ class BaseDatastoreProcessingBlock(BaseBlock):
         restart: Optional[bool] = False,
         **kwargs: Any,
     ) -> None:
-        """Datastore processing block that accepts data, transforms it, and then reads the transformed data back to the databuilder
+        """Processing block that accepts data, transforms it, and then reads the transformed data back to the databuilder
 
         Kwargs:
             processing_dir str: The path to the folder that will be used for processing data. Defaults to None.
@@ -42,9 +42,7 @@ class BaseDatastoreProcessingBlock(BaseBlock):
         self._config_path = config_path
 
         if processing_dir is None:
-            raise ValueError(
-                "'processing_dir' is set to None for datastore processing block"
-            )
+            raise ValueError("'processing_dir' is set to None for processing block")
 
         if os.path.exists(processing_dir) and restart:
             shutil.rmtree(processing_dir)
