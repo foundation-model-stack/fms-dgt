@@ -23,7 +23,7 @@ DEFAULT_NUM_OUTPUTS = 2
 
 @dataclass
 class TaskRunnerConfig:
-    """Configuration for an SDG task, specifies what the qna.yaml files should look like
+    """Configuration for an SDG task runner, i.e., specifies parameters guiding how SDG is run
 
     Attributes:
         output_dir (Optional[str]): The directory where the generated outputs will be saved.
