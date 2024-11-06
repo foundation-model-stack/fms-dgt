@@ -12,7 +12,6 @@ DATASET_TYPE = Union[Iterable[DATASET_ROW_TYPE], pd.DataFrame, Dataset]
 # these are variable names that we try to reuse across the codebase
 TYPE_KEY = "type"
 NAME_KEY = "name"
-CONFIG_KEY = "config"
 
 RAY_CONFIG_KEY = "ray_config"
 

@@ -3,19 +3,8 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 # Local
-from fms_dgt.base.task import SdgData, SdgTask, SdgTaskConfig
+from fms_dgt.base.task import SdgData, SdgTask
 from fms_dgt.databuilders.generation.simple.task import InstructLabSdgData
-
-
-@dataclass
-class SqlSdgTaskConfig(SdgTaskConfig):
-    ddl_schema: str = ""
-    database_information: str = None
-    database_type: str = ""
-    ground_truth: str = None
-    query_logs: str = None
-    context: str = None
-    config_path: str = None
 
 
 @dataclass
@@ -41,20 +30,27 @@ class SqlSdgTask(SdgTask):
 
     INPUT_DATA_TYPE = SqlSdgData
     OUTPUT_DATA_TYPE = InstructLabSdgData
-    CONFIG_TYPE = SqlSdgTaskConfig
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(
+        self,
+        *args: Any,
+        ddl_schema: str = "",
+        database_information: str = None,
+        database_type: str = "",
+        ground_truth: str = None,
+        query_logs: str = None,
+        context: str = None,
+        config_path: str = None,
+        **kwargs: Any,
+    ):
         super().__init__(*args, **kwargs)
-        self._ddl_schema = self.config.ddl_schema
-        self._db_info = self.config.database_information
-        self._ground_truth = self.config.ground_truth
-        self._query_logs = self.config.query_logs
-        self._context = self.config.context
-        self._config_path = self.config.config_path
-
-    @property
-    def config(self) -> CONFIG_TYPE:
-        return self._config
+        self._ddl_schema = ddl_schema
+        self._db_info = database_information
+        self._database_type = database_type
+        self._ground_truth = ground_truth
+        self._query_logs = query_logs
+        self._context = context
+        self._config_path = config_path
 
     def instantiate_input_example(self, **kwargs: Any):
         return self.INPUT_DATA_TYPE(

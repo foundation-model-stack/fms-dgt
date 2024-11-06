@@ -11,7 +11,6 @@ import ray
 from fms_dgt.base.databuilder import DataBuilder
 from fms_dgt.base.registry import get_data_builder
 from fms_dgt.base.task_card import TaskRunCard
-from fms_dgt.constants import CONFIG_KEY
 from fms_dgt.index import DataBuilderIndex
 import fms_dgt.utils as utils
 
@@ -112,11 +111,9 @@ def generate_data(
         sdg_logger.debug("Builder config for %s: %s", builder_name, builder_cfg)
 
         all_builder_kwargs = {
-            CONFIG_KEY: builder_cfg,
+            "config": builder_cfg,
             "task_kwargs": [
                 {
-                    # config is required
-                    CONFIG_KEY: task_init,
                     # get task card
                     "task_card": TaskRunCard(
                         task_name=task_init.get("task_name"),
@@ -128,7 +125,8 @@ def generate_data(
                         build_id=build_id,
                     ),
                     # other params
-                    **task_kwargs,
+                    "runner_config": task_kwargs,
+                    **task_init,
                 }
                 for task_init in task_inits
                 if task_init["data_builder"] == builder_name
