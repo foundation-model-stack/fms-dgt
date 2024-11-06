@@ -81,7 +81,9 @@ class SdgTask:
     """This class is intended to hold general task information"""
 
     INPUT_DATA_TYPE = SdgData
-    OUTPUT_DATA_TYPE = INPUT_DATA_TYPE  # default output data type is same as input
+    OUTPUT_DATA_TYPE = (
+        INPUT_DATA_TYPE  # default output data type is the main type of the task
+    )
 
     def __init__(
         self,
