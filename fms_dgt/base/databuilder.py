@@ -57,7 +57,7 @@ class DataBuilder(ABC):
 
     def __init__(
         self,
-        config: Union[Mapping, DataBuilderConfig],
+        config: Union[Mapping, DataBuilderConfig] = None,
         max_gen_requests: int = DEFAULT_MAX_GEN_REQUESTS,
         max_stalled_requests: int = DEFAULT_MAX_STALLED_ATTEMPTS,
         task_kwargs: Dict = None,
