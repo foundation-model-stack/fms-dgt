@@ -20,8 +20,6 @@ from fms_dgt.utils import all_annotations, init_dataclass_from_dict, sdg_logger
 DEFAULT_MAX_STALLED_ATTEMPTS = 5
 DEFAULT_MAX_GEN_REQUESTS = 10
 
-_POST_PROC_BLOCK_GROUP_LBL = "postprocessors"
-
 
 @dataclass
 class DataBuilderConfig(dict):
@@ -30,19 +28,20 @@ class DataBuilderConfig(dict):
     Attributes:
         name (Optional[str]): The name of the data builder.
         blocks (Optional[List[Dict]]): A list of block configurations.
-        metadata (Optional[Dict[str, Any]]): Metadata for the data builder. Allows for users to pass arbitrary info to data builders
+        postprocessors (Optional[List[str]]): A list of names of the blocks that should be used during postprocessing.
+        metadata (Optional[Dict[str, Any]]): Metadata for the data builder. Allows for users to pass arbitrary info to data builders.
     """
 
     name: Optional[str] = None
     blocks: Optional[dict] = None
-    block_groups: Optional[Dict[str, List]] = None
+    postprocessors: Optional[List[str]] = None
     metadata: Optional[dict] = None
 
     def __post_init__(self) -> None:
         if self.blocks is None:
             self.blocks = []
-        if self.block_groups is None:
-            self.block_groups = dict()
+        if self.postprocessors is None:
+            self.postprocessors = []
 
 
 class DataBuilder(ABC):
@@ -70,7 +69,7 @@ class DataBuilder(ABC):
         self._config = init_dataclass_from_dict(config, DataBuilderConfig)
 
         self._task_kwargs = task_kwargs
-        self._block_groups = self.config.block_groups
+        self._postprocessors = self.config.postprocessors
 
         self._max_gen_requests = (
             max_gen_requests if max_gen_requests is not None else float("inf")
@@ -314,11 +313,7 @@ class DataBuilder(ABC):
             completed_tasks (List[SdgTask]): tasks that have been completed and can undergo postprocessing
         """
 
-        post_proc_blocks = [
-            b
-            for b in self.blocks
-            if b.name in self._block_groups.get(_POST_PROC_BLOCK_GROUP_LBL, dict())
-        ]
+        post_proc_blocks = [b for b in self.blocks if b.name in self._postprocessors]
         if post_proc_blocks:
             datastore_assgns = {
                 task.name: [task.datastore, task.make_postprocess_datastore()]
