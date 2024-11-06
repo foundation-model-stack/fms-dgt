@@ -13,7 +13,7 @@ from fms_dgt.base.block import BaseBlock, get_row_name
 from fms_dgt.base.registry import get_block, get_block_class
 from fms_dgt.base.task import SdgData, SdgTask, TransformTask
 from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
-from fms_dgt.blocks.postprocessors import BasePostProcessingBlock
+from fms_dgt.blocks.postprocessors import BaseDatastoreProcessingBlock
 from fms_dgt.constants import NAME_KEY, TASK_NAME_KEY, TYPE_KEY
 from fms_dgt.utils import all_annotations, init_dataclass_from_dict, sdg_logger
 
@@ -321,7 +321,7 @@ class DataBuilder(ABC):
             }
             for block in post_proc_blocks:
                 # execute postprocessing
-                if isinstance(block, BasePostProcessingBlock):
+                if isinstance(block, BaseDatastoreProcessingBlock):
                     block_inputs = [
                         (
                             task.name,

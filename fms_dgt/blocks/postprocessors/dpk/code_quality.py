@@ -9,11 +9,11 @@ from data_processing.utils import ParamsUtils
 
 # Local
 from fms_dgt.base.registry import register_block
-from fms_dgt.blocks.postprocessors import BasePostProcessingBlock
+from fms_dgt.blocks.postprocessors import BaseDatastoreProcessingBlock
 
 
 @register_block("code_quality")
-class CodeQualityPostprocessing(BasePostProcessingBlock):
+class CodeQualityPostprocessing(BaseDatastoreProcessingBlock):
     """Base Class for all Postprocessors"""
 
     def __init__(

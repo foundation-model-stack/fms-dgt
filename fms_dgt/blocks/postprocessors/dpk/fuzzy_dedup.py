@@ -11,11 +11,11 @@ from fdedup_transform_ray import FdedupRayTransformConfiguration
 
 # Local
 from fms_dgt.base.registry import register_block
-from fms_dgt.blocks.postprocessors import BasePostProcessingBlock
+from fms_dgt.blocks.postprocessors import BaseDatastoreProcessingBlock
 
 
 @register_block("fuzzy_dedup")
-class FuzzyDedupPostprocessing(BasePostProcessingBlock):
+class FuzzyDedupPostprocessing(BaseDatastoreProcessingBlock):
     """Base Class for all Postprocessors"""
 
     def __init__(
