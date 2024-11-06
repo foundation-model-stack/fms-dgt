@@ -93,10 +93,11 @@ class ApiDataBuilder(DataBuilder):
         # return
         post_process_duration = time.time() - post_process_start
         sdg_logger.info(
-            "Request %s took %.2fs, post-processing took %.2fs, discarded %s instances due to violated constraints, discarded %s instances due to rouge similarity",
+            "Request %s took %.2fs, validation took %.2fs, kept %s instances, discarded %s instances due to violated constraints, discarded %s instances due to rouge similarity",
             request_idx,
             request_duration,
             post_process_duration,
+            len(outputs),
             wf_discarded,
             rouge_discarded,
         )

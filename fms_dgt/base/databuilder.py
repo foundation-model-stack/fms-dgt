@@ -2,6 +2,8 @@
 from abc import ABC
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Union
+import dataclasses
+import itertools
 import json
 import time
 
@@ -14,7 +16,7 @@ from fms_dgt.base.registry import get_block, get_block_class
 from fms_dgt.base.task import SdgData, SdgTask, TransformTask
 from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
 from fms_dgt.blocks.postprocessors import BaseDatastoreProcessingBlock
-from fms_dgt.constants import NAME_KEY, TASK_NAME_KEY, TYPE_KEY
+from fms_dgt.constants import DATASET_TYPE, NAME_KEY, TASK_NAME_KEY, TYPE_KEY
 from fms_dgt.utils import all_annotations, init_dataclass_from_dict, sdg_logger
 
 DEFAULT_MAX_STALLED_ATTEMPTS = 5
@@ -315,46 +317,36 @@ class DataBuilder(ABC):
 
         post_proc_blocks = [b for b in self.blocks if b.name in self._postprocessors]
         if post_proc_blocks:
-            datastore_assgns = {
-                task.name: [task.datastore, task.make_postprocess_datastore()]
-                for task in completed_tasks
-            }
+            data = itertools.chain(
+                *[task.datastore.load_data() for task in completed_tasks]
+            )
             for block in post_proc_blocks:
                 # execute postprocessing
-                if isinstance(block, BaseDatastoreProcessingBlock):
-                    block_inputs = [
-                        (
-                            task.name,
-                            *datastore_assgns[task.name],
-                        )
-                        for task in completed_tasks
-                    ]
-                    block(block_inputs)
-                else:
-                    block_inputs = [
-                        d
-                        for task in completed_tasks
-                        for d in datastore_assgns[task.name][0].load_data()
-                    ]
-                    block_outputs = block(block_inputs)
-                    for task in completed_tasks:
-                        datastore_assgns[task.name][1].save_data(
-                            [d for d in block_outputs if d[TASK_NAME_KEY] == task.name]
-                        )
+                data = block(data)
 
-                # update datastores
-                datastore_assgns = {
-                    task.name: [
-                        datastore_assgns[task.name][-1],
-                        task.make_postprocess_datastore(),
-                    ]
-                    for task in completed_tasks
-                }
+            # write results
+            self._write_postprocessing(completed_tasks, data)
 
-            for task in completed_tasks:
-                task.set_postprocess_datastore(datastore_assgns[task.name][-1])
-                # load_intermediate_data loads from postprocess datastore
-                task.load_intermediate_data()
+    def _write_postprocessing(self, completed_tasks: List[SdgTask], data: DATASET_TYPE):
+        # write outputs to datastore
+        for task in completed_tasks:
+            task.set_new_postprocess_datastore()
+
+        # TODO: make this more efficient
+        tasks = {task.name: task for task in completed_tasks}
+        for d in data:
+            task_name = d[TASK_NAME_KEY]
+            # have to cast this to OUTPUT_TYPE
+            d = {
+                k: v
+                for k, v in d.items()
+                if k in tasks[task_name].OUTPUT_DATA_TYPE.get_field_names()
+            }
+            tasks[task_name].post_proc_datastore.save_data([d])
+
+        # load_intermediate_data loads from postprocess datastore
+        for task in completed_tasks:
+            task.load_intermediate_data()
 
 
 ###
