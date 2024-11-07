@@ -14,6 +14,7 @@ from fms_dgt.utils import init_dataclass_from_dict
 
 @dataclass
 class RayConfig:
+    """Class containing the information needed to initialize ray actors for a particular block"""
 
     num_workers: int = 1
     num_cpus_per_worker: int = 1
@@ -32,9 +33,17 @@ class RayBlock(BaseBlock):
         self,
         block_class: Type,
         ray_config: Dict,
-        *args,
+        *args: Any,
         **kwargs: Dict,
     ):
+        """RayBlock is a wrapper class that is initialized when the user provides a "ray_config" field to their block config. It operates by splitting
+            the input list across ray actors, getting the results from each actor, then joining those results and returning them to the user
+
+        Args:
+            block_class (Type): Block type that should be sent to ray actors
+            ray_config (Dict): Config used to init ray actors
+
+        """
         # allow BaseBlock functions to be used
         super().__init__(*args, **kwargs)
 
@@ -79,6 +88,7 @@ class RayBlock(BaseBlock):
         return self._workers
 
     def close(self):
+        """Closes each actor then kills the actor at the ray-level"""
         # first workers
         for worker in self._workers:
             # must wait on each close call
@@ -87,9 +97,6 @@ class RayBlock(BaseBlock):
 
         # now base block
         super().close()
-
-    def generate(self, *args, **kwargs):  # for interfacing with IL
-        return self(*args, **kwargs)
 
     def execute(self, inputs: DATASET_TYPE, *args: Any, **kwargs: Any) -> DATASET_TYPE:
         """Distributes input list amongst workers according to ray config

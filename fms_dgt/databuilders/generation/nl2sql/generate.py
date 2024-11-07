@@ -1,6 +1,6 @@
 # Standard
 from dataclasses import asdict
-from typing import Any, Iterable, List, Set, Tuple
+from typing import Iterable, List, Set, Tuple
 
 # Local
 from fms_dgt.base.databuilder import DataBuilder
@@ -29,13 +29,6 @@ class Nl2SqlDataBuilder(DataBuilder):
     """Class for InstructLab Taxonomy"""
 
     TASK_TYPE: SdgTask = SqlSdgTask
-
-    def __init__(
-        self,
-        *args: Any,
-        **kwargs: Any,
-    ):
-        super().__init__(*args, **kwargs)
 
     # llm1 is a code generator for the synthetic examples
     llm1: LMGenerator
