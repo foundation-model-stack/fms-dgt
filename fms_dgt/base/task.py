@@ -154,7 +154,7 @@ class SdgTask:
 
         # dataloader params
         self._dataloader_cfg = (
-            self._dataloader if self._dataloader is not None else {TYPE_KEY: "default"}
+            dataloader if dataloader is not None else {TYPE_KEY: "default"}
         )
 
         # datastore params
