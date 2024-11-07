@@ -165,19 +165,11 @@ class SdgTask:
         }
         self._datastore_cfg = {
             **base_store_cfg,
-            **(
-                self._datastore
-                if self._datastore is not None
-                else {TYPE_KEY: "default"}
-            ),
+            **(datastore if datastore is not None else {TYPE_KEY: "default"}),
         }
         self._seed_datastore_cfg = {
             **base_store_cfg,
-            **(
-                self._seed_datastore
-                if self._seed_datastore is not None
-                else {TYPE_KEY: "default"}
-            ),
+            **(seed_datastore if seed_datastore is not None else {TYPE_KEY: "default"}),
         }
         self._task_card_datastore_cfg = {**base_store_cfg, **self._datastore_cfg}
 
