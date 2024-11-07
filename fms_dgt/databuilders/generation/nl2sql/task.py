@@ -33,6 +33,7 @@ class SqlSdgTask(SdgTask):
 
     def __init__(
         self,
+        *args: Any,
         ddl_schema: str = "",
         database_information: str = None,
         database_type: str = "",
@@ -42,9 +43,10 @@ class SqlSdgTask(SdgTask):
         config_path: str = None,
         **kwargs: Any,
     ):
-        super().__init__(**kwargs)
+        super().__init__(*args, **kwargs)
         self._ddl_schema = ddl_schema
         self._db_info = database_information
+        self._database_type = database_type
         self._ground_truth = ground_truth
         self._query_logs = query_logs
         self._context = context

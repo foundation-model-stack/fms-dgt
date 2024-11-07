@@ -17,8 +17,8 @@ class PipelineTransformation(TransformationDataBuilder):
     TASK_TYPE = PipelineTransformTask
 
     def _init_blocks(self):
-        self._blocks = []
         self._pipeline = BlockSequence(self.config.blocks)
+        self._blocks = self._pipeline.blocks
 
     def call_with_task_list(self, tasks: List[PipelineTransformTask]) -> Iterable[Dict]:
         for task in tasks:

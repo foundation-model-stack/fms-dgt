@@ -24,6 +24,7 @@ def generate_data(
     config_path: Optional[str] = None,
     include_builder_paths: Optional[List[str]] = None,
     build_id: Optional[str] = None,
+    ray_address: Optional[str] = None,
 ):
     """Generate data for a set of tasks using their respective data builders
 
@@ -34,6 +35,7 @@ def generate_data(
         config_path (Optional[str], optional): A path to a configuration file.
         include_builder_paths (Optional[List[str]], optional): A list of paths to search for data builders.
         build_id (Optional[str], optional): An ID to associate with all of the tasks executed in this run.
+        ray_address (Optional[str], optional): An address to connect ray.init to.
     """
     data_paths = data_paths or []
     builder_overrides = None
@@ -98,7 +100,7 @@ def generate_data(
 
         # TODO: data
         """ray.init(address: str | None = None, *, num_cpus: int | None = None, num_gpus: int | None = None, resources: Dict[str, float] | None = None, labels: Dict[str, str] | None = None, object_store_memory: int | None = None, local_mode: bool = False, ignore_reinit_error: bool = False, include_dashboard: bool | None = None, dashboard_host: str = '127.0.0.1', dashboard_port: int | None = None, job_config: ray.job_config.JobConfig = None, configure_logging: bool = True, logging_level: int = 'info', logging_format: str | None = None, logging_config: LoggingConfig | None = None, log_to_driver: bool | None = None, namespace: str | None = None, runtime_env: Dict[str, Any] | RuntimeEnv | None = None, storage: str | None = None, **kwargs)"""
-        ray.init()
+        ray.init(address=ray_address)
 
         # we batch together tasks at the level of data builders
         builder_info = builder_index.builder_index[builder_name]
@@ -118,14 +120,15 @@ def generate_data(
                     "task_card": TaskRunCard(
                         task_name=task_init.get("task_name"),
                         databuilder_name=task_init.get("data_builder"),
-                        task_spec=json.dumps({**task_init, **task_kwargs}),
+                        task_spec=json.dumps([task_init, task_kwargs]),
                         databuilder_spec=json.dumps(
                             utils.load_nested_paths(builder_cfg, builder_dir)
                         ),
                         build_id=build_id,
                     ),
                     # other params
-                    **{**task_init, **task_kwargs},
+                    "runner_config": task_kwargs,
+                    **task_init,
                 }
                 for task_init in task_inits
                 if task_init["data_builder"] == builder_name

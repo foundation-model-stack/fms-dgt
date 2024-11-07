@@ -44,6 +44,12 @@ def add_base_args(parser: argparse.ArgumentParser):
         type=str,
         help="Build ID to identify SDG job",
     )
+    group.add_argument(
+        "--ray-address",
+        type=str,
+        default="local",
+        help="Address to pass to ray.init",
+    )
     return group
 
 

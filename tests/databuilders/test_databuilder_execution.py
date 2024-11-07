@@ -23,7 +23,7 @@ to_execute = [
     (
         "simple",
         f"--data-paths {os.path.join(_BASE_REPO_PATH, 'data/generation/logical_reasoning/causal/qna.yaml')} --num-outputs-to-generate 1 --output-dir {_OUTPUT_DIR}",
-        25,
+        50,
     ),
     #
     # api function calling
@@ -31,7 +31,7 @@ to_execute = [
     (
         "api",
         f"--data-paths {os.path.join(_BASE_REPO_PATH, 'data/generation/code/apis/glaive/detection/single_api/qna.yaml')} --num-outputs-to-generate 1 --output-dir {_OUTPUT_DIR}",
-        25,
+        50,
     ),
     #
     # nl2sql
@@ -39,7 +39,7 @@ to_execute = [
     (
         "nl2sql",
         f"--data-paths {os.path.join(_BASE_REPO_PATH, 'data/generation/code/sql/nl2sql/orders/qna.yaml')} --num-outputs-to-generate 1 --output-dir {_OUTPUT_DIR}",
-        25,
+        50,
     ),
 ]
 
