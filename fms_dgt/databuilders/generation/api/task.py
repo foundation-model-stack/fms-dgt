@@ -51,6 +51,7 @@ class ApiSdgTask(SdgTask):
 
     def __init__(
         self,
+        *args: Any,
         task_instruction: str = None,
         api_specifications: Dict = None,
         exclude_api_groups: List[str] = None,
@@ -63,8 +64,7 @@ class ApiSdgTask(SdgTask):
         allow_subset: bool = False,
         **kwargs: Any,
     ):
-        super().__init__(**kwargs)
-
+        super().__init__(*args, **kwargs)
         self.all_api_specifications = {
             k: v
             for k, v in api_specifications.items()

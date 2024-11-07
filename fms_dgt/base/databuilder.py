@@ -20,6 +20,10 @@ from fms_dgt.utils import all_annotations, init_dataclass_from_dict, sdg_logger
 DEFAULT_MAX_STALLED_ATTEMPTS = 5
 DEFAULT_MAX_GEN_REQUESTS = 10
 
+###
+# Base config for databuilders
+###
+
 
 @dataclass
 class DataBuilderConfig(dict):
@@ -42,6 +46,11 @@ class DataBuilderConfig(dict):
             self.blocks = []
         if self.postprocessors is None:
             self.postprocessors = []
+
+
+###
+# Base databuilder class
+###
 
 
 class DataBuilder(ABC):
@@ -89,7 +98,7 @@ class DataBuilder(ABC):
         self._blocks: List[BaseBlock] = []
         self._init_blocks()
 
-        self.kwargs = kwargs
+        self._kwargs = kwargs
 
     @property
     def name(self) -> str:

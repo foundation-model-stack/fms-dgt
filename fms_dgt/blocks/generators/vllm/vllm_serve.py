@@ -121,6 +121,10 @@ class vLLMServerGenerator(LMGenerator):
         # }
         # self._model_args = {k: v for k, v in model_args.items() if v is not None}
 
+    @property
+    def base_url(self):
+        return self._base_url
+
     def generate_batch(self, *args, **kwargs) -> None:
         return self._vllm.generate_batch(*args, **kwargs)
 

@@ -270,11 +270,21 @@ class BaseBlock(ABC):
         for block in self._blocks:
             block.close()
 
-    def generate(self, *args, **kwargs):  # for interfacing with IL
+    def generate(self, *args, **kwargs) -> DATASET_TYPE:  # for interfacing with IL
+        """Method used to have compatibility with IL
+
+        Returns:
+            DATASET_TYPE: Resulting dataset output by __call__ function
+        """
         return self(*args, **kwargs)
 
     def __call__(self, *args, **kwargs) -> DATASET_TYPE:
-        """The generate function is the primary interface to a Block. Internally, it calls the `execute` method which contains the logic of the block."""
+        """The generate function is the primary interface to a Block. Internally, it calls the `execute` method which contains the logic of the block.
+            This function exists to have meta-processes (e.g., logging) that wrap around the core logic of a block
+
+        Returns:
+            DATASET_TYPE: Dataset resulting from processing contained in execute function
+        """
         return self.execute(*args, **kwargs)
 
     @abstractmethod
