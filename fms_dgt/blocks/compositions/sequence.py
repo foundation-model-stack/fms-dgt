@@ -75,10 +75,12 @@ class BlockSequence(BaseBlock):
 
         block_data = inputs
         for block, args_kwargs in zip(self.blocks, block_args_kwargs):
+
             sdg_logger.info("Running block %s", block.name)
 
             args = args_kwargs.get("args", [])
             kwargs = args_kwargs.get("kwargs", dict())
 
             block_data = block(block_data, *args, **kwargs)
+
         return block_data
