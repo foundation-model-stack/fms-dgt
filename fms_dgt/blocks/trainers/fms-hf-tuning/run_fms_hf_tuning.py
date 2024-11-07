@@ -45,7 +45,7 @@ class FmsTuningBlock(BaseTrainerBlock):
         cmd = [
             (
                 ["accelerate", "launch", f"--num_processes={self._num_gpus}"]
-                if self._num_gpus > 1 and False
+                if self._num_gpus > 1
                 else ["python"]
             ),
             [
