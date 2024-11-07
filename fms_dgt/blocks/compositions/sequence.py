@@ -76,9 +76,9 @@ class BlockSequence(BaseBlock):
         block_data = inputs
         for block, args_kwargs in zip(self.blocks, block_args_kwargs):
             sdg_logger.info("Running block %s", block.name)
-            # initial block call will pass custom arg_fields / kwarg_fields / result_field
-            args, kwargs = args_kwargs.get("args", []), args_kwargs.get(
-                "kwargs", dict()
-            )
+
+            args = args_kwargs.get("args", [])
+            kwargs = args_kwargs.get("kwargs", dict())
+
             block_data = block(block_data, *args, **kwargs)
         return block_data
