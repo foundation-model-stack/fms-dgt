@@ -5,7 +5,7 @@
 
 # Standard
 from dataclasses import asdict, dataclass
-from typing import Any, List
+from typing import Any, Dict, List
 import abc
 import json
 import os
@@ -31,7 +31,7 @@ class TrainerData:
 class BaseTrainerBlock(BaseBlock):
     def __init__(
         self,
-        config_path: str,
+        config_path: str = None,
         num_gpus: int = None,
         learning_rate: float = 0.0001,
         logging_steps: int = 100,
@@ -71,9 +71,12 @@ class BaseTrainerBlock(BaseBlock):
     def set_dataset(self, datastores: List[BaseDatastore], jsonl_path: str):
         os.makedirs(os.path.dirname(jsonl_path), exist_ok=True)
         with open(jsonl_path, "w") as f:
-            for datastore in datastores:
+            for datastore, data_formatter_template in datastores:
                 for d in datastore.load_data():
-                    f.write(json.dumps(d) + "\n")
+                    f_d = _apply_formatter_template(d, data_formatter_template)
+                    print(f_d)
+                    input()
+                    f.write(json.dumps(f_d) + "\n")
 
     def execute(self, *args: Any, **kwargs: Any) -> str:
         return self.train(*args, **kwargs)
@@ -114,3 +117,12 @@ class TrainingException(Exception):
 
 def make_model_dir(output_path: str):
     return os.path.join(output_path, "model")
+
+
+def _apply_formatter_template(d: Dict, data_formatter_template: Dict):
+    ret_dict = dict(data_formatter_template)
+    for rd_k, rd_v in ret_dict.items():
+        for d_k, d_v in d.items():
+            rd_v = rd_v.replace("{{" + d_k + "}}", str(d_v))
+        ret_dict[rd_k] = rd_v
+    return ret_dict

@@ -14,7 +14,8 @@ TYPE_KEY = "type"
 NAME_KEY = "name"
 DATABUILDER_KEY = "data_builder"
 TASK_NAME_KEY = "task_name"
-
+BLOCKS_KEY = "blocks"
+RUNNER_CONFIG_KEY = "runner_config"
 RAY_CONFIG_KEY = "ray_config"
 
 DGT_DIR = os.path.split(os.path.dirname(os.path.abspath(__file__)))[0]

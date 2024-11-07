@@ -43,8 +43,12 @@ class FmsTuningBlock(BaseTrainerBlock):
         self.set_dataset(datastores, data_path)
 
         cmd = [
+            (
+                ["accelerate", "launch", f"--num_processes={self._num_gpus}"]
+                if self._num_gpus > 1 and False
+                else ["python"]
+            ),
             [
-                ("accelerate launch" if self._num_gpus > 1 else "python"),
                 "-m",
                 "tuning.sft_trainer",
             ],
