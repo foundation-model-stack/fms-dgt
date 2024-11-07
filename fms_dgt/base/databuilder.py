@@ -20,6 +20,10 @@ from fms_dgt.utils import all_annotations, init_dataclass_from_dict, sdg_logger
 DEFAULT_MAX_STALLED_ATTEMPTS = 5
 DEFAULT_MAX_GEN_REQUESTS = 10
 
+###
+# Base config for databuilders
+###
+
 
 @dataclass
 class DataBuilderConfig(dict):
@@ -38,6 +42,11 @@ class DataBuilderConfig(dict):
     def __post_init__(self) -> None:
         if self.blocks is None:
             self.blocks = []
+
+
+###
+# Base databuilder class
+###
 
 
 class DataBuilder(ABC):

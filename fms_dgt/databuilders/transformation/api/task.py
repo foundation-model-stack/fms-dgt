@@ -31,15 +31,11 @@ class ApiTransformTask(TransformTask):
     def __init__(
         self,
         *args,
-        seed_api_group: str = None,
-        api_specifications: Dict = None,
+        seed_api_group: Optional[str] = None,
+        api_specifications: Optional[Dict] = None,
         **kwargs,
     ):
-        super().__init__(
-            *args,
-            **kwargs,
-        )
-
+        super().__init__(*args, **kwargs)
         self._seed_api_group = seed_api_group
         self._api_specifications = api_specifications
 
