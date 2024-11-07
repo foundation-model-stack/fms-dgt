@@ -74,8 +74,6 @@ class BaseTrainerBlock(BaseBlock):
             for datastore, data_formatter_template in datastores:
                 for d in datastore.load_data():
                     f_d = _apply_formatter_template(d, data_formatter_template)
-                    print(f_d)
-                    input()
                     f.write(json.dumps(f_d) + "\n")
 
     def execute(self, *args: Any, **kwargs: Any) -> str:
