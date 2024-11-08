@@ -25,6 +25,8 @@ class BlockSequence(BaseBlock):
         Args:
             blocks (List[Union[Dict, BaseBlock]]): List of blocks to initialize and use within the chain of blocks.
             block_order (List[str]): The order in which to call blocks.
+
+        Kwargs:
             block_params (List[Dict], optional): A list of entries of the form [{'args': [arg_val1, arg_val2, ...], 'kwargs': {'kwarg1' : kwarg_val1, 'kwarg2' : kwarg_val2, ...}}, ...].
                 This list will be zipped together with the blocks specified in [block_order]. If this list is specified, it must be the SAME length as [block_order].
         """
