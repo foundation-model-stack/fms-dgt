@@ -367,7 +367,7 @@ class DataBuilder(ABC):
                 for task_name, (_, ct) in tasks.items()
             ]
         )
-        sdg_logger.info(f"Postprocessing completed with {ct_string}]")
+        sdg_logger.info(f"Postprocessing completed with {ct_string}")
 
         # load_intermediate_data loads from postprocess datastore
         for task in completed_tasks:
