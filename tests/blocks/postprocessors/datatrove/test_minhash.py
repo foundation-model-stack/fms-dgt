@@ -7,16 +7,13 @@ import pandas as pd
 
 # Local
 from fms_dgt.blocks.postprocessors.datatrove.minhash_dedup import MinHashDatatrove
-from fms_dgt.datastores.default import DefaultDatastore
 
 
 def test_minhash():
 
-    tmp_cache = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tmp_cache")
     test_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "minhash_test")
-    for d in [tmp_cache, test_root]:
-        if os.path.exists(d):
-            shutil.rmtree(d)
+    if os.path.exists(test_root):
+        shutil.rmtree(test_root)
 
     test_data = {
         "output": [
@@ -36,14 +33,6 @@ def test_minhash():
     }
     inp_df = pd.DataFrame(data=test_data)
 
-    from_ds = DefaultDatastore(
-        output_dir=os.path.join(tmp_cache, "from"), store_name="input"
-    )
-    to_ds = DefaultDatastore(
-        output_dir=os.path.join(tmp_cache, "to"), store_name="output"
-    )
-    from_ds.save_data(inp_df)
-
     minhash = MinHashDatatrove(
         type="default",
         name="test_minhash_postprocessor",
@@ -51,13 +40,13 @@ def test_minhash():
         text_key="output",
         restart=True,
     )
-    minhash([("mock_task", from_ds, to_ds)])
 
-    df = pd.DataFrame(to_ds.load_data())
+    out_df = minhash(inp_df.to_dict(orient="records"))
+
+    df = pd.DataFrame(out_df)
 
     assert len(df) < len(set(test_data["output"]))
 
     # clean up test folders
-    for d in [tmp_cache, test_root]:
-        if os.path.exists(d):
-            shutil.rmtree(d)
+    if os.path.exists(test_root):
+        shutil.rmtree(test_root)

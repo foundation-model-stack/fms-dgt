@@ -1,6 +1,7 @@
 # Standard
 from abc import abstractmethod
-from typing import Any, List, Optional, Tuple
+from collections import defaultdict
+from typing import Any, Callable, List, Optional
 import os
 import shutil
 
@@ -10,11 +11,13 @@ import pyarrow.parquet as pq
 
 # Local
 from fms_dgt.base.block import BaseBlock
-from fms_dgt.base.datastore import BaseDatastore
+from fms_dgt.constants import DATASET_TYPE, TASK_NAME_KEY
 
 
-class BasePostProcessingBlock(BaseBlock):
-    """Base Class for all Postprocessors."""
+class BaseLargeScaleProcessingBlock(BaseBlock):
+    """Base Class for all blocks that are intended to operate over files. The primary use for these is to
+    more effecively interface with systems designed for high-volume data processing (e.g., DPK).
+    """
 
     def __init__(
         self,
@@ -24,7 +27,7 @@ class BasePostProcessingBlock(BaseBlock):
         restart: Optional[bool] = False,
         **kwargs: Any,
     ) -> None:
-        """Post-processing block that accepts data, transforms it, and then reads the transformed data back to the databuilder
+        """Processing block that accepts data, transforms it, and then reads the transformed data back to the databuilder
 
         Kwargs:
             processing_dir str: The path to the folder that will be used for processing data. Defaults to None.
@@ -39,21 +42,19 @@ class BasePostProcessingBlock(BaseBlock):
         self._config_path = config_path
 
         if processing_dir is None:
-            raise ValueError(
-                "'processing_dir' is set to None for post processing block"
-            )
+            raise ValueError("'processing_dir' is set to None for processing block")
 
         if os.path.exists(processing_dir) and restart:
             shutil.rmtree(processing_dir)
 
         self._input_dir = (
-            os.path.join(processing_dir, "post_proc_inputs")
+            os.path.join(processing_dir, "ds_proc_inputs")
             if data_path is None
             else data_path
         )
-        self._intermediate_dir = os.path.join(processing_dir, "post_proc_intermediate")
-        self._logging_dir = os.path.join(processing_dir, "post_proc_logging")
-        self._output_dir = os.path.join(processing_dir, "post_proc_outputs")
+        self._intermediate_dir = os.path.join(processing_dir, "ds_proc_intermediate")
+        self._logging_dir = os.path.join(processing_dir, "ds_proc_logging")
+        self._output_dir = os.path.join(processing_dir, "ds_proc_outputs")
 
     @property
     def input_dir(self):
@@ -77,88 +78,87 @@ class BasePostProcessingBlock(BaseBlock):
 
     def _set_data(
         self,
-        file_name: str,
-        from_datastore: BaseDatastore,
+        inputs: DATASET_TYPE,
+        file_map_fn: Callable,
         batch_size: Optional[int] = 10000,
     ) -> None:
-        """Initializes the data directories for post processing
+        """Initializes the data directories for processing
 
         Args:
-            file_name (str): filename to use for saving data
-            from_datastore (BaseDatastore): data to write to input directory
+            inputs (DATASET_TYPE): Data to process
+            file_map_fn (Callable): Mapping function that can be applied to input instance to determine what file to send it to
 
         Kwargs:
             batch_size (Optional[int]): batch size to read / write data
         """
 
-        def get_batches():
-            batch = []
-            for element in from_datastore.load_data():
-                batch.append(element)
-                if len(batch) >= batch_size:
-                    yield pa.RecordBatch.from_pylist(batch)
-                    batch = []
-            if batch:
-                yield pa.RecordBatch.from_pylist(batch)
+        def write_batch(batch: List):
+            batch_groups = defaultdict(list)
+            for d in batch:
+                batch_groups[file_map_fn(d)].append(d)
+            for file_name, batch_group in batch_groups.items():
+                records = pa.RecordBatch.from_pylist(batch_group)
+                with pq.ParquetWriter(
+                    os.path.join(self.input_dir, file_name + ".parquet"),
+                    schema=records.schema,
+                ) as writer:
+                    writer.write_batch(records)
 
         os.makedirs(self.input_dir, exist_ok=True)
 
-        try:
-            batches = get_batches()
-            batch = next(batches)
-        except StopIteration:
-            return
+        batch = []
+        for d in inputs:
+            batch.append(d)
+            if len(batch) > batch_size:
+                write_batch(batch)
+                batch.clear()
+        if batch:
+            write_batch(batch)
 
-        with pq.ParquetWriter(
-            os.path.join(self.input_dir, file_name + ".parquet"), schema=batch.schema
-        ) as writer:
-            writer.write_batch(batch)
-            for batch in batches:
-                writer.write_batch(batch)
-
-    def _save_data(
-        self,
-        file_name: str,
-        to_datastore: BaseDatastore,
-        batch_size: Optional[int] = 10000,
-    ) -> None:
-        """Saves data that after post processing has completed
-
-        Args:
-            file_name (str): filename used for original data
-            to_datastore (BaseDatastore): datastore to write to data to
+    def _get_data(self, batch_size: Optional[int] = 10000) -> DATASET_TYPE:
+        """Gets data after processing has completed
 
         Kwargs:
             batch_size (Optional[int]): batch size to read / write data
+
+        Returns:
+            DATASET_TYPE: Resulting dataset
         """
-        file_name = file_name + ".parquet"
         for f in os.listdir(self.output_dir):
-            if f.endswith(file_name):
+            if f.endswith(".parquet"):
                 parquet_file = pq.ParquetFile(os.path.join(self.output_dir, f))
                 for batch in parquet_file.iter_batches(batch_size):
-                    to_datastore.save_data(batch.to_pylist())
+                    for d in batch.to_pylist():
+                        yield d
 
     def execute(
         self,
-        datastores: List[Tuple[str, BaseDatastore, BaseDatastore]],
+        inputs: DATASET_TYPE,
         *args,
+        file_map_fn: Optional[Callable] = None,
         **kwargs,
-    ) -> None:
-        """Executes post processing on the data generated by a list of tasks
+    ) -> DATASET_TYPE:
+        """Calls internal postprocessing block with _process method after storing data to parquet files
 
         Args:
-            datastores (List[Tuple[str, BaseDatastore, BaseDatastore]]): A list containing tuples of the form <filename, from_datastore, to_datastore>,
-                where filename is the name of the file that will be saved by the post processor, from_datastore is the datastore to load data from
-                and to_datastore is the datastore to write data to
+            inputs (DATASET_TYPE): Dataset to process
+
+        Kwargs:
+            file_map_fn (Optional[Callable]): Mapping function that can be applied to input instance to determine what file to send it to
+
+        Returns:
+            DATASET_TYPE: Dataset after processing
         """
-        for filename, from_datastore, _ in datastores:
-            self._set_data(filename, from_datastore)
+
+        if file_map_fn is None:
+            file_map_fn = lambda x: x.get(TASK_NAME_KEY, "all_tasks")
+
+        self._set_data(inputs, file_map_fn)
 
         self._process(*args, **kwargs)
 
-        for filename, _, to_datastore in datastores:
-            self._save_data(filename, to_datastore)
+        return self._get_data()
 
     @abstractmethod
     def _process(self, *args, **kwargs) -> None:
-        """Method that executes the post processing"""
+        """Method that executes the processing"""

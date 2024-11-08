@@ -2,6 +2,7 @@
 from abc import ABC
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Union
+import itertools
 import json
 import time
 
@@ -13,8 +14,7 @@ from fms_dgt.base.block import BaseBlock, get_row_name
 from fms_dgt.base.registry import get_block, get_block_class
 from fms_dgt.base.task import SdgData, SdgTask, TransformTask
 from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
-from fms_dgt.blocks.postprocessors import BasePostProcessingBlock
-from fms_dgt.constants import NAME_KEY, TYPE_KEY
+from fms_dgt.constants import DATASET_TYPE, NAME_KEY, TASK_NAME_KEY, TYPE_KEY
 from fms_dgt.utils import all_annotations, init_dataclass_from_dict, sdg_logger
 
 DEFAULT_MAX_STALLED_ATTEMPTS = 5
@@ -32,16 +32,20 @@ class DataBuilderConfig(dict):
     Attributes:
         name (Optional[str]): The name of the data builder.
         blocks (Optional[List[Dict]]): A list of block configurations.
-        metadata (Optional[Dict[str, Any]]): Metadata for the data builder. Allows for users to pass arbitrary info to data builders
+        postprocessors (Optional[List[str]]): A list of names of the blocks that should be used during postprocessing.
+        metadata (Optional[Dict[str, Any]]): Metadata for the data builder. Allows for users to pass arbitrary info to data builders.
     """
 
     name: Optional[str] = None
     blocks: Optional[dict] = None
+    postprocessors: Optional[List[str]] = None
     metadata: Optional[dict] = None
 
     def __post_init__(self) -> None:
         if self.blocks is None:
             self.blocks = []
+        if self.postprocessors is None:
+            self.postprocessors = []
 
 
 ###
@@ -74,6 +78,7 @@ class DataBuilder(ABC):
         self._config = init_dataclass_from_dict(config, DataBuilderConfig)
 
         self._task_kwargs = task_kwargs
+        self._postprocessors = self.config.postprocessors
 
         self._max_gen_requests = (
             max_gen_requests if max_gen_requests is not None else float("inf")
@@ -157,19 +162,16 @@ class DataBuilder(ABC):
 
             block_class = get_block_class(obj_type)
 
-            # we type check when not using a pipeline
+            # we type check all blocks specified in the main databuilder definition
             type_annotations = all_annotations(type(self))
-            assert (
-                obj_name in type_annotations
-            ), f"Object {obj_name} is missing from definition of DataBuilder {self.__class__}"
+            if obj_name in type_annotations:
+                req_obj_type = type_annotations[obj_name]
 
-            req_obj_type = type_annotations[obj_name]
-
-            # double check types
-            assert issubclass(block_class, req_obj_type) or (
-                issubclass(block_class, CachingLM)
-                and issubclass(req_obj_type, LMGenerator)
-            ), f"Type of retrieved object {block_class} for {obj_name} does not match type {req_obj_type} specified in DataBuilder {self.__class__}"
+                # double check types
+                assert issubclass(block_class, req_obj_type) or (
+                    issubclass(block_class, CachingLM)
+                    and issubclass(req_obj_type, LMGenerator)
+                ), f"Type of retrieved object {block_class} for {obj_name} does not match type {req_obj_type} specified in DataBuilder {self.__class__}"
 
             obj_kwargs = {
                 "build_id": self._build_id,
@@ -328,36 +330,48 @@ class DataBuilder(ABC):
         Args:
             completed_tasks (List[SdgTask]): tasks that have been completed and can undergo postprocessing
         """
-        post_proc_blocks = [
-            b for b in self.blocks if isinstance(b, BasePostProcessingBlock)
-        ]
+
+        post_proc_blocks = [b for b in self.blocks if b.name in self._postprocessors]
         if post_proc_blocks:
-            datastore_assgns = {
-                task.name: [task.datastore, task.make_postprocess_datastore()]
-                for task in completed_tasks
-            }
-            for i, block in enumerate(post_proc_blocks, start=1):
-                block_inputs = [
-                    (
-                        task.name,
-                        *datastore_assgns[task.name],
-                    )
-                    for task in completed_tasks
-                ]
+            data = itertools.chain(
+                *[task.datastore.load_data() for task in completed_tasks]
+            )
+            for block in post_proc_blocks:
                 # execute postprocessing
-                block(block_inputs)
-                # update datastores
-                datastore_assgns = {
-                    task.name: [
-                        datastore_assgns[task.name][-1],
-                        task.make_postprocess_datastore(),
-                    ]
-                    for task in completed_tasks
-                }
-            for task in completed_tasks:
-                task.set_postprocess_datastore(datastore_assgns[task.name][-1])
-                # load_intermediate_data loads from postprocess datastore
-                task.load_intermediate_data()
+                data = block(data)
+
+            # write results
+            self._write_postprocessing(completed_tasks, data)
+
+    def _write_postprocessing(self, completed_tasks: List[SdgTask], data: DATASET_TYPE):
+        # write outputs to datastore
+        for task in completed_tasks:
+            task.set_new_postprocess_datastore()
+
+        # TODO: make this more efficient
+        tasks = {task.name: [task, 0] for task in completed_tasks}
+        for d in data:
+            task_name = d[TASK_NAME_KEY]
+            # have to cast this to OUTPUT_TYPE
+            d = {
+                k: v
+                for k, v in d.items()
+                if k in tasks[task_name][0].OUTPUT_DATA_TYPE.get_field_names()
+            }
+            tasks[task_name][0].post_proc_datastore.save_data([d])
+            tasks[task_name][1] += 1
+
+        ct_string = ", ".join(
+            [
+                f"{ct} instances remaining for task {task_name}"
+                for task_name, (_, ct) in tasks.items()
+            ]
+        )
+        sdg_logger.info(f"Postprocessing completed with {ct_string}")
+
+        # load_intermediate_data loads from postprocess datastore
+        for task in completed_tasks:
+            task.load_intermediate_data()
 
 
 ###

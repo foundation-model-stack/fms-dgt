@@ -1,6 +1,7 @@
 # Standard
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Mapping, Optional, TypeVar, Union
+import dataclasses
 import os
 import random
 
@@ -71,6 +72,10 @@ class SdgData:
         """
         return asdict(self)
 
+    @classmethod
+    def get_field_names(cls):
+        return [field.name for field in dataclasses.fields(cls)]
+
 
 ###
 # Main task class
@@ -96,6 +101,7 @@ class SdgTask:
         seed_datastore: Optional[Dict] = None,
         dataloader: Optional[Dict] = None,
         seed_examples: Optional[List[Any]] = None,
+        store_name: Optional[str] = None,
         **kwargs: Any,
     ):
         """Initializes task object.
@@ -113,6 +119,7 @@ class SdgTask:
             seed_datastore (Optional[Dict]): A dictionary containing the configuration for the seed datastore.
             dataloader (Optional[Dict]): A dictionary containing the configuration for the dataloader.
             seed_examples (Optional[List[Any]]): A list of seed examples.
+            store_name (Optional[str]): A base name to use for the datastores. Will be set to [task_name] if None
 
         """
         if self.OUTPUT_DATA_TYPE is None:
@@ -128,7 +135,7 @@ class SdgTask:
         self._dataloader = dataloader
         self._seed_examples = seed_examples
 
-        self._store_name = self._name
+        self._store_name = store_name or self._name
         self._kwargs = kwargs
         self._runner_config = init_dataclass_from_dict(runner_config, TaskRunnerConfig)
 
@@ -232,6 +239,15 @@ class SdgTask:
         return self._datastore
 
     @property
+    def post_proc_datastore(self) -> BaseDatastore:
+        """Returns the post-processing datastore of the class.
+
+        Returns:
+            BaseDatastore: Datastore
+        """
+        return self._post_proc_datastore
+
+    @property
     def final_datastore(self) -> BaseDatastore:
         """Returns the datastore of the class.
 
@@ -317,7 +333,7 @@ class SdgTask:
         )
 
         # set post-proc datastore
-        self._pp_datastore = self._datastore
+        self._post_proc_datastore = self._datastore
 
         # init final output datastore (should be same as input/output datastore)
         final_ds_kwargs = {
@@ -329,21 +345,12 @@ class SdgTask:
             self._datastore_cfg.get(TYPE_KEY), **final_ds_kwargs
         )
 
-    def set_postprocess_datastore(self, datastore: BaseDatastore):
+    def set_new_postprocess_datastore(self):
         """Sets default postprocess datastore (which is used to gather data for final_datastore)
 
         Args:
             datastore (BaseDatastore): Datastore to set
         """
-        self._pp_datastore = datastore
-
-    def make_postprocess_datastore(self) -> BaseDatastore:
-        """Creates a new postprocessing datastore
-
-        Returns:
-            BaseDatastore: Datastore to be used for holding outputs of postprocessing blocks
-        """
-        # init post processing datastore
         self._post_proc_id += 1
         pp_ds_kwargs = {
             "store_name": os.path.join(
@@ -354,7 +361,9 @@ class SdgTask:
             **self._datastore_cfg,
             "restart": True,
         }
-        return get_datastore(self._datastore_cfg.get(TYPE_KEY), **pp_ds_kwargs)
+        self._post_proc_datastore = get_datastore(
+            self._datastore_cfg.get(TYPE_KEY), **pp_ds_kwargs
+        )
 
     def instantiate_input_example(self, **kwargs: Any) -> INPUT_DATA_TYPE:
         """Instantiate an input example for this task. Designed to be overridden with custom initialization.
@@ -463,13 +472,13 @@ class SdgTask:
         self._datastore.save_data(to_save)
 
     def load_intermediate_data(self) -> List[SdgData]:
-        """Loads intermediate data produced during SDG (will be used to resume SDG). This function loads the data from _pp_datastore, which is either
+        """Loads intermediate data produced during SDG (will be used to resume SDG). This function loads the data from _post_proc_datastore, which is either
             the latest datastore defined during post processing or the original input/output datastore.
 
         Returns:
             List[SdgData]: List of SdgData that has been loaded
         """
-        loaded_data = self._pp_datastore.load_data()
+        loaded_data = self.post_proc_datastore.load_data()
         if loaded_data:
             self.machine_data = [
                 self.instantiate_output_example(**d) for d in loaded_data
@@ -478,7 +487,7 @@ class SdgTask:
     def save_final_data(self) -> None:
         """Saves final instruction-tuning data that can be used directly for training."""
         if self._save_formatted_output:
-            loaded_data = self._pp_datastore.load_data() or []
+            loaded_data = self.post_proc_datastore.load_data() or []
             to_add = [
                 self.instantiate_instruction(self.instantiate_output_example(**d))
                 for d in loaded_data

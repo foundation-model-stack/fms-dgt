@@ -230,13 +230,14 @@ class BaseBlock(ABC):
         """
         result_field = result_field or self.result_field
 
-        assert result_field is not None, "Result field cannot be None!"
+        # ignore if result field is not set
+        if result_field is not None:
 
-        if isinstance(inp, (dict, pd.DataFrame, Dataset)):
-            inp[result_field] = res
-            return
+            if isinstance(inp, (dict, pd.DataFrame, Dataset)):
+                inp[result_field] = res
+                return
 
-        raise TypeError(f"Unexpected input type: {type(inp)}")
+            raise TypeError(f"Unexpected input type: {type(inp)}")
 
     def get_result(
         self,

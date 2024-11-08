@@ -100,15 +100,18 @@ class OpenaiCompletionsLM(LMGenerator):
         if self.batch_size is None:
             self._batch_size = 10
 
-        
         # Set to EMPTY for local
         if self.base_url:
             # Read RITS Key from environment and change header to recognize RITS key
-            if self.block_type=='rits':
+            if self.block_type == "rits":
                 self._rits_resource: ApiKeyResource = get_resource(
                     "api", key_name="RITS_API_KEY", call_limit=call_limit
                 )
-                self.client = openai.OpenAI(api_key=api_key, base_url=self.base_url,default_headers={'RITS_API_KEY': self._rits_resource.key})
+                self.client = openai.OpenAI(
+                    api_key=api_key,
+                    base_url=self.base_url,
+                    default_headers={"RITS_API_KEY": self._rits_resource.key},
+                )
             else:
                 self.client = openai.OpenAI(api_key=api_key, base_url=self.base_url)
         else:
