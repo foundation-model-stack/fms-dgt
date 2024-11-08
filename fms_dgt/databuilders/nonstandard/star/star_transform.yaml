@@ -19,7 +19,7 @@ target:
       temperature: 0.5
       max_new_tokens: 128
       min_new_tokens: 1
-      model_id_or_path: /dccstor/gma/hf_models/mistralai/Mistral-7B-Instruct-v0.2
+      model_id_or_path: mistralai/Mistral-7B-Instruct-v0.2
     - name: val1
       type: always_true
 metadata:
