@@ -9,7 +9,7 @@ from fms_dgt.base.databuilder import DataBuilder
 from fms_dgt.base.registry import register_data_builder
 from fms_dgt.base.task import SdgTask, group_data_by_task
 from fms_dgt.blocks.generators.llm import LMGenerator
-from fms_dgt.blocks.validators.rouge import RougeDedupValidator
+from fms_dgt.blocks.validators import BaseValidatorBlock
 from fms_dgt.databuilders.generation.simple.task import (
     InstructLabSdgData,
     InstructLabSdgTask,
@@ -27,8 +27,8 @@ class SimpleInstructDataBuilder(DataBuilder):
     # llm1 is the main generator that will produce the synthetic examples
     llm1: LMGenerator
 
-    # val1 is the validator which checks rouge score
-    val1: RougeDedupValidator
+    # val1 is the validator, we leave this intentionally generic
+    val1: BaseValidatorBlock
 
     def __init__(
         self,
@@ -104,9 +104,8 @@ class SimpleInstructDataBuilder(DataBuilder):
             post_process_duration,
         )
 
-        # now we assess and filter with rouge
+        # now we assess and filter with val1
         assess_start = time.time()
-        all_instructions = [instr.instruction for instr in instruction_data]
 
         val_inputs: List[InstructLabSdgData] = []
         for instruction_data_entry in llm_data:
@@ -117,18 +116,8 @@ class SimpleInstructDataBuilder(DataBuilder):
             }
             val_inputs.append(inp)
 
-        # filter rouge data
-        outputs = [
-            output["data"]
-            for output in self.val1(
-                val_inputs,
-                context=all_instructions,
-                arg_fields=["to_check"],
-                result_field="output",
-            )
-        ]
-
-        # filter rouge failed data
+        # filter data
+        outputs = [output["data"] for output in self.val1(val_inputs)]
 
         discarded += len(llm_data) - len(outputs)
 

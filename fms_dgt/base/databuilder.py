@@ -349,16 +349,25 @@ class DataBuilder(ABC):
             task.set_new_postprocess_datastore()
 
         # TODO: make this more efficient
-        tasks = {task.name: task for task in completed_tasks}
+        tasks = {task.name: [task, 0] for task in completed_tasks}
         for d in data:
             task_name = d[TASK_NAME_KEY]
             # have to cast this to OUTPUT_TYPE
             d = {
                 k: v
                 for k, v in d.items()
-                if k in tasks[task_name].OUTPUT_DATA_TYPE.get_field_names()
+                if k in tasks[task_name][0].OUTPUT_DATA_TYPE.get_field_names()
             }
-            tasks[task_name].post_proc_datastore.save_data([d])
+            tasks[task_name][0].post_proc_datastore.save_data([d])
+            tasks[task_name][1] += 1
+
+        ct_string = ", ".join(
+            [
+                f"{ct} instances remaining for task {task_name}"
+                for task_name, (_, ct) in tasks.items()
+            ]
+        )
+        sdg_logger.info(f"Postprocessing completed with {ct_string}]")
 
         # load_intermediate_data loads from postprocess datastore
         for task in completed_tasks:
