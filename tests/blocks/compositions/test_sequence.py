@@ -5,17 +5,22 @@ from fms_dgt.blocks.compositions.sequence import BlockSequence
 
 def test_flatten():
     flatten_cfg1 = {
+        "name": "f1",
         "type": "flatten_field",
         "arg_fields": ["arg"],
         "result_field": "arg",
     }
     flatten_cfg2 = {
+        "name": "f2",
         "type": "flatten_field",
         "arg_fields": ["arg"],
         "result_field": "arg",
     }
     cfgs = [flatten_cfg1, flatten_cfg2]
-    block_sequence = BlockSequence(cfgs)
+    block_sequence = BlockSequence(
+        blocks=cfgs,
+        block_order=["f1", "f2"],
+    )
     data = [{"arg": [[1, 2, 3], [4, 5, 6]]}]
     outputs = block_sequence(data)
     for i in range(1, 7):
@@ -26,18 +31,21 @@ def test_flatten():
 
 def test_args_kwargs():
     flatten_cfg1 = {
+        "name": "f1",
         "type": "flatten_field",
         "arg_fields": ["arg"],
         "result_field": "arg",
     }
     flatten_cfg2 = {
+        "name": "f2",
         "type": "flatten_field",
         "arg_fields": ["arg"],
         "result_field": "arg",
     }
     block_sequence = BlockSequence(
-        [TestBlock(**flatten_cfg1), TestBlock(**flatten_cfg2)],
-        block_args_kwargs=[
+        blocks=[TestBlock(**flatten_cfg1), TestBlock(**flatten_cfg2)],
+        block_order=["f1", "f2"],
+        block_params=[
             {"args": [1], "kwargs": {"kwarg1": 2}},
             {"args": [3], "kwargs": {"kwarg1": 4}},
         ],
@@ -50,11 +58,11 @@ def test_args_kwargs():
         outputs == expected
     ), f"Incorrect output, expected {expected} but got {outputs}"
 
-    block_args_kwargs = [
+    block_params = [
         {"args": [5], "kwargs": {"kwarg1": 6}},
         {"args": [7], "kwargs": {"kwarg1": 8}},
     ]
-    outputs = block_sequence(data, block_args_kwargs)
+    outputs = block_sequence(data, block_params)
     expected = [{"arg": (7, 8)}]
     assert (
         outputs == expected
