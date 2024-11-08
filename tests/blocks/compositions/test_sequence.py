@@ -59,7 +59,7 @@ def test_args_kwargs():
     ), f"Incorrect output, expected {expected} but got {outputs}"
 
     block_params = [
-        {"args": [5], "kwargs": {"kwarg1": 6}},
+        {"args": [5]},
         {"args": [7], "kwargs": {"kwarg1": 8}},
     ]
     outputs = block_sequence(data, block_params)

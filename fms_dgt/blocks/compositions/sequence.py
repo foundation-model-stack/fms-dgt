@@ -84,7 +84,7 @@ class BlockSequence(BaseBlock):
                         f"All keys to dictionary in [block_params] must be either [args, kwargs], instead got [{k}] for dictionary [{d}]"
                     )
                 for v, t in [("args", list), ("kwargs", dict)]:
-                    if not isinstance(d[v], t):
+                    if d.get(v) and not isinstance(d.get(v), t):
                         raise ValueError(
                             f"Expected {v} to be {t}, instead got {type(d[v])}"
                         )
