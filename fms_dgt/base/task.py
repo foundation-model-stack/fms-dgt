@@ -101,6 +101,7 @@ class SdgTask:
         seed_datastore: Optional[Dict] = None,
         dataloader: Optional[Dict] = None,
         seed_examples: Optional[List[Any]] = None,
+        store_name: Optional[str] = None,
         **kwargs: Any,
     ):
         """Initializes task object.
@@ -118,6 +119,7 @@ class SdgTask:
             seed_datastore (Optional[Dict]): A dictionary containing the configuration for the seed datastore.
             dataloader (Optional[Dict]): A dictionary containing the configuration for the dataloader.
             seed_examples (Optional[List[Any]]): A list of seed examples.
+            store_name (Optional[str]): A base name to use for the datastores. Will be set to [task_name] if None
 
         """
         if self.OUTPUT_DATA_TYPE is None:
@@ -133,7 +135,7 @@ class SdgTask:
         self._dataloader = dataloader
         self._seed_examples = seed_examples
 
-        self._store_name = self._name
+        self._store_name = store_name or self._name
         self._kwargs = kwargs
         self._runner_config = init_dataclass_from_dict(runner_config, TaskRunnerConfig)
 
