@@ -122,6 +122,15 @@ class DataBuilder(ABC):
         """
         return self._blocks
 
+    @property
+    def tasks(self) -> List[SdgTask]:
+        """Returns the tasks associated with this class.
+
+        Returns:
+            List[SdgTask]: List of tasks to be used in this data builder
+        """
+        return self._tasks
+
     def _init_blocks(self):
         """This method does two things:
 
@@ -160,7 +169,7 @@ class DataBuilder(ABC):
             assert issubclass(block_class, req_obj_type) or (
                 issubclass(block_class, CachingLM)
                 and issubclass(req_obj_type, LMGenerator)
-            ), f"Type of retrieved object {obj.__class__} for {obj_name} does not match type {req_obj_type} specified in DataBuilder {self.__class__}"
+            ), f"Type of retrieved object {block_class} for {obj_name} does not match type {req_obj_type} specified in DataBuilder {self.__class__}"
 
             obj_kwargs = {
                 "build_id": self._build_id,

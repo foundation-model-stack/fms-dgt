@@ -11,6 +11,7 @@ import ray
 from fms_dgt.base.databuilder import DataBuilder
 from fms_dgt.base.registry import get_data_builder
 from fms_dgt.base.task_card import TaskRunCard
+from fms_dgt.constants import RUNNER_CONFIG_KEY
 from fms_dgt.index import DataBuilderIndex
 import fms_dgt.utils as utils
 
@@ -127,7 +128,7 @@ def generate_data(
                         build_id=build_id,
                     ),
                     # other params
-                    "runner_config": task_kwargs,
+                    RUNNER_CONFIG_KEY: task_kwargs,
                     **task_init,
                 }
                 for task_init in task_inits

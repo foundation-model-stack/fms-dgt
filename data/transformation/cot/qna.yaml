@@ -1,0 +1,15 @@
+task_name: cot_transform
+created_by: IBM
+data_builder: cot_transform
+seed_datastore:
+  type: default
+  data_path: ['gsm8k', 'main']
+task_description: To teach a language model to automatically generate chain-of-thought examples
+data_formatter_template:
+  input: "{{question}}"
+  output: "{{answer}}"
+prompt: "You are an intelligent tutoring assistant that helps students with math homework. Given a question (indicated by \"Question:\"), explain how to solve the question step-by-step to achieve the answer. When you are explaining the answer to the student, please preface your explanation with \"Let's think step-by-step.\" When you have finished your explanation, write down your answer with \"Answer: \"
+  Here are some examples:
+  
+  Question: {{input}}
+  Explanation: Let's think step-by-step. "
