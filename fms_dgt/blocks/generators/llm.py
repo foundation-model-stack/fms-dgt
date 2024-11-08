@@ -245,6 +245,9 @@ class LMGenerator(BaseBlock):
     def release_model(self):
         pass
 
+    def close(self):
+        self.release_model()
+
 
 ### SQLite-based caching of LM responses
 def hash_args(attr, request):

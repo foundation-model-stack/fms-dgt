@@ -1,7 +1,7 @@
 # Standard
 from collections import ChainMap
 from pathlib import Path
-from typing import Any, Dict, List, TypeVar, Union
+from typing import Any, Dict, List, Type, TypeVar, Union
 import copy
 import fnmatch
 import glob
@@ -12,6 +12,7 @@ import os
 
 # Third Party
 import pandas as pd
+import psutil
 import yaml
 
 log_level = getattr(logging, os.getenv("LOG_LEVEL", "info").upper())
@@ -204,6 +205,18 @@ def load_yaml_config(yaml_path=None, yaml_config=None, yaml_dir=None, mode="full
         return final_yaml_config
 
     return yaml_config
+
+
+def get_one_line_from_process(process: Type[psutil.Popen]):
+    return "\n".join(
+        [
+            proc.readline().decode("utf-8").strip()
+            for proc in [
+                process.stdout,
+                process.stderr,
+            ]
+        ]
+    ).strip()
 
 
 T = TypeVar("T")

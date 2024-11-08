@@ -4,11 +4,9 @@ import collections
 import os
 
 # Local
-from fms_dgt.constants import NAME_KEY
+from fms_dgt.constants import BLOCKS_KEY, NAME_KEY
 from fms_dgt.utils import sdg_logger
 import fms_dgt.utils as utils
-
-_BLOCKS_KEY = "blocks"
 
 
 class DataBuilderIndex:
@@ -65,25 +63,25 @@ class DataBuilderIndex:
         config_overrides: Optional[Dict] = None,
     ) -> Mapping:
         def override_builder_config(config: Dict, override: Dict):
-            if _BLOCKS_KEY not in config:
-                config[_BLOCKS_KEY] = []
+            if BLOCKS_KEY not in config:
+                config[BLOCKS_KEY] = []
             for k in config:
-                if k == _BLOCKS_KEY and _BLOCKS_KEY in override:
+                if k == BLOCKS_KEY and BLOCKS_KEY in override:
                     addlt_blocks = []
-                    for block in override[_BLOCKS_KEY]:
+                    for block in override[BLOCKS_KEY]:
                         config_block = [
                             i
-                            for i, cb in enumerate(config[_BLOCKS_KEY])
+                            for i, cb in enumerate(config[BLOCKS_KEY])
                             if cb[NAME_KEY] == block[NAME_KEY]
                         ]
                         if config_block:
                             i = config_block[0]
-                            config[_BLOCKS_KEY][i] = utils.merge_dictionaries(
-                                config[_BLOCKS_KEY][i], block
+                            config[BLOCKS_KEY][i] = utils.merge_dictionaries(
+                                config[BLOCKS_KEY][i], block
                             )
                         else:
                             addlt_blocks.append(block)
-                    config[_BLOCKS_KEY].extend(addlt_blocks)
+                    config[BLOCKS_KEY].extend(addlt_blocks)
                 else:
                     config[k] = utils.merge_dictionaries(
                         config[k], override.get(k, dict())

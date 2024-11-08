@@ -127,6 +127,15 @@ class DataBuilder(ABC):
         """
         return self._blocks
 
+    @property
+    def tasks(self) -> List[SdgTask]:
+        """Returns the tasks associated with this class.
+
+        Returns:
+            List[SdgTask]: List of tasks to be used in this data builder
+        """
+        return self._tasks
+
     def _init_blocks(self):
         """This method does two things:
 

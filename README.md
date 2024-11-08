@@ -61,6 +61,22 @@ OPENAI_API_KEY=<openai api key goes here>
 pip install -e ".[openai]"
 ```
 
+#### RITS 
+
+When using the RITS platform, you need to:
+
+1. Add configuration to `env` file as follows:
+
+```yaml
+RITS_API_KEY=<RITS api key goes here>
+```
+
+2. Install OpenAI dependencies as follows:
+
+```command
+pip install -e ".[openai]"
+```
+
 #### vLLM
 
 When using the vLLM batched inference, you need to:
