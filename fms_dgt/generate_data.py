@@ -126,6 +126,7 @@ def generate_data(
                             utils.load_nested_paths(builder_cfg, builder_dir)
                         ),
                         build_id=build_id,
+                        save_formatted_output=task_kwargs.get("save_formatted_output"),
                     ),
                     # other params
                     RUNNER_CONFIG_KEY: task_kwargs,

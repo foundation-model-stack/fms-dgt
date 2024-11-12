@@ -295,7 +295,7 @@ class CachingLM:
 
         if not callable(lm_attr):
             return lm_attr
-        elif attr in ["init_model", "release_model"]:
+        elif attr in ["init_model", "release_model", "close"]:
             return lm_attr
 
         def fn(requests: List[Instance]):
