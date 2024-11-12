@@ -5,7 +5,7 @@
 
 # Standard
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 import abc
 import json
 import os
@@ -16,6 +16,7 @@ import torch
 # Local
 from fms_dgt.base.block import BaseBlock
 from fms_dgt.base.datastore import BaseDatastore
+from fms_dgt.constants import DATASET_TYPE
 from fms_dgt.utils import sdg_logger
 
 
@@ -68,11 +69,13 @@ class BaseTrainerBlock(BaseBlock):
 
         self._kwargs = kwargs
 
-    def set_dataset(self, datastores: List[BaseDatastore], jsonl_path: str):
+    def set_dataset(
+        self, data_to_format: List[Tuple[DATASET_TYPE, Dict]], jsonl_path: str
+    ):
         os.makedirs(os.path.dirname(jsonl_path), exist_ok=True)
         with open(jsonl_path, "w") as f:
-            for datastore, data_formatter_template in datastores:
-                for d in datastore.load_data():
+            for data, data_formatter_template in data_to_format:
+                for d in data:
                     f_d = _apply_formatter_template(d, data_formatter_template)
                     f.write(json.dumps(f_d) + "\n")
 
@@ -84,7 +87,7 @@ class BaseTrainerBlock(BaseBlock):
         self,
         model_id_or_path: str,
         output_dir: str,
-        datastores: List[BaseDatastore],
+        data_to_format: List[Tuple[DATASET_TYPE, Dict]],
         *args,
         **kwargs,
     ) -> str:
@@ -93,7 +96,7 @@ class BaseTrainerBlock(BaseBlock):
         Args:
             model_id_or_path (str): Model to initialize from
             output_dir (str): Directory to output model checkpoints
-            datastore (BaseDatastore): Datastore that contains all training data
+            data_to_format (List[Tuple[DATASET_TYPE, Dict]]): All training data from one or more tasks and the templates to format the data with
             config_path (Any): path to config used for trainer
             kwargs (Any): Additional keyword arguments to pass to the base class.
 

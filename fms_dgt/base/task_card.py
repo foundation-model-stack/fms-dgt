@@ -18,12 +18,15 @@ class TaskRunCard:
         str
     ] = None  # id of entity executing the task (defaults to something generic)
     run_id: Optional[str] = None  # unique ID for the experiment
+    save_formatted_output: Optional[bool] = None  # will save formatted output
 
     def __post_init__(self):
         if self.run_id is None:
             self.run_id = str(uuid.uuid4())
         if self.build_id is None:
             self.build_id = _DEFAULT_BUILD_ID
+        if self.save_formatted_output is None:
+            self.save_formatted_output = False
 
     def to_dict(self):
         return asdict(self)

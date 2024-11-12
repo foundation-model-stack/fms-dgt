@@ -1,14 +1,14 @@
 # Standard
-from typing import List
+from typing import Dict, List, Tuple
 import os
 import subprocess
 import time
 
 # Local
-from fms_dgt.base.datastore import BaseDatastore
 from fms_dgt.base.registry import register_block
 from fms_dgt.blocks.trainers import BaseTrainerBlock
 from fms_dgt.blocks.trainers.trainer import TrainingException, make_model_dir
+from fms_dgt.constants import DATASET_TYPE
 from fms_dgt.utils import get_one_line_from_process, sdg_logger
 
 ###
@@ -34,17 +34,17 @@ class FmsTuningBlock(BaseTrainerBlock):
         self,
         model_id_or_path: str,
         output_dir: str,
-        datastores: List[BaseDatastore],
+        data_to_format: List[Tuple[DATASET_TYPE, Dict]],
     ) -> str:
 
         model_dir = make_model_dir(output_dir)
 
         data_path = os.path.join(output_dir, "dataset", "data.jsonl")
-        self.set_dataset(datastores, data_path)
+        self.set_dataset(data_to_format, data_path)
 
         cmd = [
             (
-                ["accelerate", "launch", f"--num_processes={self._num_gpus}"]
+                ["accelerate", "launch", f"--multi_gpu"]
                 if self._num_gpus > 1
                 else ["python"]
             ),
@@ -54,7 +54,7 @@ class FmsTuningBlock(BaseTrainerBlock):
             ],
             ["--model_name_or_path", model_id_or_path],
             ["--training_data_path", data_path],
-            ["--output-dir", model_dir],
+            ["--output_dir", model_dir],
         ] + [[f"--{k}", v] for k, v in self._training_args.items()]
 
         cmd = [str(x) for entry in cmd for x in entry]
