@@ -168,7 +168,8 @@ class LMGenerator(BaseBlock):
         # simplify generation here
         instances: List[Instance] = []
         for inp in inputs:
-            inp_args, inp_kwargs = self.get_args_kwargs(inp, method, fields)
+            inp_kwargs = self.get_args_kwargs(inp, method, fields)
+            inp_args = [inp_kwargs.pop(_PROMPT_KEY)]
             instances.append(Instance(args=inp_args, kwargs=inp_kwargs, data=inp))
 
         if method == self.GENERATE:
@@ -209,8 +210,6 @@ class LMGenerator(BaseBlock):
         ], f"'method' value should be one of [{self.GENERATE}, {self.LOGLIKELIHOOD}], instead it was given as {method}"
         inp_kwargs = super().get_args_kwargs(inp, fields)
 
-        prompt = inp_kwargs.pop(_PROMPT_KEY)
-
         # double check that model specified in kwargs (if it is specified in kwargs) matches model defined for chat template
         if (
             method == self.GENERATE
@@ -220,6 +219,8 @@ class LMGenerator(BaseBlock):
                 == self.model_id_or_path
             )
         ):
+            prompt = inp_kwargs[_PROMPT_KEY]
+
             assert type(prompt) in [
                 list,
                 str,
@@ -231,8 +232,9 @@ class LMGenerator(BaseBlock):
             prompt = self._chat_template.apply_chat_template(
                 prompt, **self._auto_chat_template_params
             )
+            inp_kwargs[_PROMPT_KEY] = prompt
 
-        return [prompt], inp_kwargs
+        return inp_kwargs
 
     def init_model(self, *args: Any, **kwargs: Any):
         pass
@@ -371,7 +373,8 @@ class CachingLM:
         # simplify generation here
         instances: List[Instance] = []
         for inp in inputs:
-            inp_args, inp_kwargs = self.lm.get_args_kwargs(inp, method, fields)
+            inp_kwargs = self.lm.get_args_kwargs(inp, method, fields)
+            inp_args = [inp_kwargs.pop(_PROMPT_KEY)]
             instances.append(Instance(args=inp_args, kwargs=inp_kwargs, data=inp))
 
         if method == self.lm.GENERATE:

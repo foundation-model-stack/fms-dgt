@@ -213,7 +213,7 @@ class BaseBlock(ABC):
     def get_args_kwargs(
         self,
         inp: DATASET_ROW_TYPE,
-        fields: Optional[Optional[Union[List, Dict]]] = None,
+        fields: Optional[Union[List, Dict]] = None,
     ) -> Dict:
         """Extracts the arguments and keyword arguments from a given input.
 
@@ -336,7 +336,7 @@ class BaseBlock(ABC):
         self,
         inputs: DATASET_TYPE,
         *,
-        fields: Optional[Optional[Union[List, Dict]]] = None,
+        fields: Optional[Union[List, Dict]] = None,
         result_field: Optional[str] = None,
         **kwargs,
     ) -> DATASET_TYPE:

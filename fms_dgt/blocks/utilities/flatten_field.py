@@ -25,7 +25,7 @@ class FlattenField(BaseBlock):
         outputs = []
         for x in inputs:
             to_flatten = list(self.get_args_kwargs(x, fields).values())[0]
-            to_flatten = to_flatten[0] if type(to_flatten[0]) == list else to_flatten
+            to_flatten = to_flatten if type(to_flatten) == list else [to_flatten]
             for el in to_flatten:
                 outputs.append(copy.copy(x))
                 self.write_result(outputs[-1], el, result_field)
