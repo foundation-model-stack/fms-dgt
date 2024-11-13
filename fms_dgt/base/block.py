@@ -153,10 +153,10 @@ class BaseBlock(ABC):
 
     @property
     def fields(self) -> Union[List, Dict]:
-        """Returns a dictionary mapping of field names from input objects to internal objects
+        """Returns a dictionary or list that will be used to map field names from input objects to internal objects
 
         Returns:
-            List[str]: A dictionary of field names to extract and use internally
+            List[str]: A dictionary or list of fields to extract and use internally
         """
         return self._fields
 
