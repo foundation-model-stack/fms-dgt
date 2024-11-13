@@ -1,5 +1,5 @@
 # Standard
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 # Local
 from fms_dgt.base.registry import get_block, register_block
@@ -28,11 +28,9 @@ class LMJudgeValidator(BaseValidatorBlock):
         self,
         inputs: DATASET_TYPE,
         *,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
+        fields: Optional[Union[List, Dict]] = None,
         result_field: Optional[str] = None,
-        lm_arg_fields: Optional[List[str]] = None,
-        lm_kwarg_fields: Optional[List[str]] = None,
+        lm_fields: Optional[Union[List, Dict]] = None,
         lm_result_field: Optional[str] = None,
         **kwargs,
     ):
@@ -40,18 +38,15 @@ class LMJudgeValidator(BaseValidatorBlock):
         # simplify generation here
         llm_outputs = self._llm_generator(
             inputs,
-            arg_fields=lm_arg_fields,
-            kwarg_fields=lm_kwarg_fields,
+            fields=lm_fields,
             result_field=lm_result_field,
             **kwargs,
         )
 
         judge_outputs, to_save = [], []
         for llm_output in llm_outputs:
-            args, kwargs = self.get_args_kwargs(
-                llm_output, arg_fields=arg_fields, kwarg_fields=kwarg_fields
-            )
-            success_func = args[0]
+            kwargs = self.get_args_kwargs(llm_output, fields=fields)
+            success_func = list(kwargs.values())[0]
 
             lm_res = self._llm_generator.get_result(llm_output, lm_result_field)
             new_result = success_func(lm_res)
@@ -60,10 +55,8 @@ class LMJudgeValidator(BaseValidatorBlock):
                 judge_outputs.append(llm_output)
 
             if not new_result:
-                iter_args = arg_fields or self._arg_fields or []
                 to_save.append(
                     {
-                        **dict(zip(iter_args, args)),
                         **kwargs,
                         result_field: new_result,
                     }

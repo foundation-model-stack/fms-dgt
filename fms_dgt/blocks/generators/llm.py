@@ -27,6 +27,7 @@ from fms_dgt.base.instance import Instance
 from fms_dgt.utils import sdg_logger
 
 MODEL_ID_OR_PATH = "model_id_or_path"
+_PROMPT_KEY = "prompt"
 
 
 class LMGenerator(BaseBlock):
@@ -158,8 +159,7 @@ class LMGenerator(BaseBlock):
         self,
         inputs: DATASET_TYPE,
         *,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
+        fields: Optional[Optional[Union[List, Dict]]] = None,
         result_field: Optional[str] = None,
         method: str = GENERATE,
         **kwargs: Any,
@@ -168,9 +168,7 @@ class LMGenerator(BaseBlock):
         # simplify generation here
         instances: List[Instance] = []
         for inp in inputs:
-            inp_args, inp_kwargs = self.get_args_kwargs(
-                inp, method, arg_fields, kwarg_fields
-            )
+            inp_args, inp_kwargs = self.get_args_kwargs(inp, method, fields)
             instances.append(Instance(args=inp_args, kwargs=inp_kwargs, data=inp))
 
         if method == self.GENERATE:
@@ -202,15 +200,16 @@ class LMGenerator(BaseBlock):
         self,
         inp: DATASET_ROW_TYPE,
         method: str,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
-    ):
+        fields: Optional[Union[List, Dict]] = None,
+    ) -> Dict:
 
         assert method in [
             self.GENERATE,
             self.LOGLIKELIHOOD,
         ], f"'method' value should be one of [{self.GENERATE}, {self.LOGLIKELIHOOD}], instead it was given as {method}"
-        inp_args, inp_kwargs = super().get_args_kwargs(inp, arg_fields, kwarg_fields)
+        inp_kwargs = super().get_args_kwargs(inp, fields)
+
+        prompt = inp_kwargs.pop(_PROMPT_KEY)
 
         # double check that model specified in kwargs (if it is specified in kwargs) matches model defined for chat template
         if (
@@ -221,8 +220,6 @@ class LMGenerator(BaseBlock):
                 == self.model_id_or_path
             )
         ):
-
-            prompt = inp_args[0]
             assert type(prompt) in [
                 list,
                 str,
@@ -231,13 +228,11 @@ class LMGenerator(BaseBlock):
             if type(prompt) == str:
                 prompt = [{"role": "user", "content": prompt}]
 
-            inp_args = [
-                self._chat_template.apply_chat_template(
-                    prompt, **self._auto_chat_template_params
-                )
-            ]
+            prompt = self._chat_template.apply_chat_template(
+                prompt, **self._auto_chat_template_params
+            )
 
-        return inp_args, inp_kwargs
+        return [prompt], inp_kwargs
 
     def init_model(self, *args: Any, **kwargs: Any):
         pass
@@ -367,8 +362,7 @@ class CachingLM:
     def execute(
         self,
         inputs: DATASET_TYPE,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
+        fields: Optional[Union[List, Dict]] = None,
         result_field: Optional[str] = None,
         method: str = "generate",
         **kwargs: Any,
@@ -377,9 +371,7 @@ class CachingLM:
         # simplify generation here
         instances: List[Instance] = []
         for inp in inputs:
-            inp_args, inp_kwargs = self.lm.get_args_kwargs(
-                inp, method, arg_fields, kwarg_fields
-            )
+            inp_args, inp_kwargs = self.lm.get_args_kwargs(inp, method, fields)
             instances.append(Instance(args=inp_args, kwargs=inp_kwargs, data=inp))
 
         if method == self.lm.GENERATE:

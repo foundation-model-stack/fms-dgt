@@ -1,6 +1,6 @@
 # Standard
 from abc import abstractmethod
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 # Local
 from fms_dgt.base.block import BaseBlock
@@ -26,8 +26,7 @@ class BaseValidatorBlock(BaseBlock):
         self,
         inputs: DATASET_TYPE,
         *,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
+        fields: Optional[Union[List, Dict]] = None,
         result_field: Optional[List[str]] = None,
     ) -> DATASET_TYPE:
         """The execute function is the primary interface to a Block. For validator blocks, the implementation differs from BaseBlock in that the result is always a boolean value indicating whether the validation succeeded or failed. In addition, the validator block can optionally filter out invalid inputs that would return False instead of writing the result to the input.
@@ -37,12 +36,7 @@ class BaseValidatorBlock(BaseBlock):
                 of rows with named columns (see BLOCK_INPUT_TYPE)
 
         Kwargs:
-            arg_fields (Optional[List[str]]): Names of fields within the rows of
-                the inputs that should be extracted and passed as positional
-                args to the underlying implementation methods.
-            kwarg_fields (Optional[List[str]]): Names of fields within the rows
-                of the inputs that should be extracted and passed as keyword
-                args to the underlying implementation methods.
+            fields (Optional[Union[List, Dict]], optional): A mapping of field names from input objects to internal objects.
             **kwargs: Additional keyword args that may be passed to the derived
                 block's generate function
 
@@ -51,19 +45,13 @@ class BaseValidatorBlock(BaseBlock):
         """
         outputs, to_save = [], []
         for x in inputs:
-            inp_args, inp_kwargs = self.get_args_kwargs(x, arg_fields, kwarg_fields)
-            res = self._validate(*inp_args, **inp_kwargs)
+            inp_args_kwargs = self.get_args_kwargs(x, fields)
+            res = self._validate(**inp_args_kwargs)
             if res or not self._filter_invalids:
                 self.write_result(x, res, result_field)
                 outputs.append(x)
             if not res:
-                iter_args = arg_fields or self._arg_fields or []
-                to_save.append(
-                    {
-                        **dict(zip(iter_args, inp_args)),
-                        **inp_kwargs,
-                    }
-                )
+                to_save.append(inp_args_kwargs)
 
         self.save_data(to_save)
 

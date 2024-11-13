@@ -1,6 +1,6 @@
 # Standard
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 import dataclasses
 
 # Third Party
@@ -12,6 +12,7 @@ from fms_dgt.base.datastore import BaseDatastore, DatastoreDataType
 from fms_dgt.base.registry import get_datastore
 from fms_dgt.base.task_card import TaskRunCard
 from fms_dgt.constants import DATASET_ROW_TYPE, DATASET_TYPE, TYPE_KEY
+from fms_dgt.utils import sdg_logger
 
 
 def get_row_name(gen_inst: DATASET_ROW_TYPE) -> str:
@@ -38,6 +39,7 @@ class BaseBlock(ABC):
         type: str = None,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
+        fields: Optional[Dict[str, str]] = None,
         result_field: Optional[str] = None,
         build_id: Optional[str] = None,
         builder_name: Optional[str] = None,
@@ -55,6 +57,7 @@ class BaseBlock(ABC):
         Kwargs:
             arg_fields (Optional[List[str]], optional): A list of field names to use as positional arguments.
             kwarg_fields (Optional[List[str]], optional): A list of field names to use as keyword arguments.
+            block_paramfields (Optional[Union[List,Dict]], optional): A mapping of field names from input objects to internal objects.
             result_field (Optional[str], optional): Name of the result field in the input data row that the computation of the block will be written to.
             build_id (Optional[str], optional): ID to identify a particular SDG run.
             builder_name (Optional[str], optional): Name of the calling databuilder
@@ -68,19 +71,28 @@ class BaseBlock(ABC):
             raise TypeError("arg_fields must be of type 'list'")
         if not isinstance(kwarg_fields, (list, None.__class__)):
             raise TypeError("kwarg_fields must be of type 'list'")
+        if not isinstance(fields, (dict, list, None.__class__)):
+            raise TypeError("fields must be of type 'dict' or 'list'")
         if not isinstance(result_field, (str, None.__class__)):
             raise TypeError("result_field must be of type 'str'")
+
+        if arg_fields or kwarg_fields:
+            sdg_logger.warning(
+                f"Use of [arg_fields] and [kwarg_fields] is being deprecated! Switch to using [fields] to ensure future compatibility."
+            )
 
         self._name = name
         self._block_type = type
 
         self._arg_fields = arg_fields
         self._kwarg_fields = kwarg_fields
+        self._fields = fields
         self._result_field = result_field
 
         self._save_schema = (
             save_schema
             or ((self._arg_fields or []) + (self._kwarg_fields or []))
+            + ((self._fields and list(self._fields)) or [])
             or None
         )
         # datastore params
@@ -140,6 +152,15 @@ class BaseBlock(ABC):
         return self._kwarg_fields
 
     @property
+    def fields(self) -> Union[List, Dict]:
+        """Returns a dictionary mapping of field names from input objects to internal objects
+
+        Returns:
+            List[str]: A dictionary of field names to extract and use internally
+        """
+        return self._fields
+
+    @property
     def result_field(self) -> str:
         """Returns the name of the result field that computations will be written to
 
@@ -192,27 +213,32 @@ class BaseBlock(ABC):
     def get_args_kwargs(
         self,
         inp: DATASET_ROW_TYPE,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
-    ) -> Tuple[List[Any], Dict[str, Any]]:
+        fields: Optional[Optional[Union[List, Dict]]] = None,
+    ) -> Dict:
         """Extracts the arguments and keyword arguments from a given input.
 
         Args:
             inp (DATASET_ROW_TYPE): The input data row.
-            arg_fields (Optional[List[str]], optional): A list of field names to use as positional arguments.
-            kwarg_fields (Optional[List[str]], optional): A list of field names to use as keyword arguments.
+            fields (Optional[Union[List, Dict]], optional): A mapping of field names from input objects to internal objects.
 
         Returns:
             Tuple[List[Any], Dict[str, Any]]: A tuple containing a list of positional arguments and a dictionary of keyword arguments.
         """
-        arg_fields = arg_fields or self.arg_fields or []
-        kwarg_fields = kwarg_fields or self.kwarg_fields or []
+        fields = fields or self.fields or dict()
+
+        # fields could be a list or dict
+        if isinstance(fields, list):
+            fields = dict(
+                (x, x) if isinstance(x, str) else x
+                for x in (fields.items() if isinstance(fields, dict) else fields)
+            )
 
         if isinstance(inp, (dict, pd.DataFrame, Dataset)):
-            return (
-                [inp.get(arg) for arg in arg_fields],
-                {kwarg: inp.get(kwarg) for kwarg in kwarg_fields},
-            )
+            return {
+                internal_field: inp.get(input_field)
+                for internal_field, input_field in fields.items()
+            }
+
         raise TypeError(f"Unexpected input type: {type(inp)}")
 
     def write_result(
@@ -278,13 +304,29 @@ class BaseBlock(ABC):
         """
         return self(*args, **kwargs)
 
-    def __call__(self, *args, **kwargs) -> DATASET_TYPE:
+    def __call__(
+        self,
+        *args,
+        arg_fields: Optional[List[str]] = None,
+        kwarg_fields: Optional[List[str]] = None,
+        fields: Optional[Union[List, Dict]] = None,
+        **kwargs,
+    ) -> DATASET_TYPE:
         """The generate function is the primary interface to a Block. Internally, it calls the `execute` method which contains the logic of the block.
             This function exists to have meta-processes (e.g., logging) that wrap around the core logic of a block
 
         Returns:
             DATASET_TYPE: Dataset resulting from processing contained in execute function
         """
+
+        # TODO: Get rid of this once arg_fields and kwarg_fields are deprecated
+        arg_fields = arg_fields or self._arg_fields or []
+        kwarg_fields = kwarg_fields or self._kwarg_fields or []
+        fields = fields or dict()
+        fields = {**{x: x for x in arg_fields + kwarg_fields}, **fields}
+        if fields:
+            kwargs = {"fields": fields, **kwargs}
+
         return self.execute(*args, **kwargs)
 
     @abstractmethod
@@ -292,8 +334,7 @@ class BaseBlock(ABC):
         self,
         inputs: DATASET_TYPE,
         *,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
+        fields: Optional[Optional[Union[List, Dict]]] = None,
         result_field: Optional[str] = None,
         **kwargs,
     ) -> DATASET_TYPE:
@@ -304,12 +345,7 @@ class BaseBlock(ABC):
                 of rows with named columns (see BLOCK_INPUT_TYPE)
 
         Kwargs:
-            arg_fields (Optional[List[str]]): Names of fields within the rows of
-                the inputs that should be extracted and passed as positional
-                args to the underlying implementation methods.
-            kwarg_fields (Optional[List[str]]): Names of fields within the rows
-                of the inputs that should be extracted and passed as keyword
-                args to the underlying implementation methods.
+            fields (Optional[Union[List, Dict]], optional): A mapping of field names from input objects to internal objects.
             **kwargs: Additional keyword args that may be passed to the derived
                 block's generate function
 

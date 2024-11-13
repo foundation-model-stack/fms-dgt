@@ -1,5 +1,5 @@
 # Standard
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 import copy
 
 # Local
@@ -15,20 +15,17 @@ class FlattenField(BaseBlock):
         self,
         inputs: DATASET_TYPE,
         *,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
+        fields: Optional[Union[List, Dict]] = None,
         result_field: Optional[str] = None,
     ):
-        arg_fields = arg_fields or self._arg_fields or []
+        fields = fields or self._fields or []
 
-        assert (
-            len(arg_fields) == 1
-        ), f"{self.__class__.__name__} can only have 1 arg field!"
+        assert len(fields) == 1, f"{self.__class__.__name__} can only have 1 field!"
 
         outputs = []
         for x in inputs:
-            inp_args, _ = self.get_args_kwargs(x, arg_fields, kwarg_fields)
-            to_flatten = inp_args[0] if type(inp_args[0]) == list else [inp_args[0]]
+            to_flatten = list(self.get_args_kwargs(x, fields).values())[0]
+            to_flatten = to_flatten[0] if type(to_flatten[0]) == list else to_flatten
             for el in to_flatten:
                 outputs.append(copy.copy(x))
                 self.write_result(outputs[-1], el, result_field)

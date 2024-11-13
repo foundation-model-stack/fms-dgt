@@ -1,5 +1,5 @@
 # Standard
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 
 # Local
 from fms_dgt.base.block import DATASET_TYPE, BaseBlock
@@ -19,13 +19,12 @@ class PromptBuilder(BaseBlock):
         self,
         inputs: DATASET_TYPE,
         *,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
+        fields: Optional[Union[List, Dict]] = None,
         result_field: Optional[str] = None,
     ):
         outputs = []
         for x in inputs:
-            _, inp_kwargs = self.get_args_kwargs(x, arg_fields, kwarg_fields)
+            inp_kwargs = self.get_args_kwargs(x, fields)
 
             prompt = self._prompt
             for k, v in inp_kwargs.items():

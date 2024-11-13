@@ -77,8 +77,7 @@ class ApiDataBuilder(DataBuilder):
         request_start = time.time()
         llm_outputs = self.llm1(
             gen_inputs,
-            arg_fields=["prompt"],
-            kwarg_fields=["stop_sequences"],
+            fields=["prompt", "stop_sequences"],
             result_field="output",
         )
         request_duration = time.time() - request_start

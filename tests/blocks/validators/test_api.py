@@ -40,15 +40,15 @@ def test_single_intent():
 
     test_instance = [
         {
-            "a": api_info,
-            "b": question,
-            "c": json.dumps(func_calls),
+            "api_info": api_info,
+            "question": question,
+            "answer": json.dumps(func_calls),
             **single_intent_kwargs,
         }
     ]
     validator(
         test_instance,
-        arg_fields=["a", "b", "c"],
+        arg_fields=["api_info", "question", "answer"],
         kwarg_fields=list(single_intent_kwargs.keys()),
         result_field="result",
     )
@@ -67,15 +67,15 @@ def test_multi_intent():
 
     test_instance = [
         {
-            "a": api_info,
-            "b": question,
-            "c": json.dumps(func_calls),
+            "api_info": api_info,
+            "question": question,
+            "answer": json.dumps(func_calls),
             **multi_intent_kwargs,
         }
     ]
     validator(
         test_instance,
-        arg_fields=["a", "b", "c"],
+        arg_fields=["api_info", "question", "answer"],
         kwarg_fields=list(multi_intent_kwargs.keys()),
         result_field="result",
     )
@@ -95,15 +95,15 @@ def test_parallel_single():
 
     test_instance = [
         {
-            "a": api_info,
-            "b": question,
-            "c": json.dumps(func_calls),
+            "api_info": api_info,
+            "question": question,
+            "answer": json.dumps(func_calls),
             **parallel_kwargs,
         }
     ]
     validator(
         test_instance,
-        arg_fields=["a", "b", "c"],
+        arg_fields=["api_info", "question", "answer"],
         kwarg_fields=list(parallel_kwargs.keys()),
         result_field="result",
     )
@@ -118,15 +118,15 @@ def test_parallel_single():
 
     test_instance = [
         {
-            "a": api_info,
-            "b": question,
-            "c": json.dumps(func_calls),
+            "api_info": api_info,
+            "question": question,
+            "answer": json.dumps(func_calls),
             **parallel_kwargs,
         }
     ]
     validator(
         test_instance,
-        arg_fields=["a", "b", "c"],
+        arg_fields=["api_info", "question", "answer"],
         kwarg_fields=list(parallel_kwargs.keys()),
         result_field="result",
     )
@@ -154,16 +154,16 @@ def test_parallel_multiple():
 
     test_instance = [
         {
-            "a": api_info,
-            "b": question,
-            "c": json.dumps(func_calls),
+            "api_info": api_info,
+            "question": question,
+            "answer": json.dumps(func_calls),
             **parallel_kwargs,
             "check_arg_question_overlap": False,
         }
     ]
     validator(
         test_instance,
-        arg_fields=["a", "b", "c"],
+        arg_fields=["api_info", "question", "answer"],
         kwarg_fields=list(parallel_kwargs.keys()) + ["check_arg_question_overlap"],
         result_field="result",
     )
@@ -179,15 +179,15 @@ def test_parallel_multiple():
 
     test_instance = [
         {
-            "a": api_info,
-            "b": question,
-            "c": json.dumps(func_calls),
+            "api_info": api_info,
+            "question": question,
+            "answer": json.dumps(func_calls),
             **parallel_kwargs,
         }
     ]
     validator(
         test_instance,
-        arg_fields=["a", "b", "c"],
+        arg_fields=["api_info", "question", "answer"],
         kwarg_fields=list(parallel_kwargs.keys()),
         result_field="result",
     )
@@ -204,15 +204,15 @@ def test_parallel_multiple():
 
     test_instance = [
         {
-            "a": api_info,
-            "b": question,
-            "c": json.dumps(func_calls),
+            "api_info": api_info,
+            "question": question,
+            "answer": json.dumps(func_calls),
             **parallel_kwargs,
         }
     ]
     validator(
         test_instance,
-        arg_fields=["a", "b", "c"],
+        arg_fields=["api_info", "question", "answer"],
         kwarg_fields=list(parallel_kwargs.keys()),
         result_field="result",
     )
@@ -238,15 +238,15 @@ def test_parallel_nested():
 
     test_instance = [
         {
-            "a": api_info,
-            "b": question,
-            "c": json.dumps(func_calls),
+            "api_info": api_info,
+            "question": question,
+            "answer": json.dumps(func_calls),
             **parallel_nested_kwargs,
         }
     ]
     validator(
         test_instance,
-        arg_fields=["a", "b", "c"],
+        arg_fields=["api_info", "question", "answer"],
         kwarg_fields=list(parallel_nested_kwargs.keys()),
         result_field="result",
     )
@@ -261,15 +261,15 @@ def test_parallel_nested():
 
     test_instance = [
         {
-            "a": api_info,
-            "b": question,
-            "c": json.dumps(func_calls),
+            "api_info": api_info,
+            "question": question,
+            "answer": json.dumps(func_calls),
             **parallel_nested_kwargs,
         }
     ]
     validator(
         test_instance,
-        arg_fields=["a", "b", "c"],
+        arg_fields=["api_info", "question", "answer"],
         kwarg_fields=list(parallel_nested_kwargs.keys()),
         result_field="result",
     )
@@ -285,14 +285,14 @@ def test_yes_no():
 
         test_instance = [
             {
-                "a": TEST_APIS,
-                "b": "this is a test question",
-                "c": arg_inp,
+                "api_info": TEST_APIS,
+                "question": "this is a test question",
+                "answer": arg_inp,
             }
         ]
         validator(
             test_instance,
-            arg_fields=["a", "b", "c"],
+            arg_fields=["api_info", "question", "answer"],
             result_field="result",
         )
         assert test_instance[0]["result"] == (arg_inp in ["YES", "NO"])

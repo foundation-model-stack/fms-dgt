@@ -1,6 +1,6 @@
 # Standard
 from functools import partial
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 # Local
 from fms_dgt.base.registry import register_block
@@ -44,8 +44,7 @@ class RougeDedupValidator(BaseValidatorBlock):
         inputs: DATASET_TYPE,
         *,
         context: Optional[List[str]] = None,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
+        fields: Optional[Union[List, Dict]] = None,
         result_field: Optional[List[str]] = None,
     ):
         """Deduplicator that removes elements of `inputs` that are too rouge-similar. By default it will pick the one that is maximally dissimilar from `context` to keep"""
@@ -55,7 +54,9 @@ class RougeDedupValidator(BaseValidatorBlock):
 
         tokenized = []
         for inp in inputs:
-            (inp_str,), _ = self.get_args_kwargs(inp, arg_fields, kwarg_fields)
+            # TODO: Safety check this
+            inp_vals = self.get_args_kwargs(inp, fields)
+            inp_str = list(inp_vals.values())[0]
             tokenized.append((self.tokenize(inp_str), inp))
 
         # first score inputs by rouge similarity to context
@@ -101,13 +102,9 @@ class RougeDedupValidator(BaseValidatorBlock):
                 outputs.append(inp)
 
             if not res:
-                inp_args, inp_kwargs = self.get_args_kwargs(
-                    inp, arg_fields, kwarg_fields
-                )
-                iter_args = arg_fields or self._arg_fields or []
+                inp_kwargs = self.get_args_kwargs(inp, fields)
                 to_save.append(
                     {
-                        **dict(zip(iter_args, inp_args)),
                         **inp_kwargs,
                         result_field: res,
                     }

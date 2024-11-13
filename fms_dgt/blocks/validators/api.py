@@ -164,5 +164,5 @@ def is_nested_match(arg_content: str, prev_components: List[Dict], api_info: Dic
 class ApiGenSpecYesNoValidation(APIGenSpecValidator):
     """Class for API Intent Detection Validator"""
 
-    def _validate(self, api_info: dict, question: str, answer: str, **kwargs) -> bool:
+    def _validate(self, api_info: dict, question: str, answer: str) -> bool:
         return answer in ["YES", "NO"]
