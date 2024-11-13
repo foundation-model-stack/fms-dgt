@@ -18,6 +18,7 @@ class FlattenField(BaseBlock):
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
+        additional_field: Optional[str] = None,
     ):
         arg_fields = arg_fields or self._arg_fields or []
 
@@ -31,6 +32,12 @@ class FlattenField(BaseBlock):
             to_flatten = inp_args[0] if type(inp_args[0]) == list else [inp_args[0]]
             for el in to_flatten:
                 outputs.append(copy.copy(x))
-                self.write_result(outputs[-1], el, result_field)
+                self.write_result(
+                    outputs[-1],
+                    el,
+                    result_field,
+                    additional=None,
+                    additional_field=additional_field,
+                )
 
         return outputs

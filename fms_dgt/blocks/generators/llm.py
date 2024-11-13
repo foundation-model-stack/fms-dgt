@@ -131,12 +131,14 @@ class LMGenerator(BaseBlock):
         res: Any,
         instance: Instance,
         until: Optional[List[str]] = None,
+        additional: Optional[dict[str, Any]] = None,
     ):
         if until is not None and type(res) == str:
             for term in until:
                 if len(term) > 0:
                     res = res.split(term)[0]
         instance.result = res
+        instance.additional = additional
         self.cache_hook.add_partial(method, instance, res)
 
     @abc.abstractmethod
@@ -161,6 +163,7 @@ class LMGenerator(BaseBlock):
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
+        additional_field: Optional[str] = None,
         method: str = GENERATE,
         **kwargs: Any,
     ):
@@ -193,7 +196,13 @@ class LMGenerator(BaseBlock):
 
         outputs = []
         for inst in instances:
-            self.write_result(inst.data, inst.result, result_field)
+            self.write_result(
+                inst.data,
+                inst.result,
+                result_field,
+                additional=inst.additional,
+                additional_field=additional_field,
+            )
             outputs.append(inst.data)
 
         return outputs
@@ -370,6 +379,7 @@ class CachingLM:
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
+        additional_field: Optional[str] = None,
         method: str = "generate",
         **kwargs: Any,
     ) -> None:
@@ -402,7 +412,13 @@ class CachingLM:
 
         outputs = []
         for inst in instances:
-            self.lm.write_result(inst.data, inst.result, result_field)
+            self.lm.write_result(
+                inst.data,
+                inst.result,
+                result_field,
+                additional=inst.additional,
+                additional_field=additional_field,
+            )
             outputs.append(inst.data)
 
         return outputs

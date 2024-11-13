@@ -29,6 +29,7 @@ class BaseValidatorBlock(BaseBlock):
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[List[str]] = None,
+        additional_field: Optional[str] = None,
     ) -> DATASET_TYPE:
         """The execute function is the primary interface to a Block. For validator blocks, the implementation differs from BaseBlock in that the result is always a boolean value indicating whether the validation succeeded or failed. In addition, the validator block can optionally filter out invalid inputs that would return False instead of writing the result to the input.
 
@@ -54,7 +55,13 @@ class BaseValidatorBlock(BaseBlock):
             inp_args, inp_kwargs = self.get_args_kwargs(x, arg_fields, kwarg_fields)
             res = self._validate(*inp_args, **inp_kwargs)
             if res or not self._filter_invalids:
-                self.write_result(x, res, result_field)
+                self.write_result(
+                    x,
+                    res,
+                    result_field,
+                    additional=None,
+                    additional_field=additional_field,
+                )
                 outputs.append(x)
             if not res:
                 iter_args = arg_fields or self._arg_fields or []

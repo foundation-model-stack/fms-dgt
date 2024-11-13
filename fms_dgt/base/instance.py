@@ -11,6 +11,7 @@ class Instance:
     args: Optional[tuple] = None
     kwargs: Optional[dict] = None
     result: Optional[Any] = None
+    additional: Optional[dict[str, Any]] = None
 
     data: Optional[Any] = None
     idx: Optional[int] = None

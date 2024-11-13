@@ -47,6 +47,7 @@ class RougeDedupValidator(BaseValidatorBlock):
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[List[str]] = None,
+        additional_field: Optional[List[str]] = None,
     ):
         """Deduplicator that removes elements of `inputs` that are too rouge-similar. By default it will pick the one that is maximally dissimilar from `context` to keep"""
 
@@ -97,7 +98,13 @@ class RougeDedupValidator(BaseValidatorBlock):
             check_against = all_tokens[:i]
             res = self._validate(new_tokens, check_against) and is_valid_wrt_context
             if res or not self._filter_invalids:
-                self.write_result(inp, res, result_field)
+                self.write_result(
+                    inp,
+                    res,
+                    result_field,
+                    additional=None,
+                    additional_field=additional_field,
+                )
                 outputs.append(inp)
 
             if not res:

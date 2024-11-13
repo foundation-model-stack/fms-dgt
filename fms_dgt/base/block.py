@@ -39,6 +39,7 @@ class BaseBlock(ABC):
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
+        additional_field: Optional[str] = None,
         build_id: Optional[str] = None,
         builder_name: Optional[str] = None,
         datastore: Optional[Dict] = None,
@@ -56,6 +57,7 @@ class BaseBlock(ABC):
             arg_fields (Optional[List[str]], optional): A list of field names to use as positional arguments.
             kwarg_fields (Optional[List[str]], optional): A list of field names to use as keyword arguments.
             result_field (Optional[str], optional): Name of the result field in the input data row that the computation of the block will be written to.
+            additional_field (Optional[str], optional): Name of the additional field in the input data row that additional data of the block can be written to.
             build_id (Optional[str], optional): ID to identify a particular SDG run.
             builder_name (Optional[str], optional): Name of the calling databuilder
             datastore (Optional[Dict]): A dictionary containing the configuration for the datastore.
@@ -70,6 +72,8 @@ class BaseBlock(ABC):
             raise TypeError("kwarg_fields must be of type 'list'")
         if not isinstance(result_field, (str, None.__class__)):
             raise TypeError("result_field must be of type 'str'")
+        if not isinstance(additional_field, (str, None.__class__)):
+            raise TypeError("additional_field must be of type 'str'")
 
         self._name = name
         self._block_type = type
@@ -77,6 +81,7 @@ class BaseBlock(ABC):
         self._arg_fields = arg_fields
         self._kwarg_fields = kwarg_fields
         self._result_field = result_field
+        self._additional_field = additional_field
 
         self._save_schema = (
             save_schema
@@ -147,6 +152,15 @@ class BaseBlock(ABC):
             str: Name of the result field that computations will be written to
         """
         return self._result_field
+
+    @property
+    def additional_field(self) -> str:
+        """Returns the name of the additional field that additional data will be written to
+
+        Returns:
+            str: Name of the additional field that additional data will be written to
+        """
+        return self._additional_field
 
     @property
     def save_schema(self) -> List[str]:
@@ -220,6 +234,8 @@ class BaseBlock(ABC):
         inp: DATASET_ROW_TYPE,
         res: Any,
         result_field: Optional[str] = None,
+        additional: Optional[dict[str, Any]] = None,
+        additional_field: Optional[str] = None,
     ) -> None:
         """Writes the result of the data processing step to the input data row.
 
@@ -227,12 +243,18 @@ class BaseBlock(ABC):
             inp (DATASET_ROW_TYPE): Input data row
             res (Any): Result to be written to the input data row
             result_field (Optional[str], optional): Name of the result field in the input data row.
+            additional (Optional[dict[str, Any]], optional): Additional data that might be returned by a block.
+            additional_field (Optional[str], optional): Name of the additional data field in the input data row.
         """
         result_field = result_field or self.result_field
+        additional_field = additional_field or self.additional_field
+
+        if additional is not None and additional_field is not None:
+            if isinstance(inp, (dict, pd.DataFrame, Dataset)):
+                inp[additional_field] = additional
 
         # ignore if result field is not set
         if result_field is not None:
-
             if isinstance(inp, (dict, pd.DataFrame, Dataset)):
                 inp[result_field] = res
                 return
@@ -262,6 +284,33 @@ class BaseBlock(ABC):
 
         if isinstance(inp, (dict, pd.DataFrame, Dataset)):
             return inp[result_field]
+
+        raise TypeError(f"Unexpected input type: {type(inp)}")
+
+    def get_additional(
+        self,
+        inp: DATASET_ROW_TYPE,
+        additional_field: Optional[str] = None,
+    ) -> Any:
+        """Gets the additional data that has been written onto object in `write_result` method
+
+        Args:
+            inp (DATASET_ROW_TYPE): Input is either a dict, pd.DataFrame, or Dataset
+            additional_field (Optional[str], optional): Field to access additional data from input object.
+
+        Raises:
+            TypeError: Raised if input type is not a dict, pd.DataFrame, or Dataset.
+
+        Returns:
+            Any: Object stored in additional_field of input
+        """
+        additional_field = additional_field or self.additional_field
+
+        if additional_field is None:
+            return None
+
+        if isinstance(inp, (dict, pd.DataFrame, Dataset)):
+            return inp[additional_field]
 
         raise TypeError(f"Unexpected input type: {type(inp)}")
 

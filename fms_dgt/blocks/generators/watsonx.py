@@ -16,11 +16,11 @@ import fms_dgt.blocks.generators.utils as generator_utils
 try:
     # Third Party
     from ibm_watsonx_ai import Credentials
-    from ibm_watsonx_ai.foundation_models.schema import (
-        TextGenParameters,
-        ReturnOptionProperties,
-    )
     from ibm_watsonx_ai.foundation_models import Model
+    from ibm_watsonx_ai.foundation_models.schema import (
+        ReturnOptionProperties,
+        TextGenParameters,
+    )
 except ModuleNotFoundError:
     pass
 
@@ -113,6 +113,13 @@ class WatsonXAIGenerator(LMGenerator):
                         responses[idx]["results"][0]["generated_text"],
                         instance,
                         until,
+                        additional={
+                            {
+                                "gen_token_count": responses[idx]["results"][0][
+                                    "generated_token_count"
+                                ]
+                            }
+                        },
                     )
                     pbar.update(1)
 

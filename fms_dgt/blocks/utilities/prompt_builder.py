@@ -22,6 +22,7 @@ class PromptBuilder(BaseBlock):
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
         result_field: Optional[str] = None,
+        additional_field: Optional[str] = None,
     ):
         outputs = []
         for x in inputs:
@@ -33,6 +34,12 @@ class PromptBuilder(BaseBlock):
 
             outputs.append(x)
 
-            self.write_result(outputs[-1], prompt, result_field)
+            self.write_result(
+                outputs[-1],
+                prompt,
+                result_field,
+                additional=None,
+                additional_field=additional_field,
+            )
 
         return outputs
