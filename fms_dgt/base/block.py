@@ -39,7 +39,7 @@ class BaseBlock(ABC):
         type: str = None,
         arg_fields: Optional[List[str]] = None,
         kwarg_fields: Optional[List[str]] = None,
-        fields: Optional[Dict[str, str]] = None,
+        fields: Optional[Union[List, Dict]] = None,
         result_field: Optional[str] = None,
         build_id: Optional[str] = None,
         builder_name: Optional[str] = None,
@@ -57,7 +57,7 @@ class BaseBlock(ABC):
         Kwargs:
             arg_fields (Optional[List[str]], optional): A list of field names to use as positional arguments.
             kwarg_fields (Optional[List[str]], optional): A list of field names to use as keyword arguments.
-            block_paramfields (Optional[Union[List,Dict]], optional): A mapping of field names from input objects to internal objects.
+            fields (Optional[Union[List, Dict]], optional): A mapping of field names from input objects to internal objects.
             result_field (Optional[str], optional): Name of the result field in the input data row that the computation of the block will be written to.
             build_id (Optional[str], optional): ID to identify a particular SDG run.
             builder_name (Optional[str], optional): Name of the calling databuilder
