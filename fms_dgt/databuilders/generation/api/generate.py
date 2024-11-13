@@ -121,7 +121,7 @@ class ApiDataBuilder(DataBuilder):
 
                 # grab schema from input
                 inp = {
-                    "new_apis": new_apis,
+                    "api_info": new_apis,
                     "question": question,
                     "answer": answer,
                     "check_arg_question_overlap": new_instr.check_arg_question_overlap,
@@ -141,7 +141,7 @@ class ApiDataBuilder(DataBuilder):
             output["data"]
             for output in self.val1(
                 val1_inputs,
-                arg_fields=["new_apis", "question", "answer"],
+                arg_fields=["api_info", "question", "answer"],
                 kwarg_fields=[
                     "check_arg_question_overlap",
                     "intent_only",

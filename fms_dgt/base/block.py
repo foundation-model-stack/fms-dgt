@@ -323,6 +323,8 @@ class BaseBlock(ABC):
         arg_fields = arg_fields or self._arg_fields or []
         kwarg_fields = kwarg_fields or self._kwarg_fields or []
         fields = fields or dict()
+        if isinstance(fields, list):
+            fields = {x: x for x in fields}
         fields = {**{x: x for x in arg_fields + kwarg_fields}, **fields}
         if fields:
             kwargs = {"fields": fields, **kwargs}
