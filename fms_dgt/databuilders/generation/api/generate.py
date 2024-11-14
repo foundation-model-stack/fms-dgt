@@ -71,15 +71,14 @@ class ApiDataBuilder(DataBuilder):
                 prompt, new_instr = self._construct_new_data(
                     api_specification_groups, task_data
                 )
-                inp = {"prompt": prompt, "stop_sequences": [f"API:"], "data": new_instr}
+                inp = {
+                    "prompt": prompt,
+                    "gen_kwargs": {"stop_sequences": [f"API:"], "data": new_instr},
+                }
                 gen_inputs.append(inp)
 
         request_start = time.time()
-        llm_outputs = self.llm1(
-            gen_inputs,
-            fields=["prompt", "stop_sequences"],
-            result_field="output",
-        )
+        llm_outputs = self.llm1(gen_inputs, output_map={"result": "output"})
         request_duration = time.time() - request_start
 
         # now begin filtering generated data

@@ -1,11 +1,17 @@
 # Standard
-from typing import Any, Callable, Dict, List, Optional, Union
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 # Local
 from fms_dgt.base.registry import get_block, register_block
-from fms_dgt.blocks.generators.llm import LMGenerator
-from fms_dgt.blocks.validators import BaseValidatorBlock
-from fms_dgt.constants import DATASET_TYPE, TYPE_KEY
+from fms_dgt.blocks.generators.llm import LMBlockData, LMGenerator
+from fms_dgt.blocks.validators import BaseValidatorBlock, BaseValidatorBlockData
+from fms_dgt.constants import TYPE_KEY
+
+
+@dataclass
+class LMJudgeData(BaseValidatorBlockData, LMBlockData):
+    success_func: Callable
 
 
 @register_block("llm_judge")
@@ -26,41 +32,24 @@ class LMJudgeValidator(BaseValidatorBlock):
 
     def execute(
         self,
-        inputs: DATASET_TYPE,
-        *,
-        fields: Optional[Union[List, Dict]] = None,
-        result_field: Optional[str] = None,
-        lm_fields: Optional[Union[List, Dict]] = None,
-        lm_result_field: Optional[str] = None,
+        inputs: Iterable[LMJudgeData],
         **kwargs,
     ):
 
         # simplify generation here
-        llm_outputs = self._llm_generator(
+        llm_outputs: List[LMJudgeData] = self._llm_generator(
             inputs,
-            fields=lm_fields,
-            result_field=lm_result_field,
             **kwargs,
         )
 
         judge_outputs, to_save = [], []
         for llm_output in llm_outputs:
-            kwargs = self.get_args_kwargs(llm_output, fields=fields)
-            success_func = list(kwargs.values())[0]
-
-            lm_res = self._llm_generator.get_result(llm_output, lm_result_field)
-            new_result = success_func(lm_res)
-            if new_result or not self._filter_invalids:
-                self.write_result(llm_output, new_result, result_field=result_field)
+            llm_output.is_valid = llm_output.success_func(llm_output.result)
+            if llm_output.is_valid or not self._filter_invalids:
                 judge_outputs.append(llm_output)
 
-            if not new_result:
-                to_save.append(
-                    {
-                        **kwargs,
-                        result_field: new_result,
-                    }
-                )
+            if not llm_output.is_valid:
+                to_save.append(llm_output)
 
         self.save_data(to_save)
 

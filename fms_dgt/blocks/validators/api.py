@@ -1,4 +1,5 @@
 # Standard
+from dataclasses import dataclass
 from typing import Dict, List
 import json
 
@@ -8,7 +9,7 @@ import jsonschema
 
 # Local
 from fms_dgt.base.registry import register_block
-from fms_dgt.blocks.validators import BaseValidatorBlock
+from fms_dgt.blocks.validators import BaseValidatorBlock, BaseValidatorBlockData
 
 # Constants
 
@@ -22,24 +23,28 @@ _OUTPUT_PARAM = "output_parameters"
 # Classes
 
 
+@dataclass
+class APIValidatorData(BaseValidatorBlockData):
+    api_info: dict
+    question: str
+    answer: str
+    check_arg_question_overlap: bool = True
+    intent_only: bool = False
+    require_nested: bool = False
+    multi_output: bool = False
+    allow_subset: bool = False
+
+
 @register_block("api_function_checking")
 class APIGenSpecValidator(BaseValidatorBlock):
     """Class for API Sequence Prediction Validator"""
 
-    def _validate(
-        self,
-        api_info: dict,
-        question: str,
-        answer: str,
-        check_arg_question_overlap: bool = True,
-        intent_only: bool = False,
-        require_nested: bool = False,
-        multi_output: bool = False,
-        allow_subset: bool = False,
-    ) -> bool:
+    DATA_TYPE = APIValidatorData
+
+    def _validate(self, input: APIValidatorData) -> bool:
 
         try:
-            sep_components = json.loads(answer)
+            sep_components = json.loads(input.answer)
         except json.decoder.JSONDecodeError as e:
             return False
 
@@ -58,14 +63,14 @@ class APIGenSpecValidator(BaseValidatorBlock):
                 for component in sep_components
             ]
         )
-        api_names = set([api[_NAME] for api in api_info.values()])
+        api_names = set([api[_NAME] for api in input.api_info.values()])
 
-        if multi_output and len(set([str(x) for x in sep_components])) <= 1:
+        if input.multi_output and len(set([str(x) for x in sep_components])) <= 1:
             return False
 
         # all api names must be present, but no additional api names
-        if (allow_subset and not component_names.issubset(api_names)) or (
-            not allow_subset and component_names.symmetric_difference(api_names)
+        if (input.allow_subset and not component_names.issubset(api_names)) or (
+            not input.allow_subset and component_names.symmetric_difference(api_names)
         ):
             return False
 
@@ -78,12 +83,13 @@ class APIGenSpecValidator(BaseValidatorBlock):
                 [
                     k
                     for k in component.keys()
-                    if k not in ([_NAME, _ARGS] + ([_LABEL] if require_nested else []))
+                    if k
+                    not in ([_NAME, _ARGS] + ([_LABEL] if input.require_nested else []))
                 ]
             ):
                 return False
 
-            if intent_only:
+            if input.intent_only:
 
                 # intent detection should not have arguments
                 if _ARGS in component:
@@ -94,7 +100,7 @@ class APIGenSpecValidator(BaseValidatorBlock):
 
             # since we've checked that each component has an associated api, we can just grab the first (should be identical)
             matching_api = next(
-                api for api in api_info.values() if api[_NAME] == component[_NAME]
+                api for api in input.api_info.values() if api[_NAME] == component[_NAME]
             )
             matching_api_args = (
                 matching_api[_PARAM][_PROPERTIES]
@@ -112,7 +118,7 @@ class APIGenSpecValidator(BaseValidatorBlock):
                 jsonschema.exceptions.SchemaError,
             ) as e:
                 # if error is about a var label, e.g., $var1, then ignore error. Otherwise, raise error
-                if not (require_nested and str(e).startswith("'$")):
+                if not (input.require_nested and str(e).startswith("'$")):
                     return False
 
             # now do individual arg checking
@@ -122,20 +128,22 @@ class APIGenSpecValidator(BaseValidatorBlock):
                 if not arg_name in matching_api_args:
                     return False
 
-                is_nested_call = require_nested and is_nested_match(
-                    arg_content, sep_components[:i], api_info
+                is_nested_call = input.require_nested and is_nested_match(
+                    arg_content, sep_components[:i], input.api_info
                 )
                 has_nested = is_nested_call or has_nested
 
                 # handle the case where slot values are not mentioned in the question
                 if (
-                    check_arg_question_overlap
+                    input.check_arg_question_overlap
                     and not is_nested_call
-                    and str(arg_content).lower() not in question.lower()
+                    and str(arg_content).lower() not in input.question.lower()
                 ):
                     return False
 
-        return (require_nested and has_nested) or not (require_nested or has_nested)
+        return (input.require_nested and has_nested) or not (
+            input.require_nested or has_nested
+        )
 
 
 def is_nested_match(arg_content: str, prev_components: List[Dict], api_info: Dict):
@@ -164,5 +172,7 @@ def is_nested_match(arg_content: str, prev_components: List[Dict], api_info: Dic
 class ApiGenSpecYesNoValidation(APIGenSpecValidator):
     """Class for API Intent Detection Validator"""
 
-    def _validate(self, api_info: dict, question: str, answer: str) -> bool:
-        return answer in ["YES", "NO"]
+    DATA_TYPE = APIValidatorData
+
+    def _validate(self, input: APIValidatorData) -> bool:
+        return input.answer in ["YES", "NO"]

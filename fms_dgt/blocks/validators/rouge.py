@@ -1,10 +1,11 @@
 # Standard
+from dataclasses import dataclass
 from functools import partial
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 # Local
 from fms_dgt.base.registry import register_block
-from fms_dgt.blocks.validators import BaseValidatorBlock
+from fms_dgt.blocks.validators import BaseValidatorBlock, BaseValidatorBlockData
 from fms_dgt.constants import DATASET_TYPE
 
 try:
@@ -14,9 +15,16 @@ except ModuleNotFoundError:
     pass
 
 
+@dataclass
+class RougeDedupData(BaseValidatorBlockData):
+    input: str
+
+
 @register_block("rouge_scorer")
 class RougeDedupValidator(BaseValidatorBlock):
     """Base Class for all Validators"""
+
+    DATA_TYPE = RougeDedupData
 
     def __init__(self, threshold: float = 1.1, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -41,11 +49,9 @@ class RougeDedupValidator(BaseValidatorBlock):
 
     def execute(
         self,
-        inputs: DATASET_TYPE,
+        inputs: Iterable[RougeDedupData],
         *,
         context: Optional[List[str]] = None,
-        fields: Optional[Union[List, Dict]] = None,
-        result_field: Optional[List[str]] = None,
     ):
         """Deduplicator that removes elements of `inputs` that are too rouge-similar. By default it will pick the one that is maximally dissimilar from `context` to keep"""
 
@@ -55,9 +61,7 @@ class RougeDedupValidator(BaseValidatorBlock):
         tokenized = []
         for inp in inputs:
             # TODO: Safety check this
-            inp_vals = self.get_args_kwargs(inp, fields)
-            inp_str = list(inp_vals.values())[0]
-            tokenized.append((self.tokenize(inp_str), inp))
+            tokenized.append((self.tokenize(inp.input), inp))
 
         # first score inputs by rouge similarity to context
         ranked_inputs = []

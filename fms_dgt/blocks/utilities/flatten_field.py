@@ -1,33 +1,36 @@
 # Standard
-from typing import Dict, List, Optional, Union
+from dataclasses import dataclass
+from typing import Any, Dict, Iterable, List, Optional, Union
 import copy
 
 # Local
-from fms_dgt.base.block import DATASET_TYPE, BaseBlock
+from fms_dgt.base.block import DATASET_TYPE, BaseBlock, BaseBlockData
 from fms_dgt.base.registry import register_block
+
+
+@dataclass
+class FlattenFieldData(BaseBlockData):
+    to_flatten: Any
+    flattened: Optional[Any] = None
+
+    def __post_init__(self):
+        if self.flattened is None:
+            self.flattened = []
 
 
 @register_block("flatten_field")
 class FlattenField(BaseBlock):
     """Flatten specified args"""
 
-    def execute(
-        self,
-        inputs: DATASET_TYPE,
-        *,
-        fields: Optional[Union[List, Dict]] = None,
-        result_field: Optional[str] = None,
-    ):
-        fields = fields or self._fields or []
+    DATA_TYPE = FlattenFieldData
 
-        assert len(fields) == 1, f"{self.__class__.__name__} can only have 1 field!"
+    def execute(self, inputs: Iterable[FlattenFieldData]):
 
         outputs = []
         for x in inputs:
-            to_flatten = list(self.get_args_kwargs(x, fields).values())[0]
-            to_flatten = to_flatten if type(to_flatten) == list else [to_flatten]
+            to_flatten = x.to_flatten if type(x.to_flatten) == list else [x.to_flatten]
             for el in to_flatten:
                 outputs.append(copy.copy(x))
-                self.write_result(outputs[-1], el, result_field)
+                x.flattened.append(el)
 
         return outputs
