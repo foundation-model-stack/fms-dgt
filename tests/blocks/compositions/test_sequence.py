@@ -1,5 +1,9 @@
+# Standard
+from dataclasses import dataclass
+from typing import Any, Iterable
+
 # Local
-from fms_dgt.base.block import DATASET_TYPE, BaseBlock
+from fms_dgt.base.block import BaseBlock, BaseBlockData
 from fms_dgt.blocks.compositions.sequence import BlockSequence
 
 
@@ -7,40 +11,34 @@ def test_flatten():
     flatten_cfg1 = {
         "name": "f1",
         "type": "flatten_field",
-        "fields": ["arg"],
-        "result_field": "arg",
     }
     flatten_cfg2 = {
         "name": "f2",
         "type": "flatten_field",
-        "fields": ["arg"],
-        "result_field": "arg",
     }
     cfgs = [flatten_cfg1, flatten_cfg2]
     block_sequence = BlockSequence(
         blocks=cfgs,
         block_order=["f1", "f2"],
+        input_maps=[None, {"flattened": "to_flatten"}],
     )
-    data = [{"arg": [[1, 2, 3], [4, 5, 6]]}]
+    data = [{"to_flatten": [[1, 2, 3], [4, 5, 6]]}]
     outputs = block_sequence(data)
+
     for i in range(1, 7):
         assert (
-            outputs[i - 1]["arg"] == i
-        ), f"Expected {i} but got {outputs[i-1]['arg']} at position {i-1}"
+            outputs[i - 1]["flattened"] == i
+        ), f"Expected {i} but got {outputs[i-1]['flattened']} at position {i-1}"
 
 
 def test_args_kwargs():
     flatten_cfg1 = {
         "name": "f1",
         "type": "flatten_field",
-        "fields": ["arg"],
-        "result_field": "arg",
     }
     flatten_cfg2 = {
         "name": "f2",
         "type": "flatten_field",
-        "fields": ["arg"],
-        "result_field": "arg",
     }
     block_sequence = BlockSequence(
         blocks=[TestBlock(**flatten_cfg1), TestBlock(**flatten_cfg2)],
@@ -69,14 +67,21 @@ def test_args_kwargs():
     ), f"Incorrect output, expected {expected} but got {outputs}"
 
 
+@dataclass
+class TestBlockDataType(BaseBlockData):
+    input: Any
+
+
 class TestBlock(BaseBlock):
     """Flatten specified args"""
 
-    def execute(self, inputs: DATASET_TYPE, arg1: int, kwarg1: int = None):
+    DATA_TYPE = TestBlockDataType
+
+    def execute(
+        self, inputs: Iterable[TestBlockDataType], arg1: int, kwarg1: int = None
+    ):
         outputs = []
         for x in inputs:
-            inp_args = self.get_args_kwargs(x, self._fields)
-            to_write = (arg1, kwarg1) if arg1 or kwarg1 else inp_args
-            self.write_result(x, to_write)
+            x.input = (arg1, kwarg1) if arg1 or kwarg1 else x.input
             outputs.append(x)
         return outputs

@@ -13,10 +13,6 @@ class FlattenFieldData(BaseBlockData):
     to_flatten: Any
     flattened: Optional[Any] = None
 
-    def __post_init__(self):
-        if self.flattened is None:
-            self.flattened = []
-
 
 @register_block("flatten_field")
 class FlattenField(BaseBlock):
@@ -25,12 +21,11 @@ class FlattenField(BaseBlock):
     DATA_TYPE = FlattenFieldData
 
     def execute(self, inputs: Iterable[FlattenFieldData]):
-
         outputs = []
         for x in inputs:
             to_flatten = x.to_flatten if type(x.to_flatten) == list else [x.to_flatten]
             for el in to_flatten:
-                outputs.append(copy.copy(x))
-                x.flattened.append(el)
-
+                new_x = copy.deepcopy(x)
+                new_x.flattened = el
+                outputs.append(new_x)
         return outputs

@@ -146,16 +146,17 @@ class BaseBlock(ABC):
         return self._datastore
 
     def _init_dclass_args(self):
-        self._req_args = [
-            f.name
-            for f in dataclasses.fields(self.DATA_TYPE)
-            if type(f.default) == type(dataclasses.MISSING) and f.name != "SRC_DATA"
-        ]
-        self._opt_args = [
-            f.name
-            for f in dataclasses.fields(self.DATA_TYPE)
-            if type(f.default) != type(dataclasses.MISSING)
-        ]
+        if self.DATA_TYPE is not None:
+            self._req_args = [
+                f.name
+                for f in dataclasses.fields(self.DATA_TYPE)
+                if type(f.default) == type(dataclasses.MISSING) and f.name != "SRC_DATA"
+            ]
+            self._opt_args = [
+                f.name
+                for f in dataclasses.fields(self.DATA_TYPE)
+                if type(f.default) != type(dataclasses.MISSING)
+            ]
 
     def save_data(self, data: DATASET_TYPE) -> None:
         def to_serializable(x):
@@ -210,18 +211,22 @@ class BaseBlock(ABC):
             data_type_map = {v: k for k, v in input_map.items()}
 
             mapped_data = {
-                **{r_a: inp.get(data_type_map.get(r_a)) for r_a in self._req_args},
+                **{
+                    r_a: inp.get(data_type_map.get(r_a))
+                    for r_a in self._req_args
+                    if data_type_map.get(r_a) in inp
+                },
                 **{
                     o_a: inp.get(data_type_map.get(o_a))
                     for o_a in self._opt_args
-                    if o_a in self._opt_args
+                    if data_type_map.get(o_a) in inp
                 },
             }
 
             missing = [r_a for r_a in self._req_args if r_a not in mapped_data]
             if missing:
                 raise ValueError(
-                    f"Required inputs {missing} are not provided in [input_map], instead got {mapped_data}"
+                    f"Required inputs {missing} are not provided in 'input_map'"
                 )
 
             return self.DATA_TYPE(**mapped_data, SRC_DATA=src_data)
@@ -230,7 +235,7 @@ class BaseBlock(ABC):
 
     def transform_output(
         self,
-        inp: DATA_TYPE,  # type: ignore
+        inp: BaseBlockData,  # type: ignore
         output_map: Dict,
     ) -> Dict:
         """Extracts the elements of the internal data type as specified by output_map
@@ -287,14 +292,14 @@ class BaseBlock(ABC):
         output_map = output_map or self._output_map
 
         transformed_inputs = map(lambda x: self.transform_input(x, input_map), inputs)
+        if isinstance(inputs, (list, tuple)):
+            transformed_inputs = type(inputs)(transformed_inputs)
 
         outputs = self.execute(transformed_inputs, *args, **kwargs)
 
         transformed_outputs = map(
             lambda x: self.transform_output(x, output_map), outputs
         )
-
-        # bring back list or tuple if that's what was passed in
         if isinstance(inputs, (list, tuple)):
             transformed_outputs = type(inputs)(transformed_outputs)
 

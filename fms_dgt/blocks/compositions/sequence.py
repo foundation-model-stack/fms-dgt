@@ -18,6 +18,8 @@ class BlockSequence(BaseBlock):
         block_order: List[str],
         *args,
         block_params: List[Dict] = None,
+        input_maps: List[Dict] = None,
+        output_maps: List[Dict] = None,
         **kwargs: Any,
     ) -> None:
         """Class for specifying a sequence of blocks, where the outputs of one block are immediately passed as input to the next block
@@ -29,15 +31,10 @@ class BlockSequence(BaseBlock):
         Kwargs:
             block_params (List[Dict], optional): A list of entries of the form [{'args': [arg_val1, arg_val2, ...], 'kwargs': {'kwarg1' : kwarg_val1, 'kwarg2' : kwarg_val2, ...}}, ...].
                 This list will be zipped together with the blocks specified in [block_order]. If this list is specified, it must be the SAME length as [block_order].
+            input_maps (List[Dict], optional): A list of mappings of field names from input objects to internal objects. If this list is specified, it must be the SAME length as [block_order].
+            output_maps (List[Dict], optional): A list of mappings of field names from internal objects to output objects. If this list is specified, it must be the SAME length as [block_order].
         """
         super().__init__(*args, **kwargs)
-
-        for attr in [self._arg_fields, self._kwarg_fields, self._result_field]:
-            if attr is not None:
-                sdg_logger.warning(
-                    "Field attribute is set but it will not be used in block '%s'",
-                    self.name,
-                )
 
         if len(
             set(
@@ -50,6 +47,8 @@ class BlockSequence(BaseBlock):
             raise ValueError(f"Duplicate block detected in blocks list [{blocks}]")
 
         self._block_params = block_params
+        self._input_maps = input_maps
+        self._output_maps = output_maps
         self._block_order = block_order
 
         self._blocks_map: Dict[str, BaseBlock] = {
@@ -91,22 +90,40 @@ class BlockSequence(BaseBlock):
 
         return block_params
 
+    def __call__(self, *args, **kwargs) -> DATASET_TYPE:
+        return self.execute(*args, **kwargs)
+
     def execute(
-        self, inputs: DATASET_TYPE, block_params: List[Dict] = None
+        self,
+        inputs: DATASET_TYPE,
+        block_params: List[Dict] = None,
+        input_maps: List[Dict] = None,
+        output_maps: List[Dict] = None,
     ) -> DATASET_TYPE:
         """_summary_
 
         Args:
             inputs (DATASET_TYPE): Data to process with blocks.
+
+        Kwargs:
             block_params (List[Dict], optional): Override for self._block_params, i.e., block_params specified in the __init__.
+            input_maps (List[Dict], optional): Override for self._input_maps, i.e., input_maps specified in the __init__.
+            output_maps (List[Dict], optional): Override for self._output_maps, i.e., output_maps specified in the __init__.
 
         Returns:
             DATASET_TYPE: Data that has been passed through all blocks.
         """
+
         block_params = self._get_block_params(block_params)
+        input_maps = input_maps or self._input_maps or [None for _ in self._block_order]
+        output_maps = (
+            output_maps or self._output_maps or [None for _ in self._block_order]
+        )
 
         block_data = inputs
-        for block_name, args_kwargs in zip(self._block_order, block_params):
+        for block_name, args_kwargs, input_map, output_map in zip(
+            self._block_order, block_params, input_maps, output_maps
+        ):
 
             sdg_logger.info("Running block %s", block_name)
 
@@ -115,6 +132,8 @@ class BlockSequence(BaseBlock):
             args = args_kwargs.get("args", [])
             kwargs = args_kwargs.get("kwargs", dict())
 
-            block_data = block(block_data, *args, **kwargs)
+            block_data = block(
+                block_data, *args, input_map=input_map, output_map=output_map, **kwargs
+            )
 
         return block_data
