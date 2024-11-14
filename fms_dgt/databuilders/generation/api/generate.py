@@ -73,7 +73,8 @@ class ApiDataBuilder(DataBuilder):
                 )
                 inp = {
                     "prompt": prompt,
-                    "gen_kwargs": {"stop_sequences": [f"API:"], "data": new_instr},
+                    "gen_kwargs": {"stop_sequences": [f"API:"]},
+                    "data": new_instr,
                 }
                 gen_inputs.append(inp)
 
@@ -166,7 +167,7 @@ class ApiDataBuilder(DataBuilder):
         for new_data in data_to_filter:
             # computing similarity with the pre-tokenized instructions
             inp = {
-                "to_check": new_data.input,
+                "input": new_data.input,
                 "data": new_data,
             }
             val2_inputs.append(inp)
@@ -174,12 +175,7 @@ class ApiDataBuilder(DataBuilder):
         # filter rouge data
         outputs = [
             output["data"]
-            for output in self.val2(
-                val2_inputs,
-                context=all_instructions,
-                arg_fields=["to_check"],
-                result_field="output",
-            )
+            for output in self.val2(val2_inputs, context=all_instructions)
         ]
 
         discarded = len(val2_inputs) - len(outputs)

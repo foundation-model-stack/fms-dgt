@@ -102,17 +102,10 @@ class RougeDedupValidator(BaseValidatorBlock):
             check_against = all_tokens[:i]
             res = self._validate(new_tokens, check_against) and is_valid_wrt_context
             if res or not self._filter_invalids:
-                self.write_result(inp, res, result_field)
                 outputs.append(inp)
 
             if not res:
-                inp_kwargs = self.get_args_kwargs(inp, fields)
-                to_save.append(
-                    {
-                        **inp_kwargs,
-                        result_field: res,
-                    }
-                )
+                to_save.append(inp)
 
         self.save_data(to_save)
 

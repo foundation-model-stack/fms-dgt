@@ -34,7 +34,7 @@ class BaseBlockData:
 class BaseBlock(ABC):
     """Base Class for all Blocks"""
 
-    DATA_TYPE = BaseBlockData
+    DATA_TYPE: BaseBlockData = None
 
     def __init__(
         self,
@@ -182,9 +182,9 @@ class BaseBlock(ABC):
 
     def transform_input(
         self,
-        inp: Union[DATASET_ROW_TYPE, DATA_TYPE],
+        inp: Union[DATASET_ROW_TYPE, DATA_TYPE],  # type: ignore
         input_map: Dict,
-    ) -> DATA_TYPE:
+    ) -> DATA_TYPE:  # type: ignore
         """Extracts the elements of the input as specified by map
 
         Args:
@@ -230,7 +230,7 @@ class BaseBlock(ABC):
 
     def transform_output(
         self,
-        inp: DATA_TYPE,
+        inp: DATA_TYPE,  # type: ignore
         output_map: Dict,
     ) -> Dict:
         """Extracts the elements of the internal data type as specified by output_map
@@ -242,24 +242,24 @@ class BaseBlock(ABC):
         Returns:
             Dict: A dictionary containing the result of the mapping.
         """
-        src_data = inp.SRC_DATA
 
         # if none is provided, assume it maps to the input
         if output_map is None:
             output_map = {f.name: f.name for f in dataclasses.fields(self.DATA_TYPE)}
 
-        if is_dataclass(src_data):
+        if is_dataclass(inp.SRC_DATA):
             for k, v in output_map.items():
-                if hasattr(src_data, v):
-                    setattr(src_data, v, getattr(inp, k))
-        elif isinstance(inp, (dict, pd.DataFrame, Dataset)):
+                # since a dataclass will throw an error, only try to add attributes if original data type has them
+                if hasattr(inp.SRC_DATA, v):
+                    setattr(inp.SRC_DATA, v, getattr(inp, k))
+        elif isinstance(inp.SRC_DATA, (dict, pd.DataFrame, Dataset)):
             # TODO: handle things other than dictionaries
             for k, v in output_map.items():
-                src_data[v] = getattr(inp, k)
+                inp.SRC_DATA[v] = getattr(inp, k)
         else:
             raise TypeError(f"Unexpected input type: {type(inp)}")
 
-        return src_data
+        return inp.SRC_DATA
 
     def generate(self, *args, **kwargs) -> DATASET_TYPE:  # for interfacing with IL
         """Method used to have compatibility with IL
@@ -286,11 +286,19 @@ class BaseBlock(ABC):
         input_map = input_map or self._input_map
         output_map = output_map or self._output_map
 
-        inputs = map(lambda x: self.transform_input(x, input_map), inputs)
-        exec_results = self.execute(inputs, *args, **kwargs)
-        outputs = map(lambda x: self.transform_output(x, output_map), exec_results)
+        transformed_inputs = map(lambda x: self.transform_input(x, input_map), inputs)
 
-        return outputs
+        outputs = self.execute(transformed_inputs, *args, **kwargs)
+
+        transformed_outputs = map(
+            lambda x: self.transform_output(x, output_map), outputs
+        )
+
+        # bring back list or tuple if that's what was passed in
+        if isinstance(inputs, (list, tuple)):
+            transformed_outputs = type(inputs)(transformed_outputs)
+
+        return transformed_outputs
 
     @abstractmethod
     def execute(

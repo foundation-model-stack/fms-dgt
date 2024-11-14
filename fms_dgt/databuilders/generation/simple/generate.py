@@ -113,7 +113,7 @@ class SimpleInstructDataBuilder(DataBuilder):
         for instruction_data_entry in llm_data:
             # computing similarity with the pre-tokenized instructions
             inp = {
-                "to_check": instruction_data_entry.instruction,
+                "input": instruction_data_entry.instruction,
                 "data": instruction_data_entry,
             }
             val_inputs.append(inp)
