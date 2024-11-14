@@ -99,11 +99,13 @@ class RougeDedupValidator(BaseValidatorBlock):
         for i, (_, is_valid_wrt_context, new_tokens, inp) in enumerate(ranked_inputs):
             # only check against elements we've already added
             check_against = all_tokens[:i]
-            res = self._validate(new_tokens, check_against) and is_valid_wrt_context
-            if res or not self._filter_invalids:
+            inp.is_valid = (
+                self._validate(new_tokens, check_against) and is_valid_wrt_context
+            )
+            if inp.is_valid or not self._filter_invalids:
                 outputs.append(inp)
 
-            if not res:
+            if not inp.is_valid:
                 to_save.append(inp)
 
         self.save_data(to_save)

@@ -230,9 +230,9 @@ class BaseBlock(ABC):
                     f"Required inputs {missing} are not provided in 'input_map'"
                 )
 
-            return self.DATA_TYPE(**mapped_data, SRC_DATA=inp_obj)
+            return self.DATA_TYPE(**mapped_data, SRC_DATA=inp)
 
-        raise TypeError(f"Unexpected input type: {type(inp_obj)}")
+        raise TypeError(f"Unexpected input type: {type(inp)}")
 
     def transform_output(
         self,
