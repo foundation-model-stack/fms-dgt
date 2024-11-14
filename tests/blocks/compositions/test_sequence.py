@@ -48,10 +48,10 @@ def test_args_kwargs():
             {"args": [3], "kwargs": {"kwarg1": 4}},
         ],
     )
-    data = [{"arg": [[1, 2, 3], [4, 5, 6]]}]
-    outputs = block_sequence(data)
 
-    expected = [{"arg": (3, 4)}]
+    data = [{"input": [[1, 2, 3], [4, 5, 6]]}]
+    outputs = block_sequence(data)
+    expected = [{"input": (3, 4)}]
     assert (
         outputs == expected
     ), f"Incorrect output, expected {expected} but got {outputs}"
@@ -61,7 +61,7 @@ def test_args_kwargs():
         {"args": [7], "kwargs": {"kwarg1": 8}},
     ]
     outputs = block_sequence(data, block_params)
-    expected = [{"arg": (7, 8)}]
+    expected = [{"input": (7, 8)}]
     assert (
         outputs == expected
     ), f"Incorrect output, expected {expected} but got {outputs}"

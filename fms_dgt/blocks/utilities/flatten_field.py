@@ -1,10 +1,10 @@
 # Standard
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Iterable, Optional
 import copy
 
 # Local
-from fms_dgt.base.block import DATASET_TYPE, BaseBlock, BaseBlockData
+from fms_dgt.base.block import BaseBlock, BaseBlockData
 from fms_dgt.base.registry import register_block
 
 

@@ -78,6 +78,7 @@ class BaseBlock(ABC):
 
         self._input_map = input_map
         self._output_map = output_map
+        self._req_args, self._opt_args = None, None
         self._init_dclass_args()
 
         # datastore params
@@ -196,30 +197,30 @@ class BaseBlock(ABC):
             Dict: A dictionary containing the result of the mapping.
         """
 
-        src_data = inp
+        inp_obj = asdict(inp) if is_dataclass(inp) else inp
 
-        if is_dataclass(inp):
-            inp = asdict(inp)
-
-        if isinstance(inp, (dict, pd.DataFrame, Dataset)):
+        if isinstance(inp_obj, (dict, pd.DataFrame, Dataset)):
 
             # if nothing is provided, assume input matches
-            if input_map is None:
+            if input_map is None and self.DATA_TYPE:
                 input_map = {arg: arg for arg in self._req_args + self._opt_args}
+            elif input_map is None and self.DATA_TYPE is None:
+                # in this case, we assume the user wants to process their data as-is
+                return inp_obj
 
             # NOTE: we flip this here because from a DGT pipeline, the input map goes from UserData -> BlockData
             data_type_map = {v: k for k, v in input_map.items()}
 
             mapped_data = {
                 **{
-                    r_a: inp.get(data_type_map.get(r_a))
+                    r_a: inp_obj.get(data_type_map.get(r_a))
                     for r_a in self._req_args
-                    if data_type_map.get(r_a) in inp
+                    if data_type_map.get(r_a) in inp_obj
                 },
                 **{
-                    o_a: inp.get(data_type_map.get(o_a))
+                    o_a: inp_obj.get(data_type_map.get(o_a))
                     for o_a in self._opt_args
-                    if data_type_map.get(o_a) in inp
+                    if data_type_map.get(o_a) in inp_obj
                 },
             }
 
@@ -229,9 +230,9 @@ class BaseBlock(ABC):
                     f"Required inputs {missing} are not provided in 'input_map'"
                 )
 
-            return self.DATA_TYPE(**mapped_data, SRC_DATA=src_data)
+            return self.DATA_TYPE(**mapped_data, SRC_DATA=inp_obj)
 
-        raise TypeError(f"Unexpected input type: {type(inp)}")
+        raise TypeError(f"Unexpected input type: {type(inp_obj)}")
 
     def transform_output(
         self,
@@ -248,9 +249,17 @@ class BaseBlock(ABC):
             Dict: A dictionary containing the result of the mapping.
         """
 
+        if output_map is None and self.DATA_TYPE is None:
+            # in this case, we assume the user wants to process their data as-is
+            return inp
+
         # if none is provided, assume it maps to the input
         if output_map is None:
-            output_map = {f.name: f.name for f in dataclasses.fields(self.DATA_TYPE)}
+            output_map = {
+                f.name: f.name
+                for f in dataclasses.fields(self.DATA_TYPE)
+                if f.name != "SRC_DATA"
+            }
 
         if is_dataclass(inp.SRC_DATA):
             for k, v in output_map.items():

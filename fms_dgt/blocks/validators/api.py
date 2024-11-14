@@ -1,10 +1,10 @@
 # Standard
-from dataclasses import dataclass
 from typing import Dict, List
 import json
 
 # Third Party
 from openapi_schema_validator import validate
+from pydantic.dataclasses import dataclass
 import jsonschema
 
 # Local
@@ -23,7 +23,7 @@ _OUTPUT_PARAM = "output_parameters"
 # Classes
 
 
-@dataclass
+@dataclass(kw_only=True)
 class APIValidatorData(BaseValidatorBlockData):
     api_info: dict
     question: str
@@ -42,7 +42,6 @@ class APIGenSpecValidator(BaseValidatorBlock):
     DATA_TYPE = APIValidatorData
 
     def _validate(self, input: APIValidatorData) -> bool:
-
         try:
             sep_components = json.loads(input.answer)
         except json.decoder.JSONDecodeError as e:
@@ -171,8 +170,6 @@ def is_nested_match(arg_content: str, prev_components: List[Dict], api_info: Dic
 @register_block("api_yes_no")
 class ApiGenSpecYesNoValidation(APIGenSpecValidator):
     """Class for API Intent Detection Validator"""
-
-    DATA_TYPE = APIValidatorData
 
     def _validate(self, input: APIValidatorData) -> bool:
         return input.answer in ["YES", "NO"]

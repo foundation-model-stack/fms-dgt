@@ -7,7 +7,7 @@ from fms_dgt.base.registry import register_block
 from fms_dgt.blocks.validators import BaseValidatorBlock, BaseValidatorBlockData
 
 
-@dataclass
+@dataclass(kw_only=True)
 class AlwaysTrueBlockData(BaseValidatorBlockData):
     input: Any
 

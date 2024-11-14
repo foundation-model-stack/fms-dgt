@@ -1,12 +1,16 @@
 # Standard
 from abc import abstractmethod
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Iterable, Optional
+
+# Third Party
+from pydantic.dataclasses import dataclass
 
 # Local
 from fms_dgt.base.block import BaseBlock, BaseBlockData
 from fms_dgt.constants import DATASET_TYPE
 
 
+@dataclass
 class BaseValidatorBlockData(BaseBlockData):
     """Default class for base validator data"""
 
@@ -48,14 +52,12 @@ class BaseValidatorBlock(BaseBlock):
         """
         outputs, to_save = [], []
         for x in inputs:
-            res = self._validate(x)
-            if res or not self._filter_invalids:
+            x.is_valid = self._validate(x)
+            if x.is_valid or not self._filter_invalids:
                 outputs.append(x)
-            if not res:
+            if not x.is_valid:
                 to_save.append(x)
-
         self.save_data(to_save)
-
         return outputs
 
     @abstractmethod

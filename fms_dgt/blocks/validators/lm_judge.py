@@ -1,6 +1,6 @@
 # Standard
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List
 
 # Local
 from fms_dgt.base.registry import get_block, register_block
@@ -9,7 +9,7 @@ from fms_dgt.blocks.validators import BaseValidatorBlock, BaseValidatorBlockData
 from fms_dgt.constants import TYPE_KEY
 
 
-@dataclass
+@dataclass(kw_only=True)
 class LMJudgeData(BaseValidatorBlockData, LMBlockData):
     success_func: Callable
 

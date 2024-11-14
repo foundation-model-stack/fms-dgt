@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
-@dataclass
+@dataclass(kw_only=True)
 class SQLValidatorData(BaseValidatorBlockData):
     record: Dict[str, str]
     sql_dialect: str = "postgres"

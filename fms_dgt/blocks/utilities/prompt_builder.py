@@ -1,6 +1,6 @@
 # Standard
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Optional, Union
+from typing import Iterable, Optional
 
 # Local
 from fms_dgt.base.block import DATASET_TYPE, BaseBlock, BaseBlockData

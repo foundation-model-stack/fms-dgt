@@ -1,12 +1,11 @@
 # Standard
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Iterable, List, Optional, Union
 
 # Local
 from fms_dgt.base.registry import register_block
 from fms_dgt.blocks.validators import BaseValidatorBlock, BaseValidatorBlockData
-from fms_dgt.constants import DATASET_TYPE
 
 try:
     # Third Party
@@ -15,7 +14,7 @@ except ModuleNotFoundError:
     pass
 
 
-@dataclass
+@dataclass(kw_only=True)
 class RougeDedupData(BaseValidatorBlockData):
     input: str
 

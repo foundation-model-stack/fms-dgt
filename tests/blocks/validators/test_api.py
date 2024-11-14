@@ -46,13 +46,8 @@ def test_single_intent():
             **single_intent_kwargs,
         }
     ]
-    validator(
-        test_instance,
-        arg_fields=["api_info", "question", "answer"],
-        kwarg_fields=list(single_intent_kwargs.keys()),
-        result_field="result",
-    )
-    assert test_instance[0]["result"]
+    validator(test_instance)
+    assert test_instance[0]["is_valid"]
 
 
 def test_multi_intent():
@@ -73,13 +68,8 @@ def test_multi_intent():
             **multi_intent_kwargs,
         }
     ]
-    validator(
-        test_instance,
-        arg_fields=["api_info", "question", "answer"],
-        kwarg_fields=list(multi_intent_kwargs.keys()),
-        result_field="result",
-    )
-    assert test_instance[0]["result"]
+    validator(test_instance)
+    assert test_instance[0]["is_valid"]
 
 
 def test_parallel_single():
@@ -101,13 +91,8 @@ def test_parallel_single():
             **parallel_kwargs,
         }
     ]
-    validator(
-        test_instance,
-        arg_fields=["api_info", "question", "answer"],
-        kwarg_fields=list(parallel_kwargs.keys()),
-        result_field="result",
-    )
-    assert test_instance[0]["result"]
+    validator(test_instance)
+    assert test_instance[0]["is_valid"]
 
     func_calls = [
         {"name": "add", "arguments": {"n1": 3}},
@@ -124,14 +109,9 @@ def test_parallel_single():
             **parallel_kwargs,
         }
     ]
-    validator(
-        test_instance,
-        arg_fields=["api_info", "question", "answer"],
-        kwarg_fields=list(parallel_kwargs.keys()),
-        result_field="result",
-    )
+    validator(test_instance)
     assert not test_instance[0][
-        "result"
+        "is_valid"
     ], "Validator should have failed due to required args!"
 
 
@@ -161,13 +141,8 @@ def test_parallel_multiple():
             "check_arg_question_overlap": False,
         }
     ]
-    validator(
-        test_instance,
-        arg_fields=["api_info", "question", "answer"],
-        kwarg_fields=list(parallel_kwargs.keys()) + ["check_arg_question_overlap"],
-        result_field="result",
-    )
-    assert test_instance[0]["result"]
+    validator(test_instance)
+    assert test_instance[0]["is_valid"]
 
     # parallel multiple invalid args
     func_calls = [
@@ -185,13 +160,8 @@ def test_parallel_multiple():
             **parallel_kwargs,
         }
     ]
-    validator(
-        test_instance,
-        arg_fields=["api_info", "question", "answer"],
-        kwarg_fields=list(parallel_kwargs.keys()),
-        result_field="result",
-    )
-    assert not test_instance[0]["result"]
+    validator(test_instance)
+    assert not test_instance[0]["is_valid"]
 
     # parallel multiple
 
@@ -210,14 +180,9 @@ def test_parallel_multiple():
             **parallel_kwargs,
         }
     ]
-    validator(
-        test_instance,
-        arg_fields=["api_info", "question", "answer"],
-        kwarg_fields=list(parallel_kwargs.keys()),
-        result_field="result",
-    )
+    validator(test_instance)
     assert not test_instance[0][
-        "result"
+        "is_valid"
     ], "Validator should have failed due to arg content not being in question!"
 
 
@@ -244,13 +209,8 @@ def test_parallel_nested():
             **parallel_nested_kwargs,
         }
     ]
-    validator(
-        test_instance,
-        arg_fields=["api_info", "question", "answer"],
-        kwarg_fields=list(parallel_nested_kwargs.keys()),
-        result_field="result",
-    )
-    assert test_instance[0]["result"]
+    validator(test_instance)
+    assert test_instance[0]["is_valid"]
 
     func_calls = [
         {"name": "add", "arguments": {"n1": 3, "n2": 4}},
@@ -267,14 +227,9 @@ def test_parallel_nested():
             **parallel_nested_kwargs,
         }
     ]
-    validator(
-        test_instance,
-        arg_fields=["api_info", "question", "answer"],
-        kwarg_fields=list(parallel_nested_kwargs.keys()),
-        result_field="result",
-    )
+    validator(test_instance)
     assert not test_instance[0][
-        "result"
+        "is_valid"
     ], "Validator should have failed due to arg content not being in question!"
 
 
@@ -290,12 +245,8 @@ def test_yes_no():
                 "answer": arg_inp,
             }
         ]
-        validator(
-            test_instance,
-            arg_fields=["api_info", "question", "answer"],
-            result_field="result",
-        )
-        assert test_instance[0]["result"] == (arg_inp in ["YES", "NO"])
+        validator(test_instance)
+        assert test_instance[0]["is_valid"] == (arg_inp in ["YES", "NO"])
 
 
 TEST_APIS = {
