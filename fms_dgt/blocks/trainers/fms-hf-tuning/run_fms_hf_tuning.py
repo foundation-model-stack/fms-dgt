@@ -9,7 +9,7 @@ from fms_dgt.base.registry import register_block
 from fms_dgt.blocks.trainers import BaseTrainerBlock
 from fms_dgt.blocks.trainers.trainer import TrainingException, make_model_dir
 from fms_dgt.constants import DATASET_TYPE
-from fms_dgt.utils import get_one_line_from_process, sdg_logger
+from fms_dgt.utils import get_one_line_from_process, get_open_port, sdg_logger
 
 ###
 # Trainer itself
@@ -35,6 +35,8 @@ class FmsTuningBlock(BaseTrainerBlock):
         model_id_or_path: str,
         output_dir: str,
         data_to_format: List[Tuple[DATASET_TYPE, Dict]],
+        host: str = "0.0.0.0",
+        port: int = None,
     ) -> str:
 
         model_dir = make_model_dir(output_dir)
@@ -42,9 +44,17 @@ class FmsTuningBlock(BaseTrainerBlock):
         data_path = os.path.join(output_dir, "dataset", "data.jsonl")
         self.set_dataset(data_to_format, data_path)
 
+        port = get_open_port(host) if port is None else port
+
         cmd = [
             (
-                ["accelerate", "launch", f"--multi_gpu"]
+                [
+                    "accelerate",
+                    "launch",
+                    f"--multi_gpu",
+                    "--main_process_port",
+                    port,
+                ]
                 if self._num_gpus > 1
                 else ["python"]
             ),
@@ -55,6 +65,22 @@ class FmsTuningBlock(BaseTrainerBlock):
             ["--model_name_or_path", model_id_or_path],
             ["--training_data_path", data_path],
             ["--output_dir", model_dir],
+            # LORA PARAMS
+            ["--use_flash_attn", "true"],
+            [
+                "--target_modules",
+                "q_proj",
+                "k_proj",
+                "v_proj",
+                "o_proj",
+                "up_proj",
+                "down_proj",
+                "gate_proj",
+            ],
+            ["--lora_alpha", 32],
+            ["--lora_dropout", 0.1],
+            ["--peft_method", "lora"],
+            #
         ] + [[f"--{k}", v] for k, v in self._training_args.items()]
 
         cmd = [str(x) for entry in cmd for x in entry]

@@ -15,7 +15,6 @@ import torch
 
 # Local
 from fms_dgt.base.block import BaseBlock
-from fms_dgt.base.datastore import BaseDatastore
 from fms_dgt.constants import DATASET_TYPE
 from fms_dgt.utils import sdg_logger
 
@@ -34,14 +33,19 @@ class BaseTrainerBlock(BaseBlock):
         self,
         config_path: str = None,
         num_gpus: int = None,
-        learning_rate: float = 0.0001,
         logging_steps: int = 100,
         save_steps: int = 50,
         per_device_train_batch_size: int = 1,
-        gradient_accumulation_steps: int = 1,
-        max_steps: int = 100,
+        gradient_accumulation_steps: int = 8,
+        max_steps: int = None,
+        num_train_epochs: int = 1,
         log_level: str = "debug",
         save_total_limit: int = 1,
+        # known good settings
+        max_seq_length: int = 4096,
+        torch_dtype: str = "bfloat16",
+        optim: str = "adamw_torch_fused",
+        optim_args: str = "lr=5.0e-5,weight_decay=0.1,eps=1e-10",
         **kwargs: Any,
     ) -> None:
         """Initialize a trainer that trains a model on a dataset input.
@@ -56,14 +60,19 @@ class BaseTrainerBlock(BaseBlock):
         self._num_gpus = torch.cuda.device_count() if num_gpus is None else num_gpus
 
         training_args = {
-            "learning_rate": learning_rate,
             "logging_steps": logging_steps,
             "save_steps": save_steps,
             "per_device_train_batch_size": per_device_train_batch_size,
             "gradient_accumulation_steps": gradient_accumulation_steps,
             "max_steps": max_steps,
+            "num_train_epochs": num_train_epochs,
             "save_total_limit": save_total_limit,
             "log_level": log_level,
+            # known good settings
+            "max_seq_length": max_seq_length,
+            "torch_dtype": torch_dtype,
+            "optim": optim,
+            "optim_args": optim_args,
         }
         self._training_args = {k: v for k, v in training_args.items() if v is not None}
 
