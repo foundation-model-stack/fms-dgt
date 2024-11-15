@@ -290,11 +290,16 @@ class BaseBlock(ABC):
         output_map: Optional[Union[List, Dict]] = None,
         **kwargs,
     ) -> DATASET_TYPE:
-        """The generate function is the primary interface to a Block. Internally, it calls the `execute` method which contains the logic of the block.
+        """The __call__ function is the primary interface to a Block. Internally, it calls the `execute` method which contains the logic of the block.
             This function exists to have meta-processes (e.g., logging) that wrap around the core logic of a block
 
+        Args:
+            inputs (DATASET_TYPE): Dataset to be processed by 'execute' method of block.
+            input_map (Optional[Union[List, Dict]], optional): Mapping applied to each row of dataset that will convert row to instance of self.DATA_TYPE.
+            output_map (Optional[Union[List, Dict]], optional): Mapping applied to each instance of self.DATA_TYPE that will convert instance back into row of dataset.
+
         Returns:
-            DATASET_TYPE: Dataset resulting from processing contained in execute function
+            DATASET_TYPE: Dataset resulting from processing contained in execute function.
         """
         input_map = input_map or self._input_map
         output_map = output_map or self._output_map
