@@ -1,7 +1,7 @@
 # Standard
 from collections import ChainMap
 from pathlib import Path
-from typing import Any, Dict, List, Type, TypeVar, Union
+from typing import Any, Dict, List, Tuple, Type, TypeVar, Union
 import copy
 import fnmatch
 import glob
@@ -9,6 +9,7 @@ import importlib.util
 import json
 import logging
 import os
+import socket
 
 # Third Party
 import pandas as pd
@@ -28,6 +29,21 @@ def is_module_installed(module_name: str):
     """Checks if a module is installed."""
     result = importlib.util.find_spec(module_name) is not None
     return result
+
+
+def get_open_port(host: str, address_range: Tuple[int, int] = (8000, 8100)):
+    for port in range(*address_range):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            sock.bind((host, port))
+            sock.close()
+            sdg_logger.info(f"Port [{port}] is available for host [{host}]")
+            return port
+        except Exception:
+            sock.close()
+    raise Exception(
+        f"Could not find available port for host [{host}] in address range {address_range}"
+    )
 
 
 def all_annotations(cls) -> ChainMap:
