@@ -350,7 +350,7 @@ class vLLMGenerator(LMGenerator):
 
     def _loglikelihood_tokens(
         self,
-        requests: List[Tuple[List[int], List[int], Instance]],
+        requests: List[Tuple[List[int], List[int], LMBlockData]],
         disable_tqdm: bool = False,
     ) -> List[float]:
         grouper = generator_utils.Grouper(requests, lambda x: str(x[-1].gen_kwargs))
