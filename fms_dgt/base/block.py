@@ -74,9 +74,10 @@ class BaseBlock(ABC):
         self._name = name
         self._block_type = type
 
+        # input / output maps
         self._input_map = input_map
         self._output_map = output_map
-        if self.DATA_TYPE is not None:
+        if not (self.DATA_TYPE is None or issubclass(self.DATA_TYPE, dict)):
             self._req_args = [
                 f.name
                 for f in dataclasses.fields(self.DATA_TYPE)
