@@ -47,7 +47,7 @@ class LMBlockData(BaseBlockData):
 class LMGenerator(BaseBlock):
     """Class for LLM Generators"""
 
-    DATA_TYPE = LMBlockData
+    DATA_TYPE: LMBlockData = LMBlockData
 
     GENERATE = "generate"
     LOGLIKELIHOOD = "loglikelihood"

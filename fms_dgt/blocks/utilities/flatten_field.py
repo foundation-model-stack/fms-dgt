@@ -18,7 +18,7 @@ class FlattenFieldData(BaseBlockData):
 class FlattenField(BaseBlock):
     """Flatten specified args"""
 
-    DATA_TYPE = FlattenFieldData
+    DATA_TYPE: FlattenFieldData = FlattenFieldData
 
     def execute(self, inputs: Iterable[FlattenFieldData]):
         outputs = []

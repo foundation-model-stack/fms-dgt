@@ -25,7 +25,7 @@ class SQLValidatorData(BaseValidatorBlockData):
 class SQLExecutionValidator(BaseValidatorBlock):
     """SQL execution validator."""
 
-    DATA_TYPE = SQLValidatorData
+    DATA_TYPE: SQLValidatorData = SQLValidatorData
 
     def _validate(self, input: SQLValidatorData, **kwargs: Any) -> bool:
         """Validate a record containing information on schema, query and utterance.

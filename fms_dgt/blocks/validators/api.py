@@ -39,7 +39,7 @@ class APIValidatorData(BaseValidatorBlockData):
 class APIGenSpecValidator(BaseValidatorBlock):
     """Class for API Sequence Prediction Validator"""
 
-    DATA_TYPE = APIValidatorData
+    DATA_TYPE: APIValidatorData = APIValidatorData
 
     def _validate(self, input: APIValidatorData) -> bool:
         try:

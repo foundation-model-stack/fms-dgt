@@ -18,7 +18,7 @@ class LMJudgeData(BaseValidatorBlockData, LMBlockData):
 class LMJudgeValidator(BaseValidatorBlock):
     """LLM-based Validator"""
 
-    DATA_TYPE = LMJudgeData
+    DATA_TYPE: LMJudgeData = LMJudgeData
 
     def __init__(self, lm_config: Dict = None, **kwargs: Any):
         super().__init__(**kwargs)

@@ -16,7 +16,7 @@ class AlwaysTrueBlockData(BaseValidatorBlockData):
 class AlwaysTrueValidator(BaseValidatorBlock):
     """Class for placeholder validator that always returns true"""
 
-    DATA_TYPE = AlwaysTrueBlockData
+    DATA_TYPE: AlwaysTrueBlockData = AlwaysTrueBlockData
 
     def _validate(self, input: AlwaysTrueBlockData) -> bool:
         return True

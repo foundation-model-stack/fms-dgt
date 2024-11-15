@@ -23,7 +23,7 @@ class RougeDedupData(BaseValidatorBlockData):
 class RougeDedupValidator(BaseValidatorBlock):
     """Base Class for all Validators"""
 
-    DATA_TYPE = RougeDedupData
+    DATA_TYPE: RougeDedupData = RougeDedupData
 
     def __init__(self, threshold: float = 1.1, **kwargs: Any) -> None:
         super().__init__(**kwargs)

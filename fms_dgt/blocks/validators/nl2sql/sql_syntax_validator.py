@@ -18,7 +18,7 @@ logger.addHandler(logging.NullHandler())
 class SQLSyntaxValidator(BaseValidatorBlock):
     """SQL syntax validator."""
 
-    DATA_TYPE = SQLValidatorData
+    DATA_TYPE: SQLValidatorData = SQLValidatorData
 
     def _validate(self, input: SQLValidatorData, **kwargs: Any) -> bool:
         """Validate a record containing information on schema, query and utterance.

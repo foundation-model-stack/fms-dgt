@@ -17,7 +17,7 @@ class PromptBuilderData(BaseBlockData):
 class PromptBuilder(BaseBlock):
     """Convert inputs into prompt"""
 
-    DATA_TYPE = PromptBuilderData
+    DATA_TYPE: PromptBuilderData = PromptBuilderData
 
     def __init__(self, prompt_path: str = None, **kwargs) -> None:
         super().__init__(**kwargs)
