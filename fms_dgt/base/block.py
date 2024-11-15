@@ -56,8 +56,6 @@ class BaseBlock(ABC):
             block_type (str, optional): The type of the block.
 
         Kwargs:
-            arg_fields (Optional[List[str]], optional): A list of field names to use as positional arguments.
-            kwarg_fields (Optional[List[str]], optional): A list of field names to use as keyword arguments.
             input_map (Optional[Union[List, Dict]], optional): A mapping of field names from input objects to internal objects.
             output_map (Optional[Union[List, Dict]], optional): A mapping of field names from internal objects to output objects.
             build_id (Optional[str], optional): ID to identify a particular SDG run.

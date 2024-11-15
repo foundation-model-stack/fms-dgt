@@ -9,8 +9,5 @@ blocks:
     model_id_or_path: mistralai/mixtral-8x7b-instruct-v01
     stop_sequences:
       - "Input:"
-    arg_fields:
-      - prompt
-    result_field: result
 metadata:
   version: 1.0

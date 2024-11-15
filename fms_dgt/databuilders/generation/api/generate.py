@@ -137,21 +137,7 @@ class ApiDataBuilder(DataBuilder):
                 discarded += 1
 
         # filter invalid data
-        outputs = [
-            output["data"]
-            for output in self.val1(
-                val1_inputs,
-                arg_fields=["api_info", "question", "answer"],
-                kwarg_fields=[
-                    "check_arg_question_overlap",
-                    "intent_only",
-                    "require_nested",
-                    "allow_subset",
-                    "multi_output",
-                ],
-                result_field="output",
-            )
-        ]
+        outputs = [output["data"] for output in self.val1(val1_inputs)]
 
         discarded += len(val1_inputs) - len(outputs)
 
