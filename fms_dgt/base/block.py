@@ -204,7 +204,9 @@ class BaseBlock(ABC):
             # if nothing is provided, assume input matches
             if input_map is None and self.DATA_TYPE:
                 input_map = {arg: arg for arg in self._req_args + self._opt_args}
-            elif input_map is None and self.DATA_TYPE is None:
+            elif input_map is None and (
+                self.DATA_TYPE is None or issubclass(self.DATA_TYPE, dict)
+            ):
                 # in this case, we assume the user wants to process their data as-is
                 return inp_obj
 
@@ -249,7 +251,9 @@ class BaseBlock(ABC):
             Dict: A dictionary containing the result of the mapping.
         """
 
-        if output_map is None and self.DATA_TYPE is None:
+        if output_map is None and (
+            self.DATA_TYPE is None or issubclass(self.DATA_TYPE, dict)
+        ):
             # in this case, we assume the user wants to process their data as-is
             return inp
 
