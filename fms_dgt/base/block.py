@@ -76,8 +76,17 @@ class BaseBlock(ABC):
 
         self._input_map = input_map
         self._output_map = output_map
-        self._req_args, self._opt_args = None, None
-        self._init_dclass_args()
+        if self.DATA_TYPE is not None:
+            self._req_args = [
+                f.name
+                for f in dataclasses.fields(self.DATA_TYPE)
+                if f.default == dataclasses.MISSING and f.name != "SRC_DATA"
+            ]
+            self._opt_args = [
+                f.name
+                for f in dataclasses.fields(self.DATA_TYPE)
+                if f.default != dataclasses.MISSING
+            ]
 
         # datastore params
         self._datastore = None
@@ -143,19 +152,6 @@ class BaseBlock(ABC):
             BaseDatastore: Datastore of the block
         """
         return self._datastore
-
-    def _init_dclass_args(self):
-        if self.DATA_TYPE is not None:
-            self._req_args = [
-                f.name
-                for f in dataclasses.fields(self.DATA_TYPE)
-                if type(f.default) == type(dataclasses.MISSING) and f.name != "SRC_DATA"
-            ]
-            self._opt_args = [
-                f.name
-                for f in dataclasses.fields(self.DATA_TYPE)
-                if type(f.default) != type(dataclasses.MISSING)
-            ]
 
     def save_data(self, data: DATASET_TYPE) -> None:
         def to_serializable(x):
