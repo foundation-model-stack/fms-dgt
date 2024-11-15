@@ -79,6 +79,7 @@ class BaseBlock(ABC):
         # input / output maps
         self._input_map = input_map
         self._output_map = output_map
+        self._req_args, self._opt_args = None, None
         if not (self.DATA_TYPE is None or issubclass(self.DATA_TYPE, dict)):
             self._req_args = [
                 f.name
