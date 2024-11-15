@@ -15,6 +15,8 @@ from fms_dgt.base.task_card import TaskRunCard
 from fms_dgt.constants import DATASET_ROW_TYPE, DATASET_TYPE, TYPE_KEY
 from fms_dgt.utils import sdg_logger
 
+_SRC_DATA = "SRC_DATA"
+
 
 @dataclass
 class BaseBlockData:
@@ -81,7 +83,7 @@ class BaseBlock(ABC):
             self._req_args = [
                 f.name
                 for f in dataclasses.fields(self.DATA_TYPE)
-                if f.default == dataclasses.MISSING and f.name != "SRC_DATA"
+                if f.default == dataclasses.MISSING and f.name != _SRC_DATA
             ]
             self._opt_args = [
                 f.name
@@ -257,7 +259,7 @@ class BaseBlock(ABC):
             output_map = {
                 f.name: f.name
                 for f in dataclasses.fields(self.DATA_TYPE)
-                if f.name != "SRC_DATA"
+                if f.name != _SRC_DATA
             }
 
         if is_dataclass(inp.SRC_DATA):
@@ -322,9 +324,9 @@ class BaseBlock(ABC):
     def execute(
         self,
         inputs: DATASET_TYPE,
-        *,
-        fields: Optional[Union[List, Dict]] = None,
-        result_field: Optional[str] = None,
+        *args,
+        input_map: Optional[Union[List, Dict]] = None,
+        output_map: Optional[Union[List, Dict]] = None,
         **kwargs,
     ) -> DATASET_TYPE:
         """The `execute` function is the primary logic of a Block
