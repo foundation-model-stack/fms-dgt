@@ -11,29 +11,31 @@ class TestRougeValidator:
         ]
 
         inputs = [
-            {"a": "I went to the store"},
-            {"a": "I went to the store yesterday"},
+            {"input": "I went to the store"},
+            {"input": "I went to the store yesterday"},
         ]
         validator = RougeDedupValidator(name="test_rouge_validator", threshold=0.91)
-        validator(inputs, context=all_data, arg_fields=["a"], result_field="result")
-        assert inputs[0]["result"] and not inputs[1]["result"]
+        validator(inputs, context=all_data)
+        assert inputs[0]["is_valid"] and not inputs[1]["is_valid"]
 
         inputs = [
-            {"a": "I went to the store"},
-            {"a": "I went to the store"},
-            {"a": "I went to the store yesterday"},
+            {"input": "I went to the store"},
+            {"input": "I went to the store"},
+            {"input": "I went to the store yesterday"},
         ]
         validator = RougeDedupValidator(name="test_rouge_validator", threshold=1.0)
-        validator(inputs, context=all_data, arg_fields=["a"], result_field="result")
+        validator(inputs, context=all_data)
         assert (
-            inputs[0]["result"] and not inputs[1]["result"] and not inputs[2]["result"]
+            inputs[0]["is_valid"]
+            and not inputs[1]["is_valid"]
+            and not inputs[2]["is_valid"]
         )
 
         validator = RougeDedupValidator(name="test_rouge_validator", threshold=None)
-        validator(inputs, context=all_data, arg_fields=["a"], result_field="result")
-        assert inputs[0]["result"] and inputs[1]["result"] and inputs[2]["result"]
+        validator(inputs, context=all_data)
+        assert inputs[0]["is_valid"] and inputs[1]["is_valid"] and inputs[2]["is_valid"]
 
-        inputs = [{"a": "one two three"}]
+        inputs = [{"input": "one two three"}]
         validator = RougeDedupValidator(name="test_rouge_validator", threshold=0.0)
-        validator(inputs, context=all_data, arg_fields=["a"], result_field="result")
-        assert not inputs[0]["result"]
+        validator(inputs, context=all_data)
+        assert not inputs[0]["is_valid"]

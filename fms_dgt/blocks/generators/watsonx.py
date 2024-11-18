@@ -7,9 +7,8 @@ import logging
 from tqdm import tqdm
 
 # Local
-from fms_dgt.base.instance import Instance
 from fms_dgt.base.registry import get_resource, register_block
-from fms_dgt.blocks.generators.llm import LMGenerator
+from fms_dgt.blocks.generators.llm import LMBlockData, LMGenerator
 from fms_dgt.resources.watsonx import WatsonXResource
 import fms_dgt.blocks.generators.utils as generator_utils
 
@@ -62,10 +61,10 @@ class WatsonXAIGenerator(LMGenerator):
             )
 
     def generate_batch(
-        self, requests: List[Instance], disable_tqdm: bool = False
+        self, requests: List[LMBlockData], disable_tqdm: bool = False
     ) -> None:
         # group requests by kwargs
-        grouper = generator_utils.Grouper(requests, lambda x: str(x.kwargs))
+        grouper = generator_utils.Grouper(requests, lambda x: str(x.gen_kwargs))
         pbar = tqdm(
             total=len(requests),
             disable=(disable_tqdm or (self.rank != 0)),
@@ -73,16 +72,16 @@ class WatsonXAIGenerator(LMGenerator):
         )
 
         for _, reqs in grouper.get_grouped().items():
-            chunks: List[List[Instance]] = generator_utils.chunks(
+            chunks: List[List[LMBlockData]] = generator_utils.chunks(
                 reqs, n=self._watsonx_resource.max_calls
             )
 
             for chunk in chunks:
                 # Prepare inputs
-                inputs = [instance.args[0] for instance in chunk]
+                inputs = [instance.prompt for instance in chunk]
 
                 # all kwargs are identical within a chunk
-                gen_kwargs = next(iter(chunk)).kwargs
+                gen_kwargs = next(iter(chunk)).gen_kwargs
 
                 if isinstance(kwargs := copy.deepcopy(gen_kwargs), dict):
                     # start with default params then overwrite with kwargs

@@ -2,24 +2,15 @@ name: simple
 blocks:
   - name: llm1
     type: genai
-    arg_fields:
-      - prompt
-    kwarg_fields:
-      - stop_sequences
-    result_field: output
     temperature: 0.0
     max_new_tokens: 512
     min_new_tokens: 1
     model_id_or_path: mistralai/mixtral-8x7b-instruct-v01
   - name: val1 # this is a placeholder validator
     type: always_true
-    arg_fields:
-      - to_check
   - name: rouge_val
     type: rouge_scorer
     filter: true
-    arg_fields:
-      - instruction
     threshold: 1.0
 postprocessors:
   - rouge_val

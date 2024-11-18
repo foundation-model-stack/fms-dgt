@@ -66,9 +66,7 @@ class Nl2SqlDataBuilder(DataBuilder):
             instances = prompting_pipeline.run(
                 data_generation_schema=data_generation_schema
             )
-            llm_outputs = self.llm1(
-                instances, arg_fields=["prompt"], result_field="output"
-            )
+            llm_outputs = self.llm1(instances, output_map={"result": "output"})
 
             sdg_logger.info("Post-processing generated data...")
             # NOTE: we process outputs in form of a tuple: schema, utterance, query to easily drop duplicates
@@ -104,16 +102,8 @@ class Nl2SqlDataBuilder(DataBuilder):
                 }
                 for sql_schema, utterance, sql_query in processed_outputs
             ]
-            filtered_output = self.val1(
-                instances_for_validation,
-                kwarg_fields=["record", "sql_dialect"],
-                result_field="output",
-            )
-            filtered_output = self.val2(
-                filtered_output,
-                kwarg_fields=["record", "sql_dialect"],
-                result_field="output",
-            )
+            filtered_output = self.val1(instances_for_validation)
+            filtered_output = self.val2(filtered_output)
 
             sdg_logger.info("Converting to instructions...")
             for instance in filtered_output:

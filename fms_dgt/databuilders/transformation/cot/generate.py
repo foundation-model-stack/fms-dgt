@@ -37,24 +37,19 @@ class CotTransformDataBuilder(TransformationDataBuilder):
 
             new_inp = qa_pair.prompt.replace("{{input}}", qa_pair.input)
             llm_inputs.append(
-                {"prompt": new_inp, "stop_sequences": [stop_seq], "data": qa_pair}
+                {
+                    "prompt": new_inp,
+                    "gen_kwargs": {"stop_sequences": [stop_seq]},
+                    "data": qa_pair,
+                }
             )
 
-        llm_outputs = self.llm1(
-            llm_inputs,
-            arg_fields=["prompt"],
-            kwarg_fields=["stop_sequences"],
-            result_field="llm_result",
-        )
+        llm_outputs = self.llm1(llm_inputs)
 
-        val_outputs = self.val1(
-            llm_outputs,
-            arg_fields=["prompt", "llm_result"],
-            result_field="val_result",
-        )
+        val_outputs = self.val1(llm_outputs)
 
         for output in val_outputs:
-            response = output["llm_result"].strip()
+            response = output["result"].strip()
             if response:
                 new_qa: CotSdgData = copy.deepcopy(output["data"])
                 new_qa.output = response

@@ -12,9 +12,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 # Standard
 from importlib.util import find_spec
-from typing import Any, Literal, Optional, Tuple
+from typing import Any, Literal, Optional
 import os
-import socket
 import subprocess
 import uuid
 
@@ -26,7 +25,7 @@ import psutil
 from fms_dgt.base.registry import register_block
 from fms_dgt.blocks.generators.llm import LMGenerator
 from fms_dgt.blocks.generators.openai import OpenaiCompletionsLM
-from fms_dgt.utils import get_one_line_from_process, sdg_logger
+from fms_dgt.utils import get_one_line_from_process, get_open_port, sdg_logger
 
 try:
     # Third Party
@@ -91,7 +90,7 @@ class vLLMServerGenerator(LMGenerator):
         self._api_key = api_key if api_key is not None else str(uuid.uuid4())
 
         self._host = host
-        self._port = _get_open_port(host) if port is None else port
+        self._port = get_open_port(host) if port is None else port
         self._base_url = f"http://{self._host}:{self._port}/v1/"
         self._vllm = OpenaiCompletionsLM(
             api_key=self._api_key, base_url=self._base_url, **kwargs
@@ -197,18 +196,3 @@ class vLLMServerGenerator(LMGenerator):
         for child_proc in base_proc.children(recursive=True):
             child_proc.kill()
         base_proc.kill()
-
-
-def _get_open_port(host: str, address_range: Tuple[int, int] = (8000, 8100)):
-    for port in range(*address_range):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            sock.bind((host, port))
-            sock.close()
-            sdg_logger.info(f"Port [{port}] is available for host [{host}]")
-            return port
-        except Exception:
-            sock.close()
-    raise Exception(
-        f"Could not find available port for host [{host}] in address range {address_range}"
-    )

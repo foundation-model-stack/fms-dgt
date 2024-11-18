@@ -1,14 +1,23 @@
 # Standard
-from typing import List, Optional
+from dataclasses import dataclass
+from typing import Iterable, Optional
 
 # Local
-from fms_dgt.base.block import DATASET_TYPE, BaseBlock
+from fms_dgt.base.block import DATASET_TYPE, BaseBlock, BaseBlockData
 from fms_dgt.base.registry import register_block
+
+
+@dataclass
+class PromptBuilderData(BaseBlockData):
+    mapping: dict
+    prompt: Optional[str] = None
 
 
 @register_block("prompt_builder")
 class PromptBuilder(BaseBlock):
     """Convert inputs into prompt"""
+
+    DATA_TYPE: PromptBuilderData = PromptBuilderData
 
     def __init__(self, prompt_path: str = None, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -17,29 +26,17 @@ class PromptBuilder(BaseBlock):
 
     def execute(
         self,
-        inputs: DATASET_TYPE,
-        *,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
-        result_field: Optional[str] = None,
-        additional_field: Optional[str] = None,
+        inputs: Iterable[PromptBuilderData],
     ):
         outputs = []
         for x in inputs:
-            _, inp_kwargs = self.get_args_kwargs(x, arg_fields, kwarg_fields)
 
             prompt = self._prompt
-            for k, v in inp_kwargs.items():
+            for k, v in x.mapping.items():
                 prompt = prompt.replace("{{" + k + "}}", v)
 
-            outputs.append(x)
+            x.prompt = prompt
 
-            self.write_result(
-                outputs[-1],
-                prompt,
-                result_field,
-                additional=None,
-                additional_field=additional_field,
-            )
+            outputs.append(x)
 
         return outputs

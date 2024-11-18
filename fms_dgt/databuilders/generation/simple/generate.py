@@ -68,14 +68,16 @@ class SimpleInstructDataBuilder(DataBuilder):
                 prompt = self._encode_prompt(prompt_instructions)
                 inp = {
                     "prompt": prompt,
-                    "stop_sequences": [f"* Task {len(prompt_instructions)+2}"],
+                    "gen_kwargs": {
+                        "stop_sequences": [f"* Task {len(prompt_instructions)+2}"]
+                    },
                     "data": prompt_instructions,
                 }
                 inputs.append(inp)
 
         request_start = time.time()
 
-        llm_outputs = self.llm1(inputs)
+        llm_outputs = self.llm1(inputs, output_map={"result": "output"})
         request_duration = time.time() - request_start
 
         post_process_start = time.time()
@@ -111,7 +113,7 @@ class SimpleInstructDataBuilder(DataBuilder):
         for instruction_data_entry in llm_data:
             # computing similarity with the pre-tokenized instructions
             inp = {
-                "to_check": instruction_data_entry.instruction,
+                "input": instruction_data_entry.instruction,
                 "data": instruction_data_entry,
             }
             val_inputs.append(inp)

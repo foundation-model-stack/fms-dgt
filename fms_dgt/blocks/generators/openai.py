@@ -20,9 +20,8 @@ import logging
 from tqdm import tqdm
 
 # Local
-from fms_dgt.base.instance import Instance
 from fms_dgt.base.registry import get_resource, register_block
-from fms_dgt.blocks.generators.llm import MODEL_ID_OR_PATH, LMGenerator
+from fms_dgt.blocks.generators.llm import MODEL_ID_OR_PATH, LMBlockData, LMGenerator
 from fms_dgt.resources.api import ApiKeyResource
 from fms_dgt.utils import sdg_logger
 import fms_dgt.blocks.generators.utils as generator_utils
@@ -133,24 +132,24 @@ class OpenaiCompletionsLM(LMGenerator):
         return resp.usage.completion_tokens
 
     def generate_batch(
-        self, requests: List[Instance], disable_tqdm: bool = False
+        self, requests: List[LMBlockData], disable_tqdm: bool = False
     ) -> None:
         # we group requests by their generation_kwargs,
-        grouper = generator_utils.Grouper(requests, lambda x: str(x.kwargs))
+        grouper = generator_utils.Grouper(requests, lambda x: str(x.gen_kwargs))
         pbar = tqdm(
             total=len(requests),
             disable=(disable_tqdm or (self.rank != 0)),
             desc="Running generate_batch requests",
         )
         for key, reqs in grouper.get_grouped().items():
-            chunks: List[List[Instance]] = generator_utils.chunks(
+            chunks: List[List[LMBlockData]] = generator_utils.chunks(
                 reqs, n=self.batch_size
             )
 
             for chunk in chunks:
-                inputs = [self._prepare_input(instance.args[0]) for instance in chunk]
+                inputs = [self._prepare_input(instance.prompt) for instance in chunk]
                 # all kwargs are identical
-                gen_kwargs = next(iter(chunk)).kwargs
+                gen_kwargs = next(iter(chunk)).gen_kwargs
                 kwargs = self.modify_gen_kwargs(gen_kwargs)
                 kwargs[("messages" if self._chat else "prompt")] = inputs
 

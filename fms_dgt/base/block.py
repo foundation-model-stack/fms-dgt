@@ -1,6 +1,7 @@
 # Standard
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import asdict, dataclass, is_dataclass
+from typing import Any, Dict, List, Optional, Union
 import dataclasses
 
 # Third Party
@@ -12,34 +13,37 @@ from fms_dgt.base.datastore import BaseDatastore, DatastoreDataType
 from fms_dgt.base.registry import get_datastore
 from fms_dgt.base.task_card import TaskRunCard
 from fms_dgt.constants import DATASET_ROW_TYPE, DATASET_TYPE, TYPE_KEY
+from fms_dgt.utils import sdg_logger
+
+_SRC_DATA = "SRC_DATA"
 
 
-def get_row_name(gen_inst: DATASET_ROW_TYPE) -> str:
-    """Gets the task name associated with the particular input instance.
+@dataclass
+class BaseBlockData:
+    """Internal data type for BaseBlock
 
-    Args:
-        gen_inst (DATASET_ROW_TYPE): The input to get the task name from.
+    Attributes:
+        SRC_DATA (Any): This attribute is used to store the original data. It SHOULD NOT be overwritten
 
-    Returns:
-        str: Name of task
     """
-    if isinstance(gen_inst, dict):
-        return gen_inst.get("task_name")
-    else:
-        return getattr(gen_inst, "task_name")
+
+    SRC_DATA: Any
+
+    def to_dict(self):
+        return asdict(self)
 
 
 class BaseBlock(ABC):
     """Base Class for all Blocks"""
 
+    DATA_TYPE: BaseBlockData = None
+
     def __init__(
         self,
         name: str = None,
         type: str = None,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
-        result_field: Optional[str] = None,
-        additional_field: Optional[str] = None,
+        input_map: Optional[Union[List, Dict]] = None,
+        output_map: Optional[Union[List, Dict]] = None,
         build_id: Optional[str] = None,
         builder_name: Optional[str] = None,
         datastore: Optional[Dict] = None,
@@ -54,10 +58,8 @@ class BaseBlock(ABC):
             block_type (str, optional): The type of the block.
 
         Kwargs:
-            arg_fields (Optional[List[str]], optional): A list of field names to use as positional arguments.
-            kwarg_fields (Optional[List[str]], optional): A list of field names to use as keyword arguments.
-            result_field (Optional[str], optional): Name of the result field in the input data row that the computation of the block will be written to.
-            additional_field (Optional[str], optional): Name of the additional field in the input data row that additional data of the block can be written to.
+            input_map (Optional[Union[List, Dict]], optional): A mapping of field names from input objects to internal objects.
+            output_map (Optional[Union[List, Dict]], optional): A mapping of field names from internal objects to output objects.
             build_id (Optional[str], optional): ID to identify a particular SDG run.
             builder_name (Optional[str], optional): Name of the calling databuilder
             datastore (Optional[Dict]): A dictionary containing the configuration for the datastore.
@@ -66,28 +68,30 @@ class BaseBlock(ABC):
         Raises:
             TypeError: If any of the arguments are not of the correct type.
         """
-        if not isinstance(arg_fields, (list, None.__class__)):
-            raise TypeError("arg_fields must be of type 'list'")
-        if not isinstance(kwarg_fields, (list, None.__class__)):
-            raise TypeError("kwarg_fields must be of type 'list'")
-        if not isinstance(result_field, (str, None.__class__)):
-            raise TypeError("result_field must be of type 'str'")
-        if not isinstance(additional_field, (str, None.__class__)):
-            raise TypeError("additional_field must be of type 'str'")
+        if not isinstance(input_map, (dict, list, None.__class__)):
+            raise TypeError("[input_map] must be of type 'dict' or 'list'")
+        if not isinstance(output_map, (dict, list, None.__class__)):
+            raise TypeError("[output_map] must be of type 'dict' or 'list'")
 
         self._name = name
         self._block_type = type
 
-        self._arg_fields = arg_fields
-        self._kwarg_fields = kwarg_fields
-        self._result_field = result_field
-        self._additional_field = additional_field
+        # input / output maps
+        self._input_map = input_map
+        self._output_map = output_map
+        self._req_args, self._opt_args = None, None
+        if not (self.DATA_TYPE is None or issubclass(self.DATA_TYPE, dict)):
+            self._req_args = [
+                f.name
+                for f in dataclasses.fields(self.DATA_TYPE)
+                if f.default == dataclasses.MISSING and f.name != _SRC_DATA
+            ]
+            self._opt_args = [
+                f.name
+                for f in dataclasses.fields(self.DATA_TYPE)
+                if f.default != dataclasses.MISSING
+            ]
 
-        self._save_schema = (
-            save_schema
-            or ((self._arg_fields or []) + (self._kwarg_fields or []))
-            or None
-        )
         # datastore params
         self._datastore = None
         if datastore is not None:
@@ -127,49 +131,22 @@ class BaseBlock(ABC):
         return self._block_type
 
     @property
-    def arg_fields(self) -> List[str]:
-        """Returns a list of field names to use as positional arguments
+    def input_map(self) -> Union[List, Dict]:
+        """Returns a dictionary or list that will be used to map field names from input objects to internal objects
 
         Returns:
-            List[str]: A list of field names to use as positional arguments
+            List[str]: A dictionary or list of fields to extract
         """
-        return self._arg_fields
+        return self._input_map
 
     @property
-    def kwarg_fields(self) -> List[str]:
-        """Returns a list of field names to use as keyword arguments
+    def output_map(self) -> Union[List, Dict]:
+        """Returns a dictionary or list that will be used to map field names from internal objects to output objects
 
         Returns:
-            List[str]: A list of field names to use as keyword arguments
+            List[str]: A dictionary or list of fields to extract
         """
-        return self._kwarg_fields
-
-    @property
-    def result_field(self) -> str:
-        """Returns the name of the result field that computations will be written to
-
-        Returns:
-            str: Name of the result field that computations will be written to
-        """
-        return self._result_field
-
-    @property
-    def additional_field(self) -> str:
-        """Returns the name of the additional field that additional data will be written to
-
-        Returns:
-            str: Name of the additional field that additional data will be written to
-        """
-        return self._additional_field
-
-    @property
-    def save_schema(self) -> List[str]:
-        """Returns the schema of the data in the validator
-
-        Returns:
-            List[str]: Fields of the data
-        """
-        return self._save_schema
+        return self._output_map
 
     @property
     def datastore(self) -> BaseDatastore:
@@ -203,121 +180,102 @@ class BaseBlock(ABC):
         if data and self._datastore is not None:
             self.datastore.save_data([to_serializable(x) for x in data])
 
-    def get_args_kwargs(
+    def transform_input(
         self,
-        inp: DATASET_ROW_TYPE,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
-    ) -> Tuple[List[Any], Dict[str, Any]]:
-        """Extracts the arguments and keyword arguments from a given input.
+        inp: Union[DATASET_ROW_TYPE, DATA_TYPE],  # type: ignore
+        input_map: Dict,
+    ) -> DATA_TYPE:  # type: ignore
+        """Extracts the elements of the input as specified by map
 
         Args:
-            inp (DATASET_ROW_TYPE): The input data row.
-            arg_fields (Optional[List[str]], optional): A list of field names to use as positional arguments.
-            kwarg_fields (Optional[List[str]], optional): A list of field names to use as keyword arguments.
+            inp (Union[DATASET_ROW_TYPE, DATA_TYPE]): The input data to be mapped
+            input_map (Union[List, Dict]): A mapping of field names from input objects to internal objects.
 
         Returns:
-            Tuple[List[Any], Dict[str, Any]]: A tuple containing a list of positional arguments and a dictionary of keyword arguments.
+            Dict: A dictionary containing the result of the mapping.
         """
-        arg_fields = arg_fields or self.arg_fields or []
-        kwarg_fields = kwarg_fields or self.kwarg_fields or []
 
-        if isinstance(inp, (dict, pd.DataFrame, Dataset)):
-            return (
-                [inp.get(arg) for arg in arg_fields],
-                {kwarg: inp.get(kwarg) for kwarg in kwarg_fields},
-            )
+        inp_obj = asdict(inp) if is_dataclass(inp) else inp
+
+        if isinstance(inp_obj, (dict, pd.DataFrame, Dataset)):
+
+            # if nothing is provided, assume input matches
+            if input_map is None and self.DATA_TYPE:
+                input_map = {arg: arg for arg in self._req_args + self._opt_args}
+            elif input_map is None and (
+                self.DATA_TYPE is None or issubclass(self.DATA_TYPE, dict)
+            ):
+                # in this case, we assume the user wants to process their data as-is
+                return inp_obj
+
+            # NOTE: we flip this here because from a DGT pipeline, the input map goes from UserData -> BlockData
+            data_type_map = {v: k for k, v in input_map.items()}
+
+            mapped_data = {
+                **{
+                    r_a: inp_obj.get(data_type_map.get(r_a))
+                    for r_a in self._req_args
+                    if data_type_map.get(r_a) in inp_obj
+                },
+                **{
+                    o_a: inp_obj.get(data_type_map.get(o_a))
+                    for o_a in self._opt_args
+                    if data_type_map.get(o_a) in inp_obj
+                },
+            }
+
+            missing = [r_a for r_a in self._req_args if r_a not in mapped_data]
+            if missing:
+                raise ValueError(
+                    f"Required inputs {missing} are not provided in 'input_map'"
+                )
+
+            return self.DATA_TYPE(**mapped_data, SRC_DATA=inp)
+
         raise TypeError(f"Unexpected input type: {type(inp)}")
 
-    def write_result(
+    def transform_output(
         self,
-        inp: DATASET_ROW_TYPE,
-        res: Any,
-        result_field: Optional[str] = None,
-        additional: Optional[dict[str, Any]] = None,
-        additional_field: Optional[str] = None,
-    ) -> None:
-        """Writes the result of the data processing step to the input data row.
+        inp: BaseBlockData,  # type: ignore
+        output_map: Dict,
+    ) -> Dict:
+        """Extracts the elements of the internal data type as specified by output_map
 
         Args:
-            inp (DATASET_ROW_TYPE): Input data row
-            res (Any): Result to be written to the input data row
-            result_field (Optional[str], optional): Name of the result field in the input data row.
-            additional (Optional[dict[str, Any]], optional): Additional data that might be returned by a block.
-            additional_field (Optional[str], optional): Name of the additional data field in the input data row.
+            inp (Union[DATASET_ROW_TYPE, DATA_TYPE]): The input data to be mapped
+            output_map (Union[List, Dict]): A mapping of field names from input objects to internal objects.
+
+        Returns:
+            Dict: A dictionary containing the result of the mapping.
         """
-        result_field = result_field or self.result_field
-        additional_field = additional_field or self.additional_field
 
-        if additional is not None and additional_field is not None:
-            if isinstance(inp, (dict, pd.DataFrame, Dataset)):
-                inp[additional_field] = additional
+        if output_map is None and (
+            self.DATA_TYPE is None or issubclass(self.DATA_TYPE, dict)
+        ):
+            # in this case, we assume the user wants to process their data as-is
+            return inp
 
-        # ignore if result field is not set
-        if result_field is not None:
-            if isinstance(inp, (dict, pd.DataFrame, Dataset)):
-                inp[result_field] = res
-                return
+        # if none is provided, assume it maps to the input
+        if output_map is None:
+            output_map = {
+                f.name: f.name
+                for f in dataclasses.fields(self.DATA_TYPE)
+                if f.name != _SRC_DATA
+            }
 
+        if is_dataclass(inp.SRC_DATA):
+            for k, v in output_map.items():
+                # since a dataclass will throw an error, only try to add attributes if original data type has them
+                if hasattr(inp.SRC_DATA, v):
+                    setattr(inp.SRC_DATA, v, getattr(inp, k))
+        elif isinstance(inp.SRC_DATA, (dict, pd.DataFrame, Dataset)):
+            # TODO: handle things other than dictionaries
+            for k, v in output_map.items():
+                inp.SRC_DATA[v] = getattr(inp, k)
+        else:
             raise TypeError(f"Unexpected input type: {type(inp)}")
 
-    def get_result(
-        self,
-        inp: DATASET_ROW_TYPE,
-        result_field: Optional[str] = None,
-    ) -> Any:
-        """Gets the result that has been written onto object in `write_result` method
-
-        Args:
-            inp (DATASET_ROW_TYPE): Input is either a dict, pd.DataFrame, or Dataset
-            result_field (Optional[str], optional): Field to access result from input object.
-
-        Raises:
-            TypeError: Raised if input type is not a dict, pd.DataFrame, or Dataset.
-
-        Returns:
-            Any: Object stored in result_field of input
-        """
-        result_field = result_field or self.result_field
-
-        assert result_field is not None, "Result field cannot be None!"
-
-        if isinstance(inp, (dict, pd.DataFrame, Dataset)):
-            return inp[result_field]
-
-        raise TypeError(f"Unexpected input type: {type(inp)}")
-
-    def get_additional(
-        self,
-        inp: DATASET_ROW_TYPE,
-        additional_field: Optional[str] = None,
-    ) -> Any:
-        """Gets the additional data that has been written onto object in `write_result` method
-
-        Args:
-            inp (DATASET_ROW_TYPE): Input is either a dict, pd.DataFrame, or Dataset
-            additional_field (Optional[str], optional): Field to access additional data from input object.
-
-        Raises:
-            TypeError: Raised if input type is not a dict, pd.DataFrame, or Dataset.
-
-        Returns:
-            Any: Object stored in additional_field of input
-        """
-        additional_field = additional_field or self.additional_field
-
-        if additional_field is None:
-            return None
-
-        if isinstance(inp, (dict, pd.DataFrame, Dataset)):
-            return inp[additional_field]
-
-        raise TypeError(f"Unexpected input type: {type(inp)}")
-
-    def close(self):
-        """Method for safely deallocating all resources used by a block"""
-        for block in self._blocks:
-            block.close()
+        return inp.SRC_DATA
 
     def generate(self, *args, **kwargs) -> DATASET_TYPE:  # for interfacing with IL
         """Method used to have compatibility with IL
@@ -327,23 +285,49 @@ class BaseBlock(ABC):
         """
         return self(*args, **kwargs)
 
-    def __call__(self, *args, **kwargs) -> DATASET_TYPE:
-        """The generate function is the primary interface to a Block. Internally, it calls the `execute` method which contains the logic of the block.
+    def __call__(
+        self,
+        inputs: DATASET_TYPE,
+        *args,
+        input_map: Optional[Union[List, Dict]] = None,
+        output_map: Optional[Union[List, Dict]] = None,
+        **kwargs,
+    ) -> DATASET_TYPE:
+        """The __call__ function is the primary interface to a Block. Internally, it calls the `execute` method which contains the logic of the block.
             This function exists to have meta-processes (e.g., logging) that wrap around the core logic of a block
 
+        Args:
+            inputs (DATASET_TYPE): Dataset to be processed by 'execute' method of block.
+            input_map (Optional[Union[List, Dict]], optional): Mapping applied to each row of dataset that will convert row to instance of self.DATA_TYPE.
+            output_map (Optional[Union[List, Dict]], optional): Mapping applied to each instance of self.DATA_TYPE that will convert instance back into row of dataset.
+
         Returns:
-            DATASET_TYPE: Dataset resulting from processing contained in execute function
+            DATASET_TYPE: Dataset resulting from processing contained in execute function.
         """
-        return self.execute(*args, **kwargs)
+        input_map = input_map or self._input_map
+        output_map = output_map or self._output_map
+
+        transformed_inputs = map(lambda x: self.transform_input(x, input_map), inputs)
+        if isinstance(inputs, (list, tuple)):
+            transformed_inputs = type(inputs)(transformed_inputs)
+
+        outputs = self.execute(transformed_inputs, *args, **kwargs)
+
+        transformed_outputs = map(
+            lambda x: self.transform_output(x, output_map), outputs
+        )
+        if isinstance(inputs, (list, tuple)):
+            transformed_outputs = type(inputs)(transformed_outputs)
+
+        return transformed_outputs
 
     @abstractmethod
     def execute(
         self,
         inputs: DATASET_TYPE,
-        *,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
-        result_field: Optional[str] = None,
+        *args,
+        input_map: Optional[Union[List, Dict]] = None,
+        output_map: Optional[Union[List, Dict]] = None,
         **kwargs,
     ) -> DATASET_TYPE:
         """The `execute` function is the primary logic of a Block
@@ -353,15 +337,31 @@ class BaseBlock(ABC):
                 of rows with named columns (see BLOCK_INPUT_TYPE)
 
         Kwargs:
-            arg_fields (Optional[List[str]]): Names of fields within the rows of
-                the inputs that should be extracted and passed as positional
-                args to the underlying implementation methods.
-            kwarg_fields (Optional[List[str]]): Names of fields within the rows
-                of the inputs that should be extracted and passed as keyword
-                args to the underlying implementation methods.
+            input_map (Optional[Union[List, Dict]], optional): A mapping of field names from input objects to internal objects.
+            output_map (Optional[Union[List, Dict]], optional): A mapping of field names from internal objects to output objects.
             **kwargs: Additional keyword args that may be passed to the derived
                 block's generate function
 
         Returns:
             DATASET_TYPE: Input dataset with results added
         """
+
+    def close(self):
+        """Method for safely deallocating all resources used by a block"""
+        for block in self._blocks:
+            block.close()
+
+
+def get_row_name(gen_inst: DATASET_ROW_TYPE) -> str:
+    """Gets the task name associated with the particular input instance.
+
+    Args:
+        gen_inst (DATASET_ROW_TYPE): The input to get the task name from.
+
+    Returns:
+        str: Name of task
+    """
+    if isinstance(gen_inst, dict):
+        return gen_inst.get("task_name")
+    else:
+        return getattr(gen_inst, "task_name")
