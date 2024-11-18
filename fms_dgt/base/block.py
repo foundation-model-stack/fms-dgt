@@ -47,7 +47,6 @@ class BaseBlock(ABC):
         build_id: Optional[str] = None,
         builder_name: Optional[str] = None,
         datastore: Optional[Dict] = None,
-        save_schema: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> None:
         """A block is a unit of computation that takes in some inputs and produces an output. It is intended to be specialized algorithms
@@ -63,7 +62,6 @@ class BaseBlock(ABC):
             build_id (Optional[str], optional): ID to identify a particular SDG run.
             builder_name (Optional[str], optional): Name of the calling databuilder
             datastore (Optional[Dict]): A dictionary containing the configuration for the datastore.
-            save_schema (Optional[List[str]], optional): The schema of the data that should be saved.
 
         Raises:
             TypeError: If any of the arguments are not of the correct type.
@@ -104,7 +102,6 @@ class BaseBlock(ABC):
                         build_id=build_id,
                     ),
                     "data_type": DatastoreDataType.BLOCK,
-                    "schema": save_schema,
                     "store_name": self.block_type,
                     **datastore,
                 },

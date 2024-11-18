@@ -28,7 +28,6 @@ class BaseDatastore(abc.ABC):
         data_type: Optional[DatastoreDataType] = None,
         task_card: Optional[TaskRunCard] = None,
         restart: Optional[bool] = False,
-        schema: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__()
@@ -36,7 +35,6 @@ class BaseDatastore(abc.ABC):
         self._data_type = data_type if data_type is not None else DatastoreDataType.MISC
         self._task_card = task_card
         self._restart = restart
-        self._schema = schema
 
     @property
     def store_name(self):
@@ -49,10 +47,6 @@ class BaseDatastore(abc.ABC):
     @property
     def task_card(self):
         return self._task_card
-
-    @property
-    def schema(self):
-        return self._schema
 
     def save_data(self, new_data: DATASET_TYPE) -> None:
         """
