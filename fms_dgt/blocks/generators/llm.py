@@ -148,12 +148,14 @@ class LMGenerator(BaseBlock):
         res: Any,
         instance: LMBlockData,
         until: Optional[List[str]] = None,
+        additional: Optional[dict[str, Any]] = None,
     ):
         if until is not None and type(res) == str:
             for term in until:
                 if len(term) > 0:
                     res = res.split(term)[0]
         instance.result = res
+        instance.addtl = additional
         self.cache_hook.add_partial(method, instance, res)
 
     @abc.abstractmethod

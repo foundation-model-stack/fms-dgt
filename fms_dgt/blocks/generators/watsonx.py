@@ -112,6 +112,13 @@ class WatsonXAIGenerator(LMGenerator):
                         responses[idx]["results"][0]["generated_text"],
                         instance,
                         until,
+                        additional={
+                            {
+                                "gen_token_count": responses[idx]["results"][0][
+                                    "generated_token_count"
+                                ]
+                            }
+                        },
                     )
                     pbar.update(1)
 

@@ -1,13 +1,16 @@
-# Local
+# Standard
 import os
+
+# Third Party
 from dotenv import load_dotenv
+
+# Local
 from fms_dgt.base.registry import register_resource
 from fms_dgt.resources.api import ApiKeyResource
 
 
 @register_resource("watsonx")
 class WatsonXResource(ApiKeyResource):
-
     def __init__(
         self,
     ):
