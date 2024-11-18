@@ -11,7 +11,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 """
 
 # Standard
-from typing import Any, Dict, List, Optional, Union
+from dataclasses import dataclass
+from typing import Any, Dict, Iterable, List, Optional, Union
 import abc
 import hashlib
 import json
@@ -22,15 +23,31 @@ from sqlitedict import SqliteDict
 from tqdm import tqdm
 
 # Local
-from fms_dgt.base.block import DATASET_ROW_TYPE, DATASET_TYPE, BaseBlock
-from fms_dgt.base.instance import Instance
+from fms_dgt.base.block import DATASET_TYPE, BaseBlock, BaseBlockData
 from fms_dgt.utils import sdg_logger
 
 MODEL_ID_OR_PATH = "model_id_or_path"
 
 
+@dataclass
+class LMBlockData(BaseBlockData):
+    """Captures data needed to run instances of LMGenerator"""
+
+    prompt: str
+    gen_kwargs: Optional[Dict] = None
+    continuation: Optional[str] = None
+    result: Optional[str] = None
+    addtl: Optional[Any] = None
+
+    def __post_init__(self):
+        if self.gen_kwargs is None:
+            self.gen_kwargs = dict()
+
+
 class LMGenerator(BaseBlock):
     """Class for LLM Generators"""
+
+    DATA_TYPE: LMBlockData = LMBlockData
 
     GENERATE = "generate"
     LOGLIKELIHOOD = "loglikelihood"
@@ -129,7 +146,7 @@ class LMGenerator(BaseBlock):
         self,
         method: str,
         res: Any,
-        instance: Instance,
+        instance: LMBlockData,
         until: Optional[List[str]] = None,
     ):
         if until is not None and type(res) == str:
@@ -141,13 +158,13 @@ class LMGenerator(BaseBlock):
 
     @abc.abstractmethod
     def generate_batch(
-        self, requests: List[Instance], **kwargs: Union[str, Dict]
+        self, requests: List[LMBlockData], **kwargs: Union[str, Dict]
     ) -> None:
         pass
 
     @abc.abstractmethod
     def loglikelihood_batch(
-        self, requests: List[Instance], disable_tqdm: bool = False
+        self, requests: List[LMBlockData], disable_tqdm: bool = False
     ) -> None:
         pass
 
@@ -156,33 +173,18 @@ class LMGenerator(BaseBlock):
 
     def execute(
         self,
-        inputs: DATASET_TYPE,
+        inputs: Iterable[LMBlockData],
         *,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
-        result_field: Optional[str] = None,
         method: str = GENERATE,
         **kwargs: Any,
     ):
 
-        # simplify generation here
-        instances: List[Instance] = []
-        for inp in inputs:
-            inp_args, inp_kwargs = self.get_args_kwargs(
-                inp, method, arg_fields, kwarg_fields
-            )
-            instances.append(Instance(args=inp_args, kwargs=inp_kwargs, data=inp))
+        instances = self._adjust_prompts(inputs, method)
 
         if method == self.GENERATE:
-            self.generate_batch(
-                instances,
-                **kwargs,
-            )
+            self.generate_batch(instances, **kwargs)
         elif method == self.LOGLIKELIHOOD:
-            self.loglikelihood_batch(
-                instances,
-                **kwargs,
-            )
+            self.loglikelihood_batch(instances, **kwargs)
         else:
             err_str = (
                 f"Unhandled method type: {method}"
@@ -191,53 +193,42 @@ class LMGenerator(BaseBlock):
             )
             raise ValueError(err_str)
 
-        outputs = []
-        for inst in instances:
-            self.write_result(inst.data, inst.result, result_field)
-            outputs.append(inst.data)
+        return instances
 
-        return outputs
-
-    def get_args_kwargs(
-        self,
-        inp: DATASET_ROW_TYPE,
-        method: str,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
-    ):
+    def _adjust_prompts(self, inputs: Iterable[LMBlockData], method: str) -> Dict:
 
         assert method in [
             self.GENERATE,
             self.LOGLIKELIHOOD,
         ], f"'method' value should be one of [{self.GENERATE}, {self.LOGLIKELIHOOD}], instead it was given as {method}"
-        inp_args, inp_kwargs = super().get_args_kwargs(inp, arg_fields, kwarg_fields)
 
-        # double check that model specified in kwargs (if it is specified in kwargs) matches model defined for chat template
-        if (
-            method == self.GENERATE
-            and self._chat_template is not None
-            and (
-                inp_kwargs.get(MODEL_ID_OR_PATH, self.model_id_or_path)
-                == self.model_id_or_path
-            )
-        ):
-
-            prompt = inp_args[0]
-            assert type(prompt) in [
-                list,
-                str,
-            ], f"Prompt must be given as either List[Dict] or str, but was instead given as {type(prompt)}"
-
-            if type(prompt) == str:
-                prompt = [{"role": "user", "content": prompt}]
-
-            inp_args = [
-                self._chat_template.apply_chat_template(
-                    prompt, **self._auto_chat_template_params
+        adj_inputs = []
+        for inp in inputs:
+            # double check that model specified in kwargs (if it is specified in kwargs) matches model defined for chat template
+            if (
+                method == self.GENERATE
+                and self._chat_template is not None
+                and (
+                    inp.gen_kwargs.get(MODEL_ID_OR_PATH, self.model_id_or_path)
+                    == self.model_id_or_path
                 )
-            ]
+            ):
 
-        return inp_args, inp_kwargs
+                assert type(inp.prompt) in [
+                    list,
+                    str,
+                ], f"Prompt must be given as either List[Dict] or str, but was instead given as {type(inp.prompt)}"
+
+                if type(inp.prompt) == str:
+                    inp.prompt = [{"role": "user", "content": inp.prompt}]
+
+                inp.prompt = self._chat_template.apply_chat_template(
+                    inp.prompt, **self._auto_chat_template_params
+                )
+
+            adj_inputs.append(inp)
+
+        return adj_inputs
 
     def init_model(self, *args: Any, **kwargs: Any):
         pass
@@ -250,8 +241,8 @@ class LMGenerator(BaseBlock):
 
 
 ### SQLite-based caching of LM responses
-def hash_args(attr, request):
-    dat = json.dumps([attr] + [request.args, request.kwargs])
+def hash_args(attr, request: LMBlockData):
+    dat = json.dumps([attr] + [request.prompt, request.gen_kwargs])
     return hashlib.sha256(dat.encode("utf-8")).hexdigest()
 
 
@@ -298,9 +289,9 @@ class CachingLM:
         elif attr in ["init_model", "release_model", "close"]:
             return lm_attr
 
-        def fn(requests: List[Instance]):
+        def fn(requests: List[LMBlockData]):
             res = []
-            remaining_reqs = []
+            remaining_reqs: List[LMBlockData] = []
             warned = False
             # figure out which ones are cached and which ones are new
             sdg_logger.info(
@@ -312,7 +303,7 @@ class CachingLM:
                 hsh = hash_args(attr, req)
                 if (
                     attr == "generate_batch"
-                    and req.kwargs.get("decoding_method", None) == "sample"
+                    and req.gen_kwargs.get("decoding_method", None) == "sample"
                 ):
                     # when we are doing non-greedy generation, don't use the cache
                     # (else every "randomly sampled" generation would be identical for repeats > 1).
@@ -320,7 +311,7 @@ class CachingLM:
                         sdg_logger.warning(
                             "Arguments to lm.generate_batch() '%s' include non-deterministic "
                             "sampling. Caching will not be performed for such requests.",
-                            req.kwargs,
+                            req.gen_kwargs,
                         )
                         warned = True
                     res.append(None)
@@ -367,20 +358,12 @@ class CachingLM:
     def execute(
         self,
         inputs: DATASET_TYPE,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
-        result_field: Optional[str] = None,
         method: str = "generate",
         **kwargs: Any,
     ) -> None:
 
         # simplify generation here
-        instances: List[Instance] = []
-        for inp in inputs:
-            inp_args, inp_kwargs = self.lm.get_args_kwargs(
-                inp, method, arg_fields, kwarg_fields
-            )
-            instances.append(Instance(args=inp_args, kwargs=inp_kwargs, data=inp))
+        instances = self.lm._adjust_prompts(inputs, method)
 
         if method == self.lm.GENERATE:
             self.generate_batch(
@@ -400,12 +383,7 @@ class CachingLM:
             )
             raise ValueError(err_str)
 
-        outputs = []
-        for inst in instances:
-            self.lm.write_result(inst.data, inst.result, result_field)
-            outputs.append(inst.data)
-
-        return outputs
+        return instances
 
     def get_cache_hook(self):
         return CacheHook(self)

@@ -23,9 +23,8 @@ from packaging.version import parse as parse_version
 from tqdm import tqdm
 
 # Local
-from fms_dgt.base.instance import Instance
 from fms_dgt.base.registry import register_block
-from fms_dgt.blocks.generators.llm import LMGenerator
+from fms_dgt.blocks.generators.llm import LMBlockData, LMGenerator
 from fms_dgt.blocks.generators.utils import undistribute
 from fms_dgt.utils import sdg_logger
 import fms_dgt.blocks.generators.utils as generator_utils
@@ -237,16 +236,16 @@ class vLLMGenerator(LMGenerator):
         return outputs
 
     def generate_batch(
-        self, requests: List[Instance], disable_tqdm: bool = False
+        self, requests: List[LMBlockData], disable_tqdm: bool = False
     ) -> None:
         # batch tokenize contexts
-        context = [req.args[0] for req in requests]
+        context = [req.prompt for req in requests]
         context_encoding = self.tokenizer(context, add_special_tokens=False).input_ids
         request_list = [
             ((a, b), c) for a, b, c in zip(context, context_encoding, requests)
         ]
 
-        grouper = generator_utils.Grouper(request_list, lambda x: str(x[1].kwargs))
+        grouper = generator_utils.Grouper(request_list, lambda x: str(x[1].gen_kwargs))
         pbar = tqdm(
             total=len(request_list),
             disable=(disable_tqdm or (self.rank != 0)),
@@ -264,7 +263,7 @@ class vLLMGenerator(LMGenerator):
                 context_and_encoding, chunk_instances = zip(*chunk)
                 context, context_encoding = zip(*context_and_encoding)
                 # all kwargs are identical within a chunk
-                gen_kwargs = next(iter(chunk_instances)).kwargs
+                gen_kwargs = next(iter(chunk_instances)).gen_kwargs
                 kwargs = self.modify_gen_kwargs(gen_kwargs)
 
                 # add EOS token to stop sequences
@@ -351,10 +350,10 @@ class vLLMGenerator(LMGenerator):
 
     def _loglikelihood_tokens(
         self,
-        requests: List[Tuple[List[int], List[int], Instance]],
+        requests: List[Tuple[List[int], List[int], LMBlockData]],
         disable_tqdm: bool = False,
     ) -> List[float]:
-        grouper = generator_utils.Grouper(requests, lambda x: str(x[-1].kwargs))
+        grouper = generator_utils.Grouper(requests, lambda x: str(x[-1].gen_kwargs))
         pbar = tqdm(
             total=len(requests),
             disable=(disable_tqdm or (self.rank != 0)),

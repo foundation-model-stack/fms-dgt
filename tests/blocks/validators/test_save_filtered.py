@@ -18,16 +18,20 @@ def test_matches():
     ]
 
     inputs = [
-        {"a": "I went to the store"},
-        {"a": "I went to the store"},
-        {"a": "I went to the store yesterday"},
+        {"input": "I went to the store"},
+        {"input": "I went to the store"},
+        {"input": "I went to the store yesterday"},
     ]
     validator = RougeDedupValidator(
         name="test_rouge_validator",
         threshold=1.0,
         datastore={"type": "default", "store_name": "rouge", "output_dir": tmp_cache},
     )
-    validator(inputs, context=all_data, arg_fields=["a"], result_field="result")
-    assert inputs[0]["result"] and not inputs[1]["result"] and not inputs[2]["result"]
+    validator(inputs, context=all_data)
+    assert (
+        inputs[0]["is_valid"]
+        and not inputs[1]["is_valid"]
+        and not inputs[2]["is_valid"]
+    )
 
     shutil.rmtree(tmp_cache)

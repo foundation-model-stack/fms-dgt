@@ -8,9 +8,8 @@ import os
 from tqdm import tqdm
 
 # Local
-from fms_dgt.base.instance import Instance
 from fms_dgt.base.registry import get_resource, register_block
-from fms_dgt.blocks.generators.llm import LMGenerator
+from fms_dgt.blocks.generators.llm import LMBlockData, LMGenerator
 from fms_dgt.resources.api import ApiKeyResource
 import fms_dgt.blocks.generators.utils as generator_utils
 
@@ -59,10 +58,10 @@ class GenAIGenerator(LMGenerator):
         self.client = Client(credentials=credentials)
 
     def generate_batch(
-        self, requests: List[Instance], disable_tqdm: bool = False
+        self, requests: List[LMBlockData], disable_tqdm: bool = False
     ) -> None:
         # group requests by kwargs
-        grouper = generator_utils.Grouper(requests, lambda x: str(x.kwargs))
+        grouper = generator_utils.Grouper(requests, lambda x: str(x.gen_kwargs))
         pbar = tqdm(
             total=len(requests),
             disable=(disable_tqdm or (self.rank != 0)),
@@ -70,14 +69,14 @@ class GenAIGenerator(LMGenerator):
         )
 
         for key, reqs in grouper.get_grouped().items():
-            chunks: List[List[Instance]] = generator_utils.chunks(
+            chunks: List[List[LMBlockData]] = generator_utils.chunks(
                 reqs, n=self._genai_resource.max_calls
             )
 
             for chunk in chunks:
-                inputs = [instance.args[0] for instance in chunk]
+                inputs = [instance.prompt for instance in chunk]
                 # all kwargs are identical within a chunk
-                gen_kwargs = next(iter(chunk)).kwargs
+                gen_kwargs = next(iter(chunk)).gen_kwargs
 
                 if isinstance(kwargs := copy.deepcopy(gen_kwargs), dict):
                     # start with default params then overwrite with kwargs
@@ -108,7 +107,7 @@ class GenAIGenerator(LMGenerator):
                     result = next(
                         resp.results[0]
                         for resp in responses
-                        if instance.args[0] == resp.results[0].input_text
+                        if instance.prompt == resp.results[0].input_text
                     )
 
                     s = result.generated_text
@@ -123,10 +122,10 @@ class GenAIGenerator(LMGenerator):
         pbar.close()
 
     def loglikelihood_batch(
-        self, requests: List[Instance], disable_tqdm: bool = False
+        self, requests: List[LMBlockData], disable_tqdm: bool = False
     ) -> None:
         # group requests by kwargs
-        grouper = generator_utils.Grouper(requests, lambda x: str(x.kwargs))
+        grouper = generator_utils.Grouper(requests, lambda x: str(x.gen_kwargs))
         pbar = tqdm(
             total=len(requests),
             disable=(disable_tqdm or (self.rank != 0)),
@@ -134,12 +133,12 @@ class GenAIGenerator(LMGenerator):
         )
 
         for key, reqs in grouper.get_grouped().items():
-            chunks: List[List[Instance]] = generator_utils.chunks(
+            chunks: List[List[LMBlockData]] = generator_utils.chunks(
                 reqs, n=self._genai_resource.max_calls
             )
 
             for chunk in chunks:
-                to_score = ["".join(instance.args) for instance in chunk]
+                to_score = ["".join(instance.prompt) for instance in chunk]
                 to_tokenize = [instance.args[-1] for instance in chunk]
                 # all kwargs are identical within a chunk
                 gen_kwargs = next(iter(chunk)).kwargs

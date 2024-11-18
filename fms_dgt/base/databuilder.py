@@ -210,6 +210,10 @@ class DataBuilder(ABC):
         generating = [task for task in self._tasks if not task.is_complete()]
         completed = [task for task in self._tasks if task.is_complete()]
 
+        # run task cleanup for completed tasks
+        for task in completed:
+            task.finish()
+
         generate_start = time.time()
 
         stalled_cts = {task.name: self._max_stalled_requests for task in generating}
