@@ -1,8 +1,3 @@
-###
-# Trainer itself
-###
-
-
 # Standard
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Tuple
