@@ -71,16 +71,15 @@ class ApiDataBuilder(DataBuilder):
                 prompt, new_instr = self._construct_new_data(
                     api_specification_groups, task_data
                 )
-                inp = {"prompt": prompt, "stop_sequences": [f"API:"], "data": new_instr}
+                inp = {
+                    "prompt": prompt,
+                    "gen_kwargs": {"stop_sequences": [f"API:"]},
+                    "data": new_instr,
+                }
                 gen_inputs.append(inp)
 
         request_start = time.time()
-        llm_outputs = self.llm1(
-            gen_inputs,
-            arg_fields=["prompt"],
-            kwarg_fields=["stop_sequences"],
-            result_field="output",
-        )
+        llm_outputs = self.llm1(gen_inputs, output_map={"result": "output"})
         request_duration = time.time() - request_start
 
         # now begin filtering generated data
@@ -122,7 +121,7 @@ class ApiDataBuilder(DataBuilder):
 
                 # grab schema from input
                 inp = {
-                    "new_apis": new_apis,
+                    "api_info": new_apis,
                     "question": question,
                     "answer": answer,
                     "check_arg_question_overlap": new_instr.check_arg_question_overlap,
@@ -138,21 +137,7 @@ class ApiDataBuilder(DataBuilder):
                 discarded += 1
 
         # filter invalid data
-        outputs = [
-            output["data"]
-            for output in self.val1(
-                val1_inputs,
-                arg_fields=["new_apis", "question", "answer"],
-                kwarg_fields=[
-                    "check_arg_question_overlap",
-                    "intent_only",
-                    "require_nested",
-                    "allow_subset",
-                    "multi_output",
-                ],
-                result_field="output",
-            )
-        ]
+        outputs = [output["data"] for output in self.val1(val1_inputs)]
 
         discarded += len(val1_inputs) - len(outputs)
 
@@ -168,7 +153,7 @@ class ApiDataBuilder(DataBuilder):
         for new_data in data_to_filter:
             # computing similarity with the pre-tokenized instructions
             inp = {
-                "to_check": new_data.input,
+                "input": new_data.input,
                 "data": new_data,
             }
             val2_inputs.append(inp)
@@ -176,12 +161,7 @@ class ApiDataBuilder(DataBuilder):
         # filter rouge data
         outputs = [
             output["data"]
-            for output in self.val2(
-                val2_inputs,
-                context=all_instructions,
-                arg_fields=["to_check"],
-                result_field="output",
-            )
+            for output in self.val2(val2_inputs, context=all_instructions)
         ]
 
         discarded = len(val2_inputs) - len(outputs)

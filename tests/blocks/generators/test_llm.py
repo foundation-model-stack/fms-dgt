@@ -9,7 +9,7 @@ import pytest
 
 # Local
 from fms_dgt.base.registry import get_block
-from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
+from fms_dgt.blocks.generators.llm import CachingLM, LMBlockData, LMGenerator
 
 #
 
@@ -51,7 +51,9 @@ PROMPTS = [f"Question: x = {i} + 1\nAnswer: x =" for i in range(25)]
 
 @pytest.mark.parametrize(
     "model_cfg",
-    [GREEDY_VLLM_CFG],  # GREEDY_OPENAI_CFG, GREEDY_GENAI_CFG]
+    [
+        GREEDY_VLLM_SERVER_CFG
+    ],  # GREEDY_VLLM_SERVER_CFG, GREEDY_OPENAI_CFG, GREEDY_GENAI_CFG]
 )
 def test_generate_batch(model_cfg):
     model_cfg = dict(model_cfg)
@@ -65,13 +67,13 @@ def test_generate_batch(model_cfg):
 
     inputs_copy = copy.deepcopy(inputs)
 
-    lm(inputs, arg_fields=["prompt"], result_field="output")
+    lm(inputs)
 
     for i, inp in enumerate(inputs):
         assert (
             inp["prompt"] == inputs_copy[i]["prompt"]
         ), f"Input list has been rearranged at index {i}"
-        assert isinstance(inp["output"], str)
+        assert isinstance(inp["result"], str)
 
 
 @pytest.mark.parametrize("model_cfg", [GREEDY_GENAI_CFG])  # , GREEDY_VLLM_CFG])
@@ -82,23 +84,18 @@ def test_loglikelihood_batch(model_cfg):
 
     inputs: List[Dict] = []
     for prompt in PROMPTS:
-        inp = {"prompt1": prompt, "prompt2": prompt}
+        inp = {"prompt": prompt, "continuation": prompt}
         inputs.append(inp)
 
     inputs_copy = copy.deepcopy(inputs)
 
-    lm(
-        inputs,
-        arg_fields=["prompt1", "prompt2"],
-        result_field="output",
-        method="loglikelihood",
-    )
+    lm(inputs)
 
     for i, inp in enumerate(inputs):
         assert (
-            inp["prompt1"] == inputs_copy[i]["prompt1"]
+            inp["prompt"] == inputs_copy[i]["prompt"]
         ), f"Input list has been rearranged at index {i}"
-        assert isinstance(inp["output"], float)
+        assert isinstance(inp["result"], float)
 
 
 # def test_loglikelihood_batch_alignment():
@@ -150,7 +147,7 @@ def test_lm_caching():
     post_cache_inputs = copy.deepcopy(non_cache_inputs)
 
     non_cache_time = time.time()
-    lm(non_cache_inputs, arg_fields=["prompt"], result_field="output")
+    lm(non_cache_inputs)
     non_cache_time = time.time() - non_cache_time
 
     cache_lm = CachingLM(
@@ -159,11 +156,11 @@ def test_lm_caching():
     )
 
     pre_cache_time = time.time()
-    cache_lm(pre_cache_inputs, arg_fields=["prompt"], result_field="output")
+    cache_lm(pre_cache_inputs)
     pre_cache_time = time.time() - pre_cache_time
 
     post_cache_time = time.time()
-    cache_lm(post_cache_inputs, arg_fields=["prompt"], result_field="output")
+    cache_lm(post_cache_inputs)
     post_cache_time = time.time() - post_cache_time
 
     os.remove(cache_path)
@@ -179,7 +176,7 @@ def test_lm_caching():
             non["prompt"] == pre["prompt"] == post["prompt"]
         ), f"Input list has been rearranged at index {i}: {(non['prompt'], pre['prompt'], post['prompt'])}"
         assert (
-            non["output"] == pre["output"] == post["output"]
+            non["result"] == pre["result"] == post["result"]
         ), f"Different results detected at index {i}: {(non['output'], pre['output'], post['output'])}"
 
 
@@ -204,13 +201,13 @@ def test_vllm_remote_batch():
 
     inputs_copy = copy.deepcopy(inputs)
 
-    lm(inputs, arg_fields=["prompt"], result_field="output")
+    lm(inputs)
 
     for i, inp in enumerate(inputs):
         assert (
             inp["prompt"] == inputs_copy[i]["prompt"]
         ), f"Input list has been rearranged at index {i}"
-        assert isinstance(inp["output"], str)
+        assert isinstance(inp["result"], str)
 
     # now we test loglikelihood
     # inputs: List[Dict] = []
@@ -223,7 +220,7 @@ def test_vllm_remote_batch():
     # lm(
     #     inputs,
     #     arg_fields=["prompt1", "prompt2"],
-    #     result_field="output",
+    #     result_field="result",
     #     method="loglikelihood",
     # )
 
@@ -231,7 +228,7 @@ def test_vllm_remote_batch():
     #     assert (
     #         inp["prompt1"] == inputs_copy[i]["prompt1"]
     #     ), f"Input list has been rearranged at index {i}"
-    #     assert isinstance(inp["output"], float)
+    #     assert isinstance(inp["result"], float)
 
 
 def test_vllm_tensor_parallel():
@@ -255,13 +252,13 @@ def test_vllm_tensor_parallel():
 
     inputs_copy = copy.deepcopy(inputs)
 
-    lm(inputs, arg_fields=["prompt"], result_field="output")
+    lm(inputs)
 
     for i, inp in enumerate(inputs):
         assert (
             inp["prompt"] == inputs_copy[i]["prompt"]
         ), f"Input list has been rearranged at index {i}"
-        assert isinstance(inp["output"], str)
+        assert isinstance(inp["result"], str)
 
 
 @pytest.mark.parametrize("model_cfg", [GREEDY_GENAI_CFG, GREEDY_OPENAI_CFG])
@@ -273,8 +270,9 @@ def test_auto_chat_template(model_cfg):
 
     # check it passes through for a simple string
     prompt = {"prompt": "Hello world"}
-    outputs, _ = lm.get_args_kwargs(prompt, lm.GENERATE, ["prompt"])
-    output = outputs[0]
+    output = lm._adjust_prompts(
+        [LMBlockData(prompt=prompt, SRC_DATA=None)], lm.GENERATE
+    )[0]
     if "openai" in model_type:
         assert output == prompt["prompt"]
     else:
@@ -287,8 +285,9 @@ def test_auto_chat_template(model_cfg):
             {"role": "assistant", "content": "Yes, it is me, World"},
         ]
     }
-    outputs, _ = lm.get_args_kwargs(prompt, lm.GENERATE, ["prompt"])
-    output = outputs[0]
+    output = lm._adjust_prompts(
+        [LMBlockData(prompt=prompt, SRC_DATA=None)], lm.GENERATE
+    )[0]
     if "openai" in model_type:
         assert output == prompt["prompt"]
     else:
@@ -296,6 +295,7 @@ def test_auto_chat_template(model_cfg):
 
     # check it does nothing for loglikelihood
     prompt = {"prompt": "Hello world"}
-    outputs, _ = lm.get_args_kwargs(prompt, lm.LOGLIKELIHOOD, ["prompt"])
-    output = outputs[0]
+    output = lm._adjust_prompts(
+        [LMBlockData(prompt=prompt, SRC_DATA=None)], lm.LOGLIKELIHOOD
+    )[0]
     assert output == prompt["prompt"]

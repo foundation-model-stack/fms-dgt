@@ -1,11 +1,11 @@
 # Standard
+from dataclasses import dataclass
 from functools import partial
-from typing import Any, List, Optional, Union
+from typing import Any, Iterable, List, Optional, Union
 
 # Local
 from fms_dgt.base.registry import register_block
-from fms_dgt.blocks.validators import BaseValidatorBlock
-from fms_dgt.constants import DATASET_TYPE
+from fms_dgt.blocks.validators import BaseValidatorBlock, BaseValidatorBlockData
 
 try:
     # Third Party
@@ -14,9 +14,16 @@ except ModuleNotFoundError:
     pass
 
 
+@dataclass(kw_only=True)
+class RougeDedupData(BaseValidatorBlockData):
+    input: str
+
+
 @register_block("rouge_scorer")
 class RougeDedupValidator(BaseValidatorBlock):
     """Base Class for all Validators"""
+
+    DATA_TYPE: RougeDedupData = RougeDedupData
 
     def __init__(self, threshold: float = 1.1, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -41,12 +48,9 @@ class RougeDedupValidator(BaseValidatorBlock):
 
     def execute(
         self,
-        inputs: DATASET_TYPE,
+        inputs: Iterable[RougeDedupData],
         *,
         context: Optional[List[str]] = None,
-        arg_fields: Optional[List[str]] = None,
-        kwarg_fields: Optional[List[str]] = None,
-        result_field: Optional[List[str]] = None,
     ):
         """Deduplicator that removes elements of `inputs` that are too rouge-similar. By default it will pick the one that is maximally dissimilar from `context` to keep"""
 
@@ -55,8 +59,8 @@ class RougeDedupValidator(BaseValidatorBlock):
 
         tokenized = []
         for inp in inputs:
-            (inp_str,), _ = self.get_args_kwargs(inp, arg_fields, kwarg_fields)
-            tokenized.append((self.tokenize(inp_str), inp))
+            # TODO: Safety check this
+            tokenized.append((self.tokenize(inp.input), inp))
 
         # first score inputs by rouge similarity to context
         ranked_inputs = []
@@ -95,23 +99,14 @@ class RougeDedupValidator(BaseValidatorBlock):
         for i, (_, is_valid_wrt_context, new_tokens, inp) in enumerate(ranked_inputs):
             # only check against elements we've already added
             check_against = all_tokens[:i]
-            res = self._validate(new_tokens, check_against) and is_valid_wrt_context
-            if res or not self._filter_invalids:
-                self.write_result(inp, res, result_field)
+            inp.is_valid = (
+                self._validate(new_tokens, check_against) and is_valid_wrt_context
+            )
+            if inp.is_valid or not self._filter_invalids:
                 outputs.append(inp)
 
-            if not res:
-                inp_args, inp_kwargs = self.get_args_kwargs(
-                    inp, arg_fields, kwarg_fields
-                )
-                iter_args = arg_fields or self._arg_fields or []
-                to_save.append(
-                    {
-                        **dict(zip(iter_args, inp_args)),
-                        **inp_kwargs,
-                        result_field: res,
-                    }
-                )
+            if not inp.is_valid:
+                to_save.append(inp)
 
         self.save_data(to_save)
 

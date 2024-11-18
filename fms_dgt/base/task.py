@@ -340,6 +340,7 @@ class SdgTask:
             "store_name": os.path.join(self._store_name, "final_data"),
             "data_type": DatastoreDataType.FINAL_DATA,
             **self._datastore_cfg,
+            "restart": True,  # always restart final datastore
         }
         self._final_datastore = get_datastore(
             self._datastore_cfg.get(TYPE_KEY), **final_ds_kwargs
