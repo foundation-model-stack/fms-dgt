@@ -1,7 +1,7 @@
 # Standard
 from abc import ABC
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Union
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union
 import itertools
 import json
 import time
@@ -350,10 +350,13 @@ class DataBuilder(ABC):
     def _write_postprocessing(self, completed_tasks: List[SdgTask], data: DATASET_TYPE):
         # write outputs to datastore
         for task in completed_tasks:
-            task.set_new_postprocess_datastore()
+            # update pointer to current datastore
+            task.set_new_datastore()
 
         # TODO: make this more efficient
-        tasks = {task.name: [task, 0] for task in completed_tasks}
+        tasks: Dict[str, Tuple[SdgTask, int]] = {
+            task.name: [task, 0] for task in completed_tasks
+        }
         for d in data:
             task_name = d[TASK_NAME_KEY]
             # have to cast this to OUTPUT_TYPE
@@ -362,7 +365,7 @@ class DataBuilder(ABC):
                 for k, v in d.items()
                 if k in tasks[task_name][0].OUTPUT_DATA_TYPE.get_field_names()
             }
-            tasks[task_name][0].post_proc_datastore.save_data([d])
+            tasks[task_name][0].save_intermediate_data(d)
             tasks[task_name][1] += 1
 
         ct_string = ", ".join(
