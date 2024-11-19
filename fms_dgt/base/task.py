@@ -239,15 +239,6 @@ class SdgTask:
         return self._datastore
 
     @property
-    def post_proc_datastore(self) -> BaseDatastore:
-        """Returns the post-processing datastore of the class.
-
-        Returns:
-            BaseDatastore: Datastore
-        """
-        return self._post_proc_datastore
-
-    @property
     def final_datastore(self) -> BaseDatastore:
         """Returns the datastore of the class.
 
@@ -332,9 +323,6 @@ class SdgTask:
             self._datastore_cfg.get(TYPE_KEY), **io_ds_kwargs
         )
 
-        # set post-proc datastore
-        self._post_proc_datastore = self._datastore
-
         # init final output datastore (should be same as input/output datastore)
         final_ds_kwargs = {
             "store_name": os.path.join(self._store_name, "final_data"),
@@ -346,8 +334,8 @@ class SdgTask:
             self._datastore_cfg.get(TYPE_KEY), **final_ds_kwargs
         )
 
-    def set_new_postprocess_datastore(self):
-        """Sets default postprocess datastore (which is used to gather data for final_datastore)
+    def set_new_datastore(self):
+        """Sets default datastore (which is used to gather data for final_datastore)
 
         Args:
             datastore (BaseDatastore): Datastore to set
@@ -357,11 +345,16 @@ class SdgTask:
             "store_name": os.path.join(
                 self._store_name, f"postproc_data_{self._post_proc_id}"
             ),
-            "data_type": DatastoreDataType.POST_PROC_DATA,
+            "data_type": DatastoreDataType.TASK_DATA,
             **self._datastore_cfg,
             "restart": True,
         }
-        self._post_proc_datastore = get_datastore(
+
+        # close existing datastore before updating
+        self._datastore.close()
+
+        # update pointer to new datastore
+        self._datastore = get_datastore(
             self._datastore_cfg.get(TYPE_KEY), **pp_ds_kwargs
         )
 
@@ -469,16 +462,16 @@ class SdgTask:
             new_data: List[SdgData] = [new_data]
 
         to_save = [d if type(d) == dict else d.to_dict() for d in new_data]
-        self._datastore.save_data(to_save)
+        self.datastore.save_data(to_save)
 
     def load_intermediate_data(self) -> List[SdgData]:
-        """Loads intermediate data produced during SDG (will be used to resume SDG). This function loads the data from _post_proc_datastore, which is either
+        """Loads intermediate data produced during SDG (will be used to resume SDG). This function loads the data from datastore, which is either
             the latest datastore defined during post processing or the original input/output datastore.
 
         Returns:
             List[SdgData]: List of SdgData that has been loaded
         """
-        loaded_data = self.post_proc_datastore.load_data()
+        loaded_data = self.datastore.load_data()
         if loaded_data:
             self.machine_data = [
                 self.instantiate_output_example(**d) for d in loaded_data
@@ -487,7 +480,7 @@ class SdgTask:
     def save_final_data(self) -> None:
         """Saves final instruction-tuning data that can be used directly for training."""
         if self._save_formatted_output:
-            loaded_data = self.post_proc_datastore.load_data() or []
+            loaded_data = self.datastore.load_data() or []
             to_add = [
                 self.instantiate_instruction(self.instantiate_output_example(**d))
                 for d in loaded_data
@@ -519,7 +512,7 @@ class SdgTask:
         """Method for wrapping up task execution. Called after `is_complete` signals task has completed"""
         # close datastores, which may involve writing any buffered data
         self._dataloader_state_datastore.close()
-        self._datastore.close()
+        self.datastore.close()
 
         # save final data
         self.save_final_data()
