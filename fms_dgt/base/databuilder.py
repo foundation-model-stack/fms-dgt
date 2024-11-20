@@ -38,7 +38,7 @@ class DataBuilderConfig(dict):
 
     name: Optional[str] = None
     blocks: Optional[dict] = None
-    postprocessors: Optional[List[str]] = None
+    postprocessors: Optional[List[Union[str, Dict]]] = None
     metadata: Optional[dict] = None
 
     def __post_init__(self) -> None:
@@ -46,6 +46,24 @@ class DataBuilderConfig(dict):
             self.blocks = []
         if self.postprocessors is None:
             self.postprocessors = []
+        else:
+            postprocessors = []
+            for post_proc in self.postprocessors:
+                if isinstance(post_proc, str):
+                    post_proc = [(post_proc, dict())]
+                elif isinstance(post_proc, dict):
+                    post_proc = list(post_proc.items())
+                if (
+                    len(post_proc) != 1
+                    or len(post_proc[0]) != 2
+                    or not isinstance(post_proc[0][0], str)
+                    or not isinstance(post_proc[0][1], dict)
+                ):
+                    raise ValueError(
+                        f"Post-processor {post_proc} must be either a string or a <post-proc-name : value> pair"
+                    )
+                postprocessors.append(post_proc[0])
+            self.postprocessors = postprocessors
 
 
 ###
@@ -345,15 +363,14 @@ class DataBuilder(ABC):
         Args:
             completed_tasks (List[SdgTask]): tasks that have been completed and can undergo postprocessing
         """
-
-        post_proc_blocks = [b for b in self.blocks if b.name in self._postprocessors]
-        if post_proc_blocks:
+        if self._postprocessors:
             data = itertools.chain(
                 *[task.datastore.load_data() for task in completed_tasks]
             )
-            for block in post_proc_blocks:
+            for block_name, block_args_kwargs in self._postprocessors:
+                block = next(iter([b for b in self.blocks if b.name == block_name]))
                 # execute postprocessing
-                data = block(data)
+                data = block(data, **block_args_kwargs)
 
             # write results
             self._write_postprocessing(completed_tasks, data)
