@@ -64,6 +64,7 @@ class DataBuilder(ABC):
         config: Union[Mapping, DataBuilderConfig] = None,
         max_gen_requests: int = DEFAULT_MAX_GEN_REQUESTS,
         max_stalled_requests: int = DEFAULT_MAX_STALLED_ATTEMPTS,
+        type_check_blocks: bool = False,
         task_kwargs: Dict = None,
         **kwargs: Any,
     ) -> None:
@@ -79,6 +80,8 @@ class DataBuilder(ABC):
 
         self._task_kwargs = task_kwargs
         self._postprocessors = self.config.postprocessors
+
+        self._type_check_blocks = type_check_blocks
 
         self._max_gen_requests = (
             max_gen_requests if max_gen_requests is not None else float("inf")
@@ -167,11 +170,19 @@ class DataBuilder(ABC):
             if obj_name in type_annotations:
                 req_obj_type = type_annotations[obj_name]
 
-                # double check types
-                assert issubclass(block_class, req_obj_type) or (
+                type_matches = issubclass(block_class, req_obj_type) or (
                     issubclass(block_class, CachingLM)
                     and issubclass(req_obj_type, LMGenerator)
+                )
+                # double check types
+                assert (
+                    type_matches or not self._type_check_blocks
                 ), f"Type of retrieved object {block_class} for {obj_name} does not match type {req_obj_type} specified in DataBuilder {self.__class__}"
+
+                if not type_matches:
+                    sdg_logger.warning(
+                        f"Type of retrieved object {block_class} for {obj_name} does not match type {req_obj_type} specified in DataBuilder {self.__class__}"
+                    )
 
             obj_kwargs = {
                 "build_id": self._build_id,
