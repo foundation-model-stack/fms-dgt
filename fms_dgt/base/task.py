@@ -99,6 +99,7 @@ class SdgTask:
         instruction_format: Optional[Dict[str, str]] = None,
         datastore: Optional[Dict] = None,
         seed_datastore: Optional[Dict] = None,
+        final_datastore: Optional[Dict] = None,
         dataloader: Optional[Dict] = None,
         seed_examples: Optional[List[Any]] = None,
         store_name: Optional[str] = None,
@@ -117,6 +118,7 @@ class SdgTask:
             instruction_format (Optional[Dict[str, str]]): A dictionary template that can be used to translate intermediate data objects to instruction-tuning pairs.
             datastore (Optional[Dict]): A dictionary containing the configuration for the datastore.
             seed_datastore (Optional[Dict]): A dictionary containing the configuration for the seed datastore.
+            final_datastore (Optional[Dict]): A dictionary containing the configuration for the datastore used for storing final data.
             dataloader (Optional[Dict]): A dictionary containing the configuration for the dataloader.
             seed_examples (Optional[List[Any]]): A list of seed examples.
             store_name (Optional[str]): A base name to use for the datastores. Will be set to [task_name] if None
@@ -130,8 +132,6 @@ class SdgTask:
         self._created_by = created_by
         self._data_builder = data_builder
         self._instruction_format = instruction_format
-        self._datastore = datastore
-        self._seed_datastore = seed_datastore
         self._dataloader = dataloader
         self._seed_examples = seed_examples
 
@@ -167,7 +167,7 @@ class SdgTask:
 
         # datastore params
         base_store_cfg = {
-            "restart": self._restart_generation,
+            "restart": self.restart_generation,
             "output_dir": self._output_dir,
             "task_card": self.task_card,
         }
@@ -178,6 +178,14 @@ class SdgTask:
         self._seed_datastore_cfg = {
             **base_store_cfg,
             **(seed_datastore if seed_datastore is not None else {TYPE_KEY: "default"}),
+        }
+        self._final_datastore_cfg = {
+            **base_store_cfg,
+            **(
+                final_datastore
+                if final_datastore is not None
+                else {TYPE_KEY: "default"}
+            ),
         }
         self._task_card_datastore_cfg = {**base_store_cfg, **self._datastore_cfg}
 
@@ -327,11 +335,11 @@ class SdgTask:
         final_ds_kwargs = {
             "store_name": os.path.join(self._store_name, "final_data"),
             "data_type": DatastoreDataType.FINAL_DATA,
-            **self._datastore_cfg,
+            **self._final_datastore_cfg,
             "restart": True,  # always restart final datastore
         }
         self._final_datastore = get_datastore(
-            self._datastore_cfg.get(TYPE_KEY), **final_ds_kwargs
+            self._final_datastore_cfg.get(TYPE_KEY), **final_ds_kwargs
         )
 
     def set_new_datastore(self):
