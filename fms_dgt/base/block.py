@@ -77,7 +77,7 @@ class BaseBlock(ABC):
         # input / output maps
         self._input_map = input_map
         self._output_map = output_map
-        self._req_args, self._opt_args = None, None
+        self._req_args, self._opt_args = [], []
         if not (self.DATA_TYPE is None or issubclass(self.DATA_TYPE, dict)):
             self._req_args = [
                 f.name
@@ -192,33 +192,22 @@ class BaseBlock(ABC):
             Dict: A dictionary containing the result of the mapping.
         """
 
-        inp_obj = asdict(inp) if is_dataclass(inp) else inp
+        inp_obj = asdict(inp) if is_dataclass(inp) else dict(inp)
+
+        # if none is provided, assume it maps to the src_data
+        if input_map is None:
+            input_map = self._get_default_map(inp)
 
         if isinstance(inp_obj, (dict, pd.DataFrame, Dataset)):
-
-            # if nothing is provided, assume input matches
-            if input_map is None and self.DATA_TYPE:
-                input_map = {arg: arg for arg in self._req_args + self._opt_args}
-            elif input_map is None and (
-                self.DATA_TYPE is None or issubclass(self.DATA_TYPE, dict)
-            ):
-                # in this case, we assume the user wants to process their data as-is
-                return inp_obj
-
             # NOTE: we flip this here because from a DGT pipeline, the input map goes from UserData -> BlockData
             data_type_map = {v: k for k, v in input_map.items()}
 
+            args = (self._req_args + self._opt_args) or data_type_map.keys()
+
             mapped_data = {
-                **{
-                    r_a: inp_obj.get(data_type_map.get(r_a))
-                    for r_a in self._req_args
-                    if data_type_map.get(r_a) in inp_obj
-                },
-                **{
-                    o_a: inp_obj.get(data_type_map.get(o_a))
-                    for o_a in self._opt_args
-                    if data_type_map.get(o_a) in inp_obj
-                },
+                arg: inp_obj.get(data_type_map.get(arg))
+                for arg in args
+                if data_type_map.get(arg) in inp_obj
             }
 
             missing = [r_a for r_a in self._req_args if r_a not in mapped_data]
@@ -227,7 +216,11 @@ class BaseBlock(ABC):
                     f"Required inputs {missing} are not provided in 'input_map'"
                 )
 
-            return self.DATA_TYPE(**mapped_data, SRC_DATA=inp)
+            return (
+                {**mapped_data, _SRC_DATA: inp}
+                if self.DATA_TYPE is None
+                else self.DATA_TYPE(**mapped_data, SRC_DATA=inp)
+            )
 
         raise TypeError(f"Unexpected input type: {type(inp)}")
 
@@ -245,34 +238,36 @@ class BaseBlock(ABC):
         Returns:
             Dict: A dictionary containing the result of the mapping.
         """
+        src_data = inp[_SRC_DATA] if isinstance(inp, dict) else inp.SRC_DATA
 
-        if output_map is None and (
-            self.DATA_TYPE is None or issubclass(self.DATA_TYPE, dict)
-        ):
-            # in this case, we assume the user wants to process their data as-is
-            return inp
-
-        # if none is provided, assume it maps to the input
+        # if none is provided, assume it maps to the src_data
         if output_map is None:
-            output_map = {
-                f.name: f.name
-                for f in dataclasses.fields(self.DATA_TYPE)
-                if f.name != _SRC_DATA
-            }
+            output_map = self._get_default_map(src_data)
 
-        if is_dataclass(inp.SRC_DATA):
+        if is_dataclass(src_data):
             for k, v in output_map.items():
                 # since a dataclass will throw an error, only try to add attributes if original data type has them
-                if hasattr(inp.SRC_DATA, v):
-                    setattr(inp.SRC_DATA, v, getattr(inp, k))
-        elif isinstance(inp.SRC_DATA, (dict, pd.DataFrame, Dataset)):
+                if hasattr(src_data, v):
+                    attr_val = inp[k] if isinstance(inp, dict) else getattr(inp, k)
+                    setattr(src_data, v, attr_val)
+        elif isinstance(src_data, (dict, pd.DataFrame, Dataset)):
             # TODO: handle things other than dictionaries
             for k, v in output_map.items():
-                inp.SRC_DATA[v] = getattr(inp, k)
+                attr_val = inp[k] if isinstance(inp, dict) else getattr(inp, k)
+                src_data[v] = attr_val
         else:
             raise TypeError(f"Unexpected input type: {type(inp)}")
 
-        return inp.SRC_DATA
+        return src_data
+
+    def _get_default_map(self, data: Union[Dict, BaseBlockData]):
+        # if DATA_TYPE is not provided, assume it maps to the input
+        if is_dataclass(self.DATA_TYPE):
+            fields = dataclasses.fields(self.DATA_TYPE)
+        else:
+            fields = data.keys() if isinstance(data, dict) else dataclasses.fields(data)
+        fields = [f if isinstance(f, str) else f.name for f in fields]
+        return {f: f for f in fields if f != _SRC_DATA}
 
     def generate(self, *args, **kwargs) -> DATASET_TYPE:  # for interfacing with IL
         """Method used to have compatibility with IL
