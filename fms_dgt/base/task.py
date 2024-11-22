@@ -184,7 +184,8 @@ class SdgTask:
             **(
                 final_datastore
                 if final_datastore is not None
-                else {TYPE_KEY: "default"}
+                # TODO: this behavior could be risky if datastore is of type multi-target
+                else (datastore if datastore is not None else {TYPE_KEY: "default"})
             ),
         }
         self._task_card_datastore_cfg = {**base_store_cfg, **self._datastore_cfg}
