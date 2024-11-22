@@ -121,9 +121,9 @@ def generate_data(
                     "task_card": TaskRunCard(
                         task_name=task_init.get("task_name"),
                         databuilder_name=task_init.get("data_builder"),
-                        task_spec=json.dumps([task_init, task_kwargs]),
-                        databuilder_spec=json.dumps(
-                            utils.load_nested_paths(builder_cfg, builder_dir)
+                        task_spec={"task_init": task_init, "task_kwargs": task_kwargs},
+                        databuilder_spec=utils.load_nested_paths(
+                            builder_cfg, builder_dir
                         ),
                         build_id=build_id,
                         save_formatted_output=task_kwargs.get("save_formatted_output"),

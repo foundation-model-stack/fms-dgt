@@ -1,6 +1,6 @@
 # Standard
 from dataclasses import asdict, dataclass
-from typing import Optional
+from typing import Dict, Optional
 import uuid
 
 _DEFAULT_BUILD_ID = "exp"
@@ -12,11 +12,9 @@ class TaskRunCard:
 
     task_name: str  # name of task
     databuilder_name: str  # name of databuilder associated with task
-    task_spec: Optional[str] = None  # json string capturing task settings
-    databuilder_spec: Optional[str] = None  # json string capturing databuilder settings
-    build_id: Optional[
-        str
-    ] = None  # id of entity executing the task (defaults to something generic)
+    task_spec: Optional[Dict] = None  # json string for task settings
+    databuilder_spec: Optional[Dict] = None  # json string for databuilder settings
+    build_id: Optional[str] = None  # id of entity executing the task
     run_id: Optional[str] = None  # unique ID for the experiment
     save_formatted_output: Optional[bool] = None  # will save formatted output
 
@@ -24,7 +22,7 @@ class TaskRunCard:
         if self.run_id is None:
             self.run_id = str(uuid.uuid4())
         if self.build_id is None:
-            self.build_id = _DEFAULT_BUILD_ID
+            self.build_id = _DEFAULT_BUILD_ID  #  default to something generic
         if self.save_formatted_output is None:
             self.save_formatted_output = False
 
