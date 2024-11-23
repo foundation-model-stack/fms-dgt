@@ -84,6 +84,10 @@ class DataBuilderIndex:
                     config[BLOCKS_KEY].extend(addlt_blocks)
                 elif k in override:
                     config[k] = override[k]
+            # add overrides that are not part of config directly
+            for k in override:
+                if k not in config:
+                    config[k] = override[k]
 
         if config_overrides is None:
             config_overrides = dict()
