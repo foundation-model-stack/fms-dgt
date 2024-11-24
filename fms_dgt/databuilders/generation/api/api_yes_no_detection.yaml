@@ -15,6 +15,6 @@ blocks:
     filter: true
     threshold: 0.5
 postprocessors:
-  - val2
+  - name: val2
 metadata:
   version: 1.0
