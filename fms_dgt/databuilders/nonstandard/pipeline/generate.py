@@ -3,32 +3,30 @@ from dataclasses import asdict, dataclass
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Union
 
 # Local
-from fms_dgt.base.block import BaseBlock
 from fms_dgt.base.databuilder import DataBuilderConfig, TransformationDataBuilder
 from fms_dgt.base.registry import register_data_builder
-from fms_dgt.blocks.compositions.sequence import BlockSequence
-from fms_dgt.constants import DATASET_TYPE
+from fms_dgt.blocks.compositions.sequence import BlockSequence, validate_block_sequence
+from fms_dgt.constants import DATASET_TYPE, NAME_KEY
 from fms_dgt.databuilders.nonstandard.pipeline.task import PipelineTransformTask
 from fms_dgt.utils import init_dataclass_from_dict, sdg_logger
 
 
-@dataclass
+@dataclass(kw_only=True)
 class PipelineDataBuilderConfig(DataBuilderConfig):
     """Configuration for a data builder.
 
     Attributes:
         name (Optional[str]): The name of the data builder.
         blocks (Optional[List[Dict]]): A list of block configurations.
-        postprocessors (Optional[List[str]]): A list of names of the blocks that should be used during postprocessing.
+        block_sequence (Optional[List[Dict]]): The sequence of blocks to call.
         metadata (Optional[Dict[str, Any]]): Metadata for the data builder. Allows for users to pass arbitrary info to data builders.
     """
 
-    name: Optional[str] = None
-    blocks: Optional[List[Union[Dict, BaseBlock]]] = None
-    block_order: Optional[List[str]] = None
-    block_params: Optional[List[Dict]] = None
-    input_maps: Optional[List[Dict]] = None
-    output_maps: Optional[List[Dict]] = None
+    block_sequence: List[Dict]
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        validate_block_sequence(self.block_sequence)
 
 
 @register_data_builder("transform_pipeline")

@@ -13,6 +13,6 @@ blocks:
     filter: true
     threshold: 1.0
 postprocessors:
-  - rouge_val
+  - name: rouge_val
 metadata:
   version: 1.0

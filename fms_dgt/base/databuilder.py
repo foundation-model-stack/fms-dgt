@@ -13,6 +13,7 @@ from tqdm import tqdm
 from fms_dgt.base.block import BaseBlock, get_row_name
 from fms_dgt.base.registry import get_block, get_block_class
 from fms_dgt.base.task import SdgData, SdgTask, TransformTask
+from fms_dgt.blocks.compositions.sequence import validate_block_sequence
 from fms_dgt.blocks.generators.llm import CachingLM, LMGenerator
 from fms_dgt.constants import DATASET_TYPE, NAME_KEY, TASK_NAME_KEY, TYPE_KEY
 from fms_dgt.utils import all_annotations, init_dataclass_from_dict, sdg_logger
@@ -46,24 +47,7 @@ class DataBuilderConfig(dict):
             self.blocks = []
         if self.postprocessors is None:
             self.postprocessors = []
-        else:
-            postprocessors = []
-            for post_proc in self.postprocessors:
-                if isinstance(post_proc, str):
-                    post_proc = [(post_proc, dict())]
-                elif isinstance(post_proc, dict):
-                    post_proc = list(post_proc.items())
-                if (
-                    len(post_proc) != 1
-                    or len(post_proc[0]) != 2
-                    or not isinstance(post_proc[0][0], str)
-                    or not isinstance(post_proc[0][1], dict)
-                ):
-                    raise ValueError(
-                        f"Post-processor {post_proc} must be either a string or a <post-proc-name : value> pair"
-                    )
-                postprocessors.append(post_proc[0])
-            self.postprocessors = postprocessors
+        validate_block_sequence(self.postprocessors)
 
 
 ###
@@ -367,10 +351,12 @@ class DataBuilder(ABC):
             data = itertools.chain(
                 *[task.datastore.load_data() for task in completed_tasks]
             )
-            for block_name, block_args_kwargs in self._postprocessors:
+            for block_info in self._postprocessors:
+                block_info = dict(block_info)
+                block_name = block_info.pop(NAME_KEY)
                 block = next(iter([b for b in self.blocks if b.name == block_name]))
                 # execute postprocessing
-                data = block(data, **block_args_kwargs)
+                data = block(data, **block_info)
 
             # write results
             self._write_postprocessing(completed_tasks, data)
