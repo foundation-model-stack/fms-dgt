@@ -135,7 +135,9 @@ class SdgTask:
         self._dataloader = dataloader
         self._seed_examples = seed_examples
 
-        self._store_name = store_name or self._name
+        self._store_name = (
+            store_name or (datastore or dict()).pop("store_name", None) or self._name
+        )
         self._kwargs = kwargs
         self._runner_config = init_dataclass_from_dict(runner_config, TaskRunnerConfig)
 
@@ -181,12 +183,7 @@ class SdgTask:
         }
         self._final_datastore_cfg = {
             **base_store_cfg,
-            **(
-                final_datastore
-                if final_datastore is not None
-                # TODO: this behavior could be risky if datastore is of type multi-target
-                else (datastore if datastore is not None else {TYPE_KEY: "default"})
-            ),
+            **(final_datastore if final_datastore is not None else self._datastore_cfg),
         }
         self._task_card_datastore_cfg = {**base_store_cfg, **self._datastore_cfg}
 
