@@ -535,7 +535,7 @@ class TransformTaskRunnerConfig(TaskRunnerConfig):
     def __post_init__(self):
         super().__post_init__()
         if self.seed_batch_size is None:
-            self.seed_batch_size = 10
+            self.seed_batch_size = 100
         if self.machine_batch_size is None:
             self.machine_batch_size = 0
 
