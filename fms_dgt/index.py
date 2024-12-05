@@ -83,7 +83,10 @@ class DataBuilderIndex:
                             addlt_blocks.append(block)
                     config[BLOCKS_KEY].extend(addlt_blocks)
                 elif k in override:
-                    config[k] = override[k]
+                    if isinstance(config[k], dict) and isinstance(override[k], dict):
+                        config[k] = utils.merge_dictionaries(config[k], override[k])
+                    else:
+                        config[k] = override[k]
             # add overrides that are not part of config directly
             for k in override:
                 if k not in config:
