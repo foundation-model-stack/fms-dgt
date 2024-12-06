@@ -2,14 +2,13 @@
 from typing import Dict, List, Tuple
 import os
 import subprocess
-import time
 
 # Local
 from fms_dgt.base.registry import register_block
 from fms_dgt.blocks.trainers import BaseTrainerBlock
 from fms_dgt.blocks.trainers.trainer import TrainingException, make_model_dir
 from fms_dgt.constants import DATASET_TYPE
-from fms_dgt.utils import get_one_line_from_process, get_open_port, sdg_logger
+from fms_dgt.utils import get_open_port, sdg_logger
 
 ###
 # Trainer itself
@@ -65,6 +64,7 @@ class FmsTuningBlock(BaseTrainerBlock):
             ["--model_name_or_path", model_id_or_path],
             ["--training_data_path", data_path],
             ["--output_dir", model_dir],
+            ["--save_strategy", "steps"],
             # LORA PARAMS
             ["--use_flash_attn", "true"],
             [
@@ -89,30 +89,19 @@ class FmsTuningBlock(BaseTrainerBlock):
 
         # run and wait for result
         try:
-            process = subprocess.Popen(
-                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
+            process = subprocess.run(cmd, capture_output=True, text=True)
 
-            while process.poll() is None:
-                # write output from stdout
-                while to_write := get_one_line_from_process(process):
-                    sdg_logger.info(to_write)
-                # sleep so we aren't doing this so frequently
-                time.sleep(1)
-
-            # write anything remaining from stdout
-            while to_write := get_one_line_from_process(process):
-                sdg_logger.info(to_write)
+            out, err = process.stdout.strip(), process.stderr.strip()
+            if out.strip():
+                sdg_logger.info(out)
+            if err.strip():
+                sdg_logger.error(err)
 
             if process.returncode != 0:
                 raise TrainingException(
                     f"Training failed for command:\n\t{' '.join(cmd)}"
                 )
-            process.kill()
         except Exception as e:
-            while to_write := get_one_line_from_process(process):
-                sdg_logger.info(to_write)
-            process.kill()
             raise e
 
         if not os.listdir(model_dir):

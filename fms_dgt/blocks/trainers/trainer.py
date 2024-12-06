@@ -83,6 +83,9 @@ class BaseTrainerBlock(BaseBlock):
                     f_d = _apply_formatter_template(d, data_formatter_template)
                     f.write(json.dumps(f_d) + "\n")
 
+    def __call__(self, *args: Any, **kwargs: Any) -> str:
+        return self.execute(*args, **kwargs)
+
     def execute(self, *args: Any, **kwargs: Any) -> str:
         return self.train(*args, **kwargs)
 
