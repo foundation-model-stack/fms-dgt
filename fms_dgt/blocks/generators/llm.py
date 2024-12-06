@@ -286,9 +286,7 @@ class CachingLM:
     def __getattr__(self, attr):
         lm_attr = getattr(self.lm, attr)
 
-        if not callable(lm_attr):
-            return lm_attr
-        elif attr in ["init_model", "release_model", "close"]:
+        if attr not in ["generate_batch", "loglikelihood_batch"]:
             return lm_attr
 
         def fn(requests: List[LMBlockData]):
@@ -354,8 +352,34 @@ class CachingLM:
 
         return fn
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        return self.execute(*args, **kwargs)
+    def __call__(
+        self,
+        inputs: DATASET_TYPE,
+        *args,
+        input_map: Optional[Union[List, Dict]] = None,
+        output_map: Optional[Union[List, Dict]] = None,
+        **kwargs,
+    ) -> DATASET_TYPE:
+        """Copy of BaseBlock __call__ method"""
+
+        input_map = input_map or self.lm._input_map
+        output_map = output_map or self.lm._output_map
+
+        transformed_inputs = map(
+            lambda x: self.lm.transform_input(x, input_map), inputs
+        )
+        if isinstance(inputs, (list, tuple)):
+            transformed_inputs = type(inputs)(transformed_inputs)
+
+        outputs = self.execute(transformed_inputs, *args, **kwargs)
+
+        transformed_outputs = map(
+            lambda x: self.lm.transform_output(x, output_map), outputs
+        )
+        if isinstance(inputs, (list, tuple)):
+            transformed_outputs = type(inputs)(transformed_outputs)
+
+        return transformed_outputs
 
     def execute(
         self,
