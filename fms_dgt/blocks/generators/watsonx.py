@@ -15,11 +15,11 @@ import fms_dgt.blocks.generators.utils as generator_utils
 try:
     # Third Party
     from ibm_watsonx_ai import Credentials
+    from ibm_watsonx_ai.foundation_models import ModelInference as Model
     from ibm_watsonx_ai.foundation_models.schema import (
         ReturnOptionProperties,
         TextGenParameters,
     )
-    from ibm_watsonx_ai.foundation_models import ModelInference as Model
 except ModuleNotFoundError:
     pass
 
