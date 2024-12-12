@@ -113,11 +113,9 @@ class WatsonXAIGenerator(LMGenerator):
                         instance,
                         until,
                         additional={
-                            {
-                                "gen_token_count": responses[idx]["results"][0][
-                                    "generated_token_count"
-                                ]
-                            }
+                            "gen_token_count": responses[idx]["results"][0][
+                                "generated_token_count"
+                            ]
                         },
                     )
                     pbar.update(1)
@@ -127,7 +125,7 @@ class WatsonXAIGenerator(LMGenerator):
         pbar.close()
 
     def loglikelihood_batch(
-        self, requests: List[Instance], disable_tqdm: bool = False
+        self, requests: List[LMBlockData], disable_tqdm: bool = False
     ) -> None:
         # group requests by kwargs
         grouper = generator_utils.Grouper(requests, lambda x: str(x.kwargs))
@@ -138,7 +136,7 @@ class WatsonXAIGenerator(LMGenerator):
         )
 
         for _, reqs in grouper.get_grouped().items():
-            chunks: List[List[Instance]] = generator_utils.chunks(
+            chunks: List[List[LMBlockData]] = generator_utils.chunks(
                 reqs, n=self._watsonx_resource.max_calls
             )
 
