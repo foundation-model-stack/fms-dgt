@@ -274,6 +274,15 @@ def merge_dictionaries(*args: List[dict]):
     return merged_dict
 
 
+def apply_formatter_template(d: Dict, data_formatter_template: Dict):
+    ret_dict = dict(data_formatter_template)
+    for rd_k, rd_v in ret_dict.items():
+        for d_k, d_v in d.items():
+            rd_v = rd_v.replace("{{" + d_k + "}}", str(d_v))
+        ret_dict[rd_k] = rd_v
+    return ret_dict
+
+
 def get_data_path_name(data_path: str):
     name = (
         Path(os.path.split(data_path)[0]).stem

@@ -73,15 +73,12 @@ class BaseTrainerBlock(BaseBlock):
 
         self._kwargs = kwargs
 
-    def set_dataset(
-        self, data_to_format: List[Tuple[DATASET_TYPE, Dict]], jsonl_path: str
-    ):
+    def set_dataset(self, data_to_format: List[DATASET_TYPE], jsonl_path: str):
         os.makedirs(os.path.dirname(jsonl_path), exist_ok=True)
         with open(jsonl_path, "w") as f:
-            for data, data_formatter_template in data_to_format:
+            for data in data_to_format:
                 for d in data:
-                    f_d = _apply_formatter_template(d, data_formatter_template)
-                    f.write(json.dumps(f_d) + "\n")
+                    f.write(json.dumps(d) + "\n")
 
     def __call__(self, *args: Any, **kwargs: Any) -> str:
         return self.execute(*args, **kwargs)
@@ -94,7 +91,7 @@ class BaseTrainerBlock(BaseBlock):
         self,
         model_id_or_path: str,
         output_dir: str,
-        data_to_format: List[Tuple[DATASET_TYPE, Dict]],
+        data_to_format: List[DATASET_TYPE],
         *args,
         **kwargs,
     ) -> str:
@@ -103,7 +100,7 @@ class BaseTrainerBlock(BaseBlock):
         Args:
             model_id_or_path (str): Model to initialize from
             output_dir (str): Directory to output model checkpoints
-            data_to_format (List[Tuple[DATASET_TYPE, Dict]]): All training data from one or more tasks and the templates to format the data with
+            data_to_format (List[DATASET_TYPE]): All training data from one or more tasks
             config_path (Any): path to config used for trainer
             kwargs (Any): Additional keyword arguments to pass to the base class.
 
@@ -125,12 +122,3 @@ class TrainingException(Exception):
 
 def make_model_dir(output_path: str):
     return os.path.join(output_path, "model")
-
-
-def _apply_formatter_template(d: Dict, data_formatter_template: Dict):
-    ret_dict = dict(data_formatter_template)
-    for rd_k, rd_v in ret_dict.items():
-        for d_k, d_v in d.items():
-            rd_v = rd_v.replace("{{" + d_k + "}}", str(d_v))
-        ret_dict[rd_k] = rd_v
-    return ret_dict
