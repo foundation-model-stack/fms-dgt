@@ -8,7 +8,7 @@ Framework for scalable [synthetic data generation (SDG)](https://en.wikipedia.or
 
 ### Setup
 
-We recommend using a Python virtual environment with Python 3.9+. Here is how to setup a virtual environment using [Python venv](https://docs.python.org/3/library/venv.html):
+We require using a Python virtual environment with Python 3.10+. Here is how to setup a virtual environment using [Python venv](https://docs.python.org/3/library/venv.html):
 
 ```
 python3 -m venv ssdg_venv
