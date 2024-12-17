@@ -1,5 +1,4 @@
 # Standard
-from typing import Dict, List, Tuple
 import os
 import subprocess
 
@@ -33,7 +32,7 @@ class FmsTuningBlock(BaseTrainerBlock):
         self,
         model_id_or_path: str,
         output_dir: str,
-        data_to_format: List[Tuple[DATASET_TYPE, Dict]],
+        data_to_format: DATASET_TYPE,
         host: str = "0.0.0.0",
         port: int = None,
     ) -> str:

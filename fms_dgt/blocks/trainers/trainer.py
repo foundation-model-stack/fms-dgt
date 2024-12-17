@@ -1,6 +1,6 @@
 # Standard
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, List, Tuple
+from typing import Any
 import abc
 import json
 import os
@@ -73,12 +73,11 @@ class BaseTrainerBlock(BaseBlock):
 
         self._kwargs = kwargs
 
-    def set_dataset(self, data_to_format: List[DATASET_TYPE], jsonl_path: str):
+    def set_dataset(self, data_to_format: DATASET_TYPE, jsonl_path: str):
         os.makedirs(os.path.dirname(jsonl_path), exist_ok=True)
         with open(jsonl_path, "w") as f:
-            for data in data_to_format:
-                for d in data:
-                    f.write(json.dumps(d) + "\n")
+            for d in data_to_format:
+                f.write(json.dumps(d) + "\n")
 
     def __call__(self, *args: Any, **kwargs: Any) -> str:
         return self.execute(*args, **kwargs)
@@ -91,7 +90,7 @@ class BaseTrainerBlock(BaseBlock):
         self,
         model_id_or_path: str,
         output_dir: str,
-        data_to_format: List[DATASET_TYPE],
+        data_to_format: DATASET_TYPE,
         *args,
         **kwargs,
     ) -> str:
@@ -100,7 +99,7 @@ class BaseTrainerBlock(BaseBlock):
         Args:
             model_id_or_path (str): Model to initialize from
             output_dir (str): Directory to output model checkpoints
-            data_to_format (List[DATASET_TYPE]): All training data from one or more tasks
+            data_to_format (DATASET_TYPE): All training data from one or more tasks
             config_path (Any): path to config used for trainer
             kwargs (Any): Additional keyword arguments to pass to the base class.
 
