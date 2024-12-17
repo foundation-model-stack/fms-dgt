@@ -58,7 +58,7 @@ class vLLMServerGenerator(LMGenerator):
         device: str = "cuda",
         data_parallel_size: int = 1,
         check_interval: int = 10,
-        lora_local_path: str = None,
+        lora_modules: str = None,
         host: str = "0.0.0.0",
         port: int = None,
         pid: int = None,
@@ -85,6 +85,7 @@ class vLLMServerGenerator(LMGenerator):
         self._data_parallel_size = int(data_parallel_size)
         self._gpu_memory_utilization = float(gpu_memory_utilization)
         self._swap_space = int(swap_space)
+        self._lora_modules = lora_modules
 
         self._pid = pid if pid is not None else os.getpid()
         self._api_key = api_key if api_key is not None else str(uuid.uuid4())
@@ -149,6 +150,7 @@ class vLLMServerGenerator(LMGenerator):
             ["--tensor-parallel-size", self._tensor_parallel_size],
             ["--gpu-memory-utilization", self._gpu_memory_utilization],
             ["--swap-space", self._swap_space],
+            (["--lora-modules", self._lora_modules] if self._lora_modules else []),
             ["--disable-log-requests"],
             # ["--enable-prefix-caching"],
         ]
@@ -180,6 +182,17 @@ class vLLMServerGenerator(LMGenerator):
                 )
                 break
             elif self._vllm_process.poll() is not None:
+                lines.append(
+                    "\n".join(
+                        [
+                            proc.read().decode("utf-8").strip()
+                            for proc in [
+                                self._vllm_process.stdout,
+                                self._vllm_process.stderr,
+                            ]
+                        ]
+                    ).strip()
+                )
                 # if process has error'd out, kill it
                 sdg_logger.error(
                     "Error in vllm server instance. The full traceback is provided below:\n\n"
