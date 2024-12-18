@@ -88,6 +88,9 @@ class GenAIGenerator(LMGenerator):
                 model_id = kwargs.pop("model_id_or_path", self.model_id_or_path)
                 until = kwargs.get("stop_sequences", None)
 
+                # TODO: I don't believe genai allows the "n" samples param
+                kwargs.pop("n", None)
+
                 parameters = TextGenerationParameters(
                     return_options=TextGenerationReturnOptions(
                         input_text=True,

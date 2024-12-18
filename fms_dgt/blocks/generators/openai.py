@@ -29,6 +29,7 @@ import fms_dgt.blocks.generators.utils as generator_utils
 try:
     # Third Party
     from openai import OpenAI
+    import openai
 except ModuleNotFoundError:
     pass
 
@@ -36,7 +37,9 @@ except ModuleNotFoundError:
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
-def oa_completion(client, chat: bool = False, **kwargs):
+def oa_completion(
+    client: OpenAI, chat: bool = False, **kwargs
+) -> openai.types.completion.Completion:
     """Query OpenAI API for completion.
 
     Retry with back-off until they respond
@@ -141,6 +144,7 @@ class OpenaiCompletionsLM(LMGenerator):
             disable=(disable_tqdm or (self.rank != 0)),
             desc="Running generate_batch requests",
         )
+
         for key, reqs in grouper.get_grouped().items():
             chunks: List[List[LMBlockData]] = generator_utils.chunks(
                 reqs, n=self.batch_size
@@ -165,16 +169,31 @@ class OpenaiCompletionsLM(LMGenerator):
 
                 gen_token_count = self._extract_gen_token_count(response)
 
-                for resp, instance in zip(response.choices, chunk):
-                    s = self._extract_output(resp)
-                    additional = {"gen_token_count": gen_token_count}
+                n = kwargs.get("n", 1)
+                if len(response.choices) != n * len(chunk):
+                    raise AssertionError(
+                        f"Number of responses does not match number of inputs * n, [{len(response.choices)}, {n}, {len(chunk)}]"
+                    )
+
+                resp_groups = [
+                    response.choices[i : i + n]
+                    for i in range(0, len(response.choices), n)
+                ]
+                for resp_group, instance in zip(resp_groups, chunk):
+                    n_s = []
+                    for resp in resp_group:
+                        s = self._extract_output(resp)
+                        addtl = {"gen_token_count": gen_token_count}
+                        n_s.append((s, addtl))
+
                     self.update_instance_with_result(
                         "generate_batch",
-                        s,
+                        ([s for s, _ in n_s] if len(n_s) > 1 else s),
                         instance,
                         until,
-                        additional,
+                        ([addtl for _, addtl in n_s] if len(n_s) > 1 else addtl),
                     )
+
                     pbar.update(1)
 
         pbar.close()

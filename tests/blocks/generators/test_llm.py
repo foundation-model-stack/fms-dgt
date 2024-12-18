@@ -18,6 +18,7 @@ GREEDY_CFG = {
     "temperature": 1.0,
     "max_new_tokens": 5,
     "min_new_tokens": 1,
+    "n": 3,
 }
 GREEDY_GENAI_CFG = {
     "type": "genai",
@@ -52,8 +53,11 @@ PROMPTS = [f"Question: x = {i} + 1\nAnswer: x =" for i in range(25)]
 @pytest.mark.parametrize(
     "model_cfg",
     [
-        GREEDY_VLLM_SERVER_CFG
-    ],  # GREEDY_VLLM_SERVER_CFG, GREEDY_OPENAI_CFG, GREEDY_GENAI_CFG]
+        # GREEDY_VLLM_SERVER_CFG,
+        GREEDY_VLLM_CFG,
+        GREEDY_GENAI_CFG,
+        # GREEDY_OPENAI_CFG,
+    ],
 )
 def test_generate_batch(model_cfg):
     model_cfg = dict(model_cfg)
@@ -73,7 +77,9 @@ def test_generate_batch(model_cfg):
         assert (
             inp["prompt"] == inputs_copy[i]["prompt"]
         ), f"Input list has been rearranged at index {i}"
-        assert isinstance(inp["result"], str)
+        assert isinstance(inp["result"], str) or (
+            isinstance(inp["result"], list) and len(inp["result"]) == GREEDY_CFG["n"]
+        )
 
 
 @pytest.mark.parametrize("model_cfg", [GREEDY_GENAI_CFG])  # , GREEDY_VLLM_CFG])
