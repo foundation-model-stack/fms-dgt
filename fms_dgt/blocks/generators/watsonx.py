@@ -92,6 +92,9 @@ class WatsonXAIGenerator(LMGenerator):
                     )
                 until = kwargs.get("stop_sequences", None)
 
+                # TODO: I don't believe WatsonX allows the "n" samples param
+                kwargs.pop("n", None)
+
                 # Initialize model
                 model = Model(
                     model_id=kwargs.pop("model_id_or_path", self.model_id_or_path),

@@ -36,8 +36,8 @@ class LMBlockData(BaseBlockData):
     prompt: str
     gen_kwargs: Optional[Dict] = None
     continuation: Optional[str] = None
-    result: Optional[str] = None
-    addtl: Optional[Any] = None
+    result: Optional[Union[str, List[str]]] = None
+    addtl: Optional[Union[str, List[Any]]] = None
 
     def __post_init__(self):
         if self.gen_kwargs is None:
@@ -63,6 +63,7 @@ class LMGenerator(BaseBlock):
         random_seed: int = None,
         stop_sequences: List[str] = None,
         temperature: float = None,
+        n: int = None,
         batch_size: int = None,
         auto_chat_template: Optional[Union[bool, Dict]] = False,
         **kwargs: Any,
@@ -86,6 +87,7 @@ class LMGenerator(BaseBlock):
         self._stop_sequences = stop_sequences
         self._temperature = temperature
         self._batch_size = batch_size
+        self._n = n
 
         cfg_kwargs = dict()
         for k, v in {
@@ -95,6 +97,7 @@ class LMGenerator(BaseBlock):
             "random_seed": self._random_seed,
             "stop_sequences": self._stop_sequences,
             "temperature": self._temperature,
+            "n": self._n,
         }.items():
             if v is not None:
                 cfg_kwargs[k] = v
@@ -147,8 +150,8 @@ class LMGenerator(BaseBlock):
         method: str,
         res: Any,
         instance: LMBlockData,
-        until: Optional[List[str]] = None,
-        additional: Optional[dict[str, Any]] = None,
+        until: Optional[Union[str, List[str]]] = None,
+        additional: Optional[Union[dict[str, Any], List[dict[str, Any]]]] = None,
     ):
         if until is not None and type(res) == str:
             for term in until:
