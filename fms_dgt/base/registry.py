@@ -138,7 +138,9 @@ def get_block(block_name, *args: Any, **kwargs: Any):
     )
 
     if isinstance(ret_block, LMGenerator) and "lm_cache" in kwargs:
-        ret_block = CachingLM(ret_block, kwargs.get("lm_cache"))
+        ret_block = CachingLM(
+            ret_block, kwargs.get("force_cache", False), kwargs.get("lm_cache")
+        )
 
     return ret_block
 

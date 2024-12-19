@@ -267,7 +267,7 @@ class CacheHook:
 
 
 class CachingLM:
-    def __init__(self, lm: LMGenerator, cache_db) -> None:
+    def __init__(self, lm: LMGenerator, force_cache: bool, cache_db: str) -> None:
         """LM wrapper that returns cached results if they exist, and uses the underlying LM if not.
 
         :param lm: LM
@@ -280,6 +280,8 @@ class CachingLM:
         if os.path.dirname(cache_db):
             os.makedirs(os.path.dirname(cache_db), exist_ok=True)
         self.dbdict = SqliteDict(cache_db, autocommit=True)
+
+        self._force_cache = force_cache
 
         # add hook to lm
         self.lm.set_cache_hook(self.get_cache_hook())
@@ -306,6 +308,7 @@ class CachingLM:
                 hsh = hash_args(attr, req)
                 if (
                     attr == "generate_batch"
+                    and not self._force_cache
                     and req.gen_kwargs.get("decoding_method", None) == "sample"
                 ):
                     # when we are doing non-greedy generation, don't use the cache

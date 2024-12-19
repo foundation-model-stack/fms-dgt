@@ -158,7 +158,8 @@ def test_lm_caching():
 
     cache_lm = CachingLM(
         lm,
-        cache_path,
+        force_cache=False,
+        cache_db=cache_path,
     )
 
     pre_cache_time = time.time()
