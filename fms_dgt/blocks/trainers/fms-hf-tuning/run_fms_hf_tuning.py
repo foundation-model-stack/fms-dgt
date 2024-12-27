@@ -39,69 +39,71 @@ class FmsTuningBlock(BaseTrainerBlock):
 
         model_dir = make_model_dir(output_dir)
 
-        data_path = os.path.join(output_dir, "dataset", "data.jsonl")
-        self.set_dataset(data_to_format, data_path)
+        if not os.path.isfile(os.path.join(model_dir, "training_logs.jsonl")):
 
-        port = get_open_port(host) if port is None else port
+            data_path = os.path.join(output_dir, "dataset", "data.jsonl")
+            self.set_dataset(data_to_format, data_path)
 
-        cmd = [
-            (
+            port = get_open_port(host) if port is None else port
+
+            cmd = [
+                (
+                    [
+                        "accelerate",
+                        "launch",
+                        f"--multi_gpu",
+                        "--main_process_port",
+                        port,
+                    ]
+                    if self._num_gpus > 1
+                    else ["python"]
+                ),
                 [
-                    "accelerate",
-                    "launch",
-                    f"--multi_gpu",
-                    "--main_process_port",
-                    port,
-                ]
-                if self._num_gpus > 1
-                else ["python"]
-            ),
-            [
-                "-m",
-                "tuning.sft_trainer",
-            ],
-            ["--model_name_or_path", model_id_or_path],
-            ["--training_data_path", data_path],
-            ["--output_dir", model_dir],
-            ["--save_strategy", "steps"],
-            # LORA PARAMS
-            ["--use_flash_attn", "true"],
-            [
-                "--target_modules",
-                "q_proj",
-                "k_proj",
-                "v_proj",
-                "o_proj",
-                "up_proj",
-                "down_proj",
-                "gate_proj",
-            ],
-            ["--lora_alpha", 32],
-            ["--lora_dropout", 0.1],
-            ["--peft_method", "lora"],
-            #
-        ] + [[f"--{k}", v] for k, v in self._training_args.items()]
+                    "-m",
+                    "tuning.sft_trainer",
+                ],
+                ["--model_name_or_path", model_id_or_path],
+                ["--training_data_path", data_path],
+                ["--output_dir", model_dir],
+                ["--save_strategy", "steps"],
+                # LORA PARAMS
+                ["--use_flash_attn", "true"],
+                [
+                    "--target_modules",
+                    "q_proj",
+                    "k_proj",
+                    "v_proj",
+                    "o_proj",
+                    "up_proj",
+                    "down_proj",
+                    "gate_proj",
+                ],
+                ["--lora_alpha", 32],
+                ["--lora_dropout", 0.1],
+                ["--peft_method", "lora"],
+                #
+            ] + [[f"--{k}", v] for k, v in self._training_args.items()]
 
-        cmd = [str(x) for entry in cmd for x in entry]
+            cmd = [str(x) for entry in cmd for x in entry]
 
-        sdg_logger.info(f"Starting training with command:\n\t{' '.join(cmd)}")
+            sdg_logger.info(f"Starting training with command:\n\t{' '.join(cmd)}")
 
-        # run and wait for result
-        try:
-            process = subprocess.run(cmd, capture_output=True, text=True)
+            # run and wait for result
+            try:
+                process = subprocess.run(cmd, capture_output=True, text=True)
 
-            out, err = process.stdout.strip(), process.stderr.strip()
-            if out.strip():
-                sdg_logger.info(out)
-            if err.strip():
-                sdg_logger.error(err)
+                out, err = process.stdout.strip(), process.stderr.strip()
+                if out.strip():
+                    sdg_logger.info(out)
+                if err.strip():
+                    sdg_logger.error(err)
 
-            if process.returncode != 0:
-                raise TrainingException(
-                    f"Training failed for command:\n\t{' '.join(cmd)}"
-                )
-        except Exception as e:
-            raise e
+                if process.returncode != 0:
+                    raise TrainingException(
+                        f"Training failed for command:\n\t{' '.join(cmd)}"
+                    )
+            except Exception as e:
+                raise e
 
         if not os.listdir(model_dir):
             raise SystemError(
