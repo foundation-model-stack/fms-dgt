@@ -1,4 +1,5 @@
 # Standard
+import json
 import os
 import subprocess
 
@@ -12,6 +13,10 @@ from fms_dgt.utils import get_open_port, sdg_logger
 ###
 # Trainer itself
 ###
+
+_POST_PROC_SCRIPT = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "post_process_adapters_vLLM.py"
+)
 
 
 @register_block("fms-hf-tuning")
@@ -39,14 +44,14 @@ class FmsTuningBlock(BaseTrainerBlock):
 
         model_dir = make_model_dir(output_dir)
 
-        if not os.path.isfile(os.path.join(model_dir, "training_logs.jsonl")):
+        if self._run_training(model_dir):
 
             data_path = os.path.join(output_dir, "dataset", "data.jsonl")
             self.set_dataset(data_to_format, data_path)
 
             port = get_open_port(host) if port is None else port
 
-            cmd = [
+            train_cmd = [
                 (
                     [
                         "accelerate",
@@ -83,27 +88,36 @@ class FmsTuningBlock(BaseTrainerBlock):
                 ["--peft_method", "lora"],
                 #
             ] + [[f"--{k}", v] for k, v in self._training_args.items()]
+            train_cmd = [str(x) for entry in train_cmd for x in entry]
 
-            cmd = [str(x) for entry in cmd for x in entry]
+            post_proc_cmd = [
+                "python",
+                _POST_PROC_SCRIPT,
+                "--model_path",
+                model_dir,
+                "--output_model_path",
+                model_dir,
+            ]
 
-            sdg_logger.info(f"Starting training with command:\n\t{' '.join(cmd)}")
+            for cmd in [train_cmd, post_proc_cmd]:
 
-            # run and wait for result
-            try:
-                process = subprocess.run(cmd, capture_output=True, text=True)
+                sdg_logger.info(f"Running training command:\n\t{' '.join(cmd)}")
 
-                out, err = process.stdout.strip(), process.stderr.strip()
-                if out.strip():
-                    sdg_logger.info(out)
-                if err.strip():
-                    sdg_logger.error(err)
+                # run and wait for result
+                try:
+                    process = subprocess.run(cmd, capture_output=True, text=True)
+                    out, err = process.stdout.strip(), process.stderr.strip()
+                    if out.strip():
+                        sdg_logger.info(out)
+                    if err.strip():
+                        sdg_logger.error(err)
 
-                if process.returncode != 0:
-                    raise TrainingException(
-                        f"Training failed for command:\n\t{' '.join(cmd)}"
-                    )
-            except Exception as e:
-                raise e
+                    if process.returncode != 0:
+                        raise TrainingException(
+                            f"Execution failed for command:\n\t{' '.join(cmd)}"
+                        )
+                except Exception as e:
+                    raise e
 
         if not os.listdir(model_dir):
             raise SystemError(
@@ -119,6 +133,18 @@ class FmsTuningBlock(BaseTrainerBlock):
 
         # return last model
         return final_model
+
+    def _run_training(self, model_dir: str):
+
+        if os.path.isfile(os.path.join(model_dir, "training_logs.jsonl")):
+            with open(os.path.join(model_dir, "training_logs.jsonl"), "r") as jf:
+                for line in jf.readlines():
+                    pass
+                prev_run = json.loads(line)
+                return (
+                    prev_run["data"]["epoch"] < self._training_args["num_train_epochs"]
+                )
+        return True
 
     def release_model(self):
         pass
