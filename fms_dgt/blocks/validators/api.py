@@ -1,10 +1,10 @@
 # Standard
+from dataclasses import dataclass
 from typing import Dict, List
 import json
 
 # Third Party
 from openapi_schema_validator import validate
-from pydantic.dataclasses import dataclass
 import jsonschema
 
 # Local

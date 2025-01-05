@@ -1,9 +1,7 @@
 # Standard
 from abc import abstractmethod
+from dataclasses import dataclass
 from typing import Any, Iterable, Optional
-
-# Third Party
-from pydantic.dataclasses import dataclass
 
 # Local
 from fms_dgt.base.block import BaseBlock, BaseBlockData
