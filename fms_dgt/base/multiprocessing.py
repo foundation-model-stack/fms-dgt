@@ -98,7 +98,7 @@ class RayBlock(BaseBlock):
         # now base block
         super().close()
 
-    def execute(self, inputs: DATASET_TYPE, *args: Any, **kwargs: Any) -> DATASET_TYPE:
+    def __call__(self, inputs: DATASET_TYPE, *args, **kwargs) -> DATASET_TYPE:
         """Distributes input list amongst workers according to ray config
 
         Args:
@@ -118,7 +118,7 @@ class RayBlock(BaseBlock):
             if worker_idx * partition_size >= len(inputs):
                 break
             actor_results.append(
-                self._workers[worker_idx].execute.remote(
+                self._workers[worker_idx].__call__.remote(
                     (
                         inputs[worker_idx * partition_size :]
                         if (worker_idx == len(self._workers) - 1)
@@ -134,3 +134,6 @@ class RayBlock(BaseBlock):
             )
         generated_data = [d for gen_data in ray.get(actor_results) for d in gen_data]
         return generated_data
+
+    def execute(self, inputs, *args, input_map=None, output_map=None, **kwargs):
+        raise NotImplementedError
