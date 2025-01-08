@@ -1,6 +1,7 @@
 # Standard
 from typing import Dict, List, Optional
 import gc
+import logging
 import os
 
 # Third Party
@@ -25,6 +26,7 @@ def generate_data(
     include_builder_paths: Optional[List[str]] = None,
     build_id: Optional[str] = None,
     ray_address: Optional[str] = None,
+    debug: Optional[bool] = False,
 ):
     """Generate data for a set of tasks using their respective data builders
 
@@ -36,7 +38,12 @@ def generate_data(
         include_builder_paths (Optional[List[str]], optional): A list of paths to search for data builders.
         build_id (Optional[str], optional): An ID to associate with all of the tasks executed in this run.
         ray_address (Optional[str], optional): An address to connect ray.init to.
+        debug (Optional[bool], optional): Boolean flag to enable debugging. Defaults to False.
     """
+
+    if debug:
+        sdg_logger.setLevel(logging.DEBUG)
+
     data_paths = data_paths or []
     builder_overrides = None
     task_overrides = dict()
