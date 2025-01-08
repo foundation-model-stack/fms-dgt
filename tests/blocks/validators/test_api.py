@@ -233,6 +233,28 @@ def test_parallel_nested():
     ], "Validator should have failed due to arg content not being in question!"
 
 
+def test_empty_args():
+    validator = APIGenSpecValidator(name="test_empty_args")
+
+    # parallel multiple
+    func_calls = [
+        {"name": "ls", "arguments": {}},
+    ]
+    question = "what do I have in my root directory"
+    api_info = get_args(func_calls)
+
+    test_instance = [
+        {
+            "api_info": api_info,
+            "question": question,
+            "answer": json.dumps(func_calls),
+            **parallel_kwargs,
+        }
+    ]
+    validator(test_instance)
+    assert test_instance[0]["is_valid"]
+
+
 def test_yes_no():
     validator = ApiGenSpecYesNoValidation(name="test_yes_no")
 
@@ -281,5 +303,18 @@ TEST_APIS = {
             "required": ["event"],
         },
         "output_parameters": {"properties": {"added_successfully": {"type": "bool"}}},
+    },
+    "ls": {
+        "description": "list directory contents",
+        "name": "ls",
+        "parameters": {
+            "properties": {
+                "-a": {"description": "show hidden files", "type": "string"},
+                "-h": {"description": "human readable format", "type": "string"},
+                "-l": {"description": "use a long listing format", "type": "string"},
+            },
+            "required": [],
+            "type": "object",
+        },
     },
 }

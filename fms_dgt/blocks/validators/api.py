@@ -84,7 +84,6 @@ class APIGenSpecValidator(BaseValidatorBlock):
             sdg_logger.debug(
                 'Input "%s" failed for text "%s" at [D]', inp.answer, inp.question
             )
-
             return False
 
         has_nested = False
@@ -106,16 +105,21 @@ class APIGenSpecValidator(BaseValidatorBlock):
                 return False
 
             if inp.intent_only:
-
                 # intent detection should not have arguments
                 if _ARGS in component:
                     sdg_logger.debug(
                         'Input "%s" failed for text "%s" [F]', inp.answer, inp.question
                     )
                     return False
-
                 # we'll skip the rest of these checks if we're just interested in intent-detection
                 continue
+            else:
+                # sequencing should have arguments
+                if _ARGS not in component:
+                    sdg_logger.debug(
+                        'Input "%s" failed for text "%s" [G]', inp.answer, inp.question
+                    )
+                    return False
 
             # since we've checked that each component has an associated api, we can just grab the first (should be identical)
             matching_api = next(
@@ -126,7 +130,7 @@ class APIGenSpecValidator(BaseValidatorBlock):
                 if _PARAM in matching_api and _PROPERTIES in matching_api[_PARAM]
                 else dict()
             )
-            component_args = component[_ARGS] if _ARGS in component else dict()
+            component_args = component[_ARGS]
 
             # validate schema
             try:
@@ -139,7 +143,7 @@ class APIGenSpecValidator(BaseValidatorBlock):
                 # if error is about a var label, e.g., $var1, then ignore error. Otherwise, raise error
                 if not (inp.require_nested and str(e).startswith("'$")):
                     sdg_logger.debug(
-                        'Input "%s" failed for text "%s" [G]', inp.answer, inp.question
+                        'Input "%s" failed for text "%s" [H]', inp.answer, inp.question
                     )
                     return False
 
@@ -149,7 +153,7 @@ class APIGenSpecValidator(BaseValidatorBlock):
                 # is argument name real
                 if not arg_name in matching_api_args:
                     sdg_logger.debug(
-                        'Input "%s" failed for text "%s" [H]', inp.answer, inp.question
+                        'Input "%s" failed for text "%s" [I]', inp.answer, inp.question
                     )
                     return False
 
@@ -165,7 +169,7 @@ class APIGenSpecValidator(BaseValidatorBlock):
                     and str(arg_content).lower() not in inp.question.lower()
                 ):
                     sdg_logger.debug(
-                        'Input "%s" failed for text "%s" [I]', inp.answer, inp.question
+                        'Input "%s" failed for text "%s" [J]', inp.answer, inp.question
                     )
                     return False
 
@@ -175,7 +179,7 @@ class APIGenSpecValidator(BaseValidatorBlock):
 
         if not is_valid:
             sdg_logger.debug(
-                'Input "%s" failed for text "%s" [J]', inp.answer, inp.question
+                'Input "%s" failed for text "%s" [K]', inp.answer, inp.question
             )
 
         return is_valid
