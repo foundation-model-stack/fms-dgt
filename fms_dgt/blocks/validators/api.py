@@ -10,6 +10,7 @@ import jsonschema
 # Local
 from fms_dgt.base.registry import register_block
 from fms_dgt.blocks.validators import BaseValidatorBlock, BaseValidatorBlockData
+from fms_dgt.utils import sdg_logger
 
 # Constants
 
@@ -41,18 +42,24 @@ class APIGenSpecValidator(BaseValidatorBlock):
 
     DATA_TYPE: APIValidatorData = APIValidatorData
 
-    def _validate(self, input: APIValidatorData) -> bool:
+    def _validate(self, inp: APIValidatorData) -> bool:
         try:
-            sep_components = json.loads(input.answer)
+            sep_components = json.loads(inp.answer)
         except json.decoder.JSONDecodeError as e:
             return False
 
         # check basic malformedness
         if type(sep_components) != list:
+            sdg_logger.debug(
+                'Input "%s" failed for text "%s" at [A]', inp.answer, inp.question
+            )
             return False
 
         # check for exact-match duplicates
         if len(set([str(x) for x in sep_components])) != len(sep_components):
+            sdg_logger.debug(
+                'Input "%s" failed for text "%s" at [B]', inp.answer, inp.question
+            )
             return False
 
         # ensure api names are covered
@@ -62,15 +69,22 @@ class APIGenSpecValidator(BaseValidatorBlock):
                 for component in sep_components
             ]
         )
-        api_names = set([api[_NAME] for api in input.api_info.values()])
+        api_names = set([api[_NAME] for api in inp.api_info.values()])
 
-        if input.multi_output and len(set([str(x) for x in sep_components])) <= 1:
+        if inp.multi_output and len(set([str(x) for x in sep_components])) <= 1:
+            sdg_logger.debug(
+                'Input "%s" failed for text "%s" at [C]', inp.answer, inp.question
+            )
             return False
 
         # all api names must be present, but no additional api names
-        if (input.allow_subset and not component_names.issubset(api_names)) or (
-            not input.allow_subset and component_names.symmetric_difference(api_names)
+        if (inp.allow_subset and not component_names.issubset(api_names)) or (
+            not inp.allow_subset and component_names.symmetric_difference(api_names)
         ):
+            sdg_logger.debug(
+                'Input "%s" failed for text "%s" at [D]', inp.answer, inp.question
+            )
+
             return False
 
         has_nested = False
@@ -83,15 +97,21 @@ class APIGenSpecValidator(BaseValidatorBlock):
                     k
                     for k in component.keys()
                     if k
-                    not in ([_NAME, _ARGS] + ([_LABEL] if input.require_nested else []))
+                    not in ([_NAME, _ARGS] + ([_LABEL] if inp.require_nested else []))
                 ]
             ):
+                sdg_logger.debug(
+                    'Input "%s" failed for text "%s" [E]', inp.answer, inp.question
+                )
                 return False
 
-            if input.intent_only:
+            if inp.intent_only:
 
                 # intent detection should not have arguments
                 if _ARGS in component:
+                    sdg_logger.debug(
+                        'Input "%s" failed for text "%s" [F]', inp.answer, inp.question
+                    )
                     return False
 
                 # we'll skip the rest of these checks if we're just interested in intent-detection
@@ -99,7 +119,7 @@ class APIGenSpecValidator(BaseValidatorBlock):
 
             # since we've checked that each component has an associated api, we can just grab the first (should be identical)
             matching_api = next(
-                api for api in input.api_info.values() if api[_NAME] == component[_NAME]
+                api for api in inp.api_info.values() if api[_NAME] == component[_NAME]
             )
             matching_api_args = (
                 matching_api[_PARAM][_PROPERTIES]
@@ -117,7 +137,10 @@ class APIGenSpecValidator(BaseValidatorBlock):
                 jsonschema.exceptions.SchemaError,
             ) as e:
                 # if error is about a var label, e.g., $var1, then ignore error. Otherwise, raise error
-                if not (input.require_nested and str(e).startswith("'$")):
+                if not (inp.require_nested and str(e).startswith("'$")):
+                    sdg_logger.debug(
+                        'Input "%s" failed for text "%s" [G]', inp.answer, inp.question
+                    )
                     return False
 
             # now do individual arg checking
@@ -125,24 +148,37 @@ class APIGenSpecValidator(BaseValidatorBlock):
 
                 # is argument name real
                 if not arg_name in matching_api_args:
+                    sdg_logger.debug(
+                        'Input "%s" failed for text "%s" [H]', inp.answer, inp.question
+                    )
                     return False
 
-                is_nested_call = input.require_nested and is_nested_match(
-                    arg_content, sep_components[:i], input.api_info
+                is_nested_call = inp.require_nested and is_nested_match(
+                    arg_content, sep_components[:i], inp.api_info
                 )
                 has_nested = is_nested_call or has_nested
 
                 # handle the case where slot values are not mentioned in the question
                 if (
-                    input.check_arg_question_overlap
+                    inp.check_arg_question_overlap
                     and not is_nested_call
-                    and str(arg_content).lower() not in input.question.lower()
+                    and str(arg_content).lower() not in inp.question.lower()
                 ):
+                    sdg_logger.debug(
+                        'Input "%s" failed for text "%s" [I]', inp.answer, inp.question
+                    )
                     return False
 
-        return (input.require_nested and has_nested) or not (
-            input.require_nested or has_nested
+        is_valid = (inp.require_nested and has_nested) or not (
+            inp.require_nested or has_nested
         )
+
+        if not is_valid:
+            sdg_logger.debug(
+                'Input "%s" failed for text "%s" [J]', inp.answer, inp.question
+            )
+
+        return is_valid
 
 
 def is_nested_match(arg_content: str, prev_components: List[Dict], api_info: Dict):

@@ -50,6 +50,11 @@ def add_base_args(parser: argparse.ArgumentParser):
         default="local",
         help="Address to pass to ray.init",
     )
+    group.add_argument(
+        "--debug",
+        action="store_true",
+        help="Set log level to debug",
+    )
     return group
 
 
