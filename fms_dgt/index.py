@@ -1,5 +1,5 @@
 # Standard
-from typing import Dict, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 import collections
 import os
 
@@ -13,6 +13,7 @@ class DataBuilderIndex:
     """DataBuilderIndex indexes all data builders from the default `fms_dgt/databuilders/` and an optional directory if provided."""
 
     def __init__(self, include_builder_paths: Optional[List[str]] = None) -> None:
+
         include_builder_paths = include_builder_paths if include_builder_paths else []
         self._builder_index = collections.defaultdict(list)
         self._initialize_data_builders(include_paths=include_builder_paths)
@@ -119,12 +120,24 @@ class DataBuilderIndex:
         return all_loaded_builders
 
     def _get_data_builder(self, builder_path: str):
+        def rindex(alist: List, value: Any):
+            return len(alist) - alist[-1::-1].index(value) - 1
+
         def add_file(root, f):
 
             if f.endswith(".yaml"):
                 f_builder_dir = root.split(os.sep)
                 if "databuilders" in f_builder_dir:
-                    r_dir_index = f_builder_dir.index("databuilders") - 1
+                    check_from = f_builder_dir[: rindex(f_builder_dir, "databuilders")]
+                    if "fms_dgt" in check_from:
+                        r_dir_index = rindex(check_from, "fms_dgt")
+                    elif "src" in check_from:
+                        r_dir_index = rindex(check_from, "src")
+                    else:
+                        raise ValueError(
+                            f"Cannot automatically determine root directory of databuilders"
+                        )
+
                     f_builder_dir = os.path.join(*f_builder_dir[r_dir_index:])
                     yaml_path = os.path.join(root, f)
                     config = utils.load_yaml_config(yaml_path, mode="simple")
