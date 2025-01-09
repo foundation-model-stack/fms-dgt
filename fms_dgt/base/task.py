@@ -95,7 +95,7 @@ class SdgTask:
         created_by: str,
         data_builder: str,
         task_card: TaskRunCard,
-        runner_config: TaskRunnerConfig,
+        runner_config: Union[Mapping, TaskRunnerConfig],
         instruction_format: Optional[Dict[str, str]] = None,
         datastore: Optional[Dict] = None,
         seed_datastore: Optional[Dict] = None,
@@ -114,7 +114,7 @@ class SdgTask:
             created_by (str): The name of the individual / group who created the code assistant.
             data_builder (str): The name of the data builder that should be used to process this task.
             task_card (TaskCard): The task card containing all experiment information.
-            runner_config (TaskRunnerConfig): Config specifying the run settings of the task.
+            runner_config (Union[Mapping, TaskRunnerConfig], optional): Config specifying the run settings of the task.
             instruction_format (Optional[Dict[str, str]]): A dictionary template that can be used to translate intermediate data objects to instruction-tuning pairs.
             datastore (Optional[Dict]): A dictionary containing the configuration for the datastore.
             seed_datastore (Optional[Dict]): A dictionary containing the configuration for the seed datastore.
@@ -152,6 +152,7 @@ class SdgTask:
         self._seed_batch_size = self._runner_config.seed_batch_size
         self._machine_batch_size = self._runner_config.machine_batch_size
         self._num_outputs_to_generate = self._runner_config.num_outputs_to_generate
+
         for attr in [
             "seed_batch_size",
             "machine_batch_size",

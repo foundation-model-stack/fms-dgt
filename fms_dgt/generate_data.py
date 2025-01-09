@@ -135,7 +135,10 @@ def generate_data(
                         save_formatted_output=task_kwargs.get("save_formatted_output"),
                     ),
                     # other params
-                    RUNNER_CONFIG_KEY: task_kwargs,
+                    RUNNER_CONFIG_KEY: {
+                        **task_kwargs,
+                        **task_init.get("runner_config", dict()),
+                    },
                     **task_init,
                 }
                 for task_init in task_inits
