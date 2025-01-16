@@ -24,11 +24,11 @@ class SimpleInstructDataBuilder(DataBuilder):
 
     TASK_TYPE: SdgTask = InstructLabSdgTask
 
-    # llm1 is the main generator that will produce the synthetic examples
-    llm1: LMGenerator
+    # generator is the main generator that will produce the synthetic examples
+    generator: LMGenerator
 
-    # val1 is the validator, we leave this intentionally generic
-    val1: BaseValidatorBlock
+    # validator is the validator, we leave this intentionally generic
+    validator: BaseValidatorBlock
 
     def __init__(
         self,
@@ -41,7 +41,7 @@ class SimpleInstructDataBuilder(DataBuilder):
         super().__init__(*args, **kwargs)
 
         self._prompt_template = utils.check_prompt_file(
-            prompt_file_path, self.llm1.model_id_or_path
+            prompt_file_path, self.generator.model_id_or_path
         )
         self._num_prompt_instructions = num_prompt_instructions
         self._request_batch_size = request_batch_size
@@ -60,6 +60,8 @@ class SimpleInstructDataBuilder(DataBuilder):
         inputs: List[Dict] = []
         instruction_data = instruction_data + []
         random.shuffle(instruction_data)
+
+        # iterate over seed data and construct input prompts
         for grouped_data in group_data_by_task(instruction_data):
             for i in range(0, len(grouped_data), self._num_prompt_instructions):
                 prompt_instructions = grouped_data[
@@ -77,9 +79,11 @@ class SimpleInstructDataBuilder(DataBuilder):
 
         request_start = time.time()
 
-        llm_outputs = self.llm1(inputs, output_map={"result": "output"})
+        # call the generator with input prompts
+        llm_outputs = self.generator(inputs, output_map={"result": "output"})
         request_duration = time.time() - request_start
 
+        # post-process the generated outputs
         post_process_start = time.time()
         llm_data: List[InstructLabSdgData] = []
         for gen_inp in llm_outputs:
@@ -106,7 +110,7 @@ class SimpleInstructDataBuilder(DataBuilder):
             post_process_duration,
         )
 
-        # now we assess and filter with val1
+        # now we assess and filter with validator
         assess_start = time.time()
 
         val_inputs: List[InstructLabSdgData] = []
@@ -119,7 +123,7 @@ class SimpleInstructDataBuilder(DataBuilder):
             val_inputs.append(inp)
 
         # filter data
-        outputs = [output["data"] for output in self.val1(val_inputs)]
+        outputs = [output["data"] for output in self.validator(val_inputs)]
 
         discarded += len(llm_data) - len(outputs)
 
