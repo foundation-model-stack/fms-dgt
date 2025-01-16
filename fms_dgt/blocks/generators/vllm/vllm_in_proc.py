@@ -464,7 +464,7 @@ class vLLMGenerator(LMGenerator):
             if "min_new_tokens" in kwargs:
                 kwargs["min_tokens"] = kwargs.pop("min_new_tokens")
             if "decoding_method" in kwargs:
-                if kwargs.pop("decoding_method") == "sample":
+                if kwargs.pop("decoding_method") == "greedy":
                     kwargs["temperature"] = 0.0
             if "random_seed" in kwargs:
                 kwargs["seed"] = kwargs.pop("random_seed")
