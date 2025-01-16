@@ -2,9 +2,30 @@
 
 Data builder used as part of the basic instruct-lab code. It generates general-purpose data and filters based on the rouge similarity to already-existing data.
 
+
+### Usage
+
+To try out the databuilder, run the following command:
+
+```shell
+python -m fms_dgt.__main__ --data-paths ./data/generation/logical_reasoning/causal/qna.yaml --num-outputs-to-generate 5
+```
+
+> [!TIP]
+> - This launches a data generation job by passing seed examples using the `--data-paths` argument.
+> - `num-outputs-to-generate` is used to specify the number of examples to generate.
+
+
+### Sample output
+
+```json
+{"task_name": "causal_logical_reasoning", "taxonomy_path": "causal_logical_reasoning", "task_description": "To teach a language model about Logical Reasoning - causal relationships", "instruction": "Assume that every time Mike reads a book, he develops new ideas, and Mike did not develop new ideas today. Can we infer that Mike did not read a book today?", "input": "", "output": "Yes, we can infer that Mike did not read a book today. Based on the given premises, the only known cause for Mike's new ideas is reading a book.", "document": null}
+{"task_name": "causal_logical_reasoning", "taxonomy_path": "causal_logical_reasoning", "task_description": "To teach a language model about Logical Reasoning - causal relationships", "instruction": "Suppose a factory produces 1000 umbrellas per day and for each increase of 10 degrees outside, production decreases by 200 umbrellas. How many umbrellas will the factory produce if the temperature is 30 degrees?", "input": "The factory produces 1000 umbrellas per day at 20 degrees outside.", "output": "At 30 degrees, the factory will produce 800 umbrellas per day (1000 - (10 * 200)).", "document": null}
+```
+
 ## Data specification
 
-This data builder supports generation defining the following parameters:
+This data builder supports generation defining the following fields in the task file:
 
 ### Required
 
@@ -20,23 +41,26 @@ This data builder supports generation defining the following parameters:
 - `context`: additional context to be fed to model
 - `document`: document to be added as additional context
 
-An example can be found [here](../../../data/logical_reasoning/causal/qna.yaml).
+An example can be found [here](../../../../data/generation/logical_reasoning/causal/qna.yaml).
 
-## Generators and validators
+
+
+## Generators, validators, and post-processors
 
 Default configuration for generators and validators used by the data builder is available [here](./simple.yaml).
 
 ### Generators
 
-- `mistralai/mixtral-8x7b-instruct-v01` via `ibm-generative-ai`.
+- `mistralai/mixtral-8x7b-instruct-v01` via `watsonx`.
 
 ### Validators
 
-- `rouge_scorer`: validation of the generated data based on rouge.
+- `always_true`: placeholder validator
 
-## Evaluation
+### Post-processors
 
-TBD
+- `rouge_scorer`: deduplication of the generated data based on rouge score.
+
 
 ## Notice
 

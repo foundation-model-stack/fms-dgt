@@ -105,16 +105,22 @@ def check_prompt_file(prompt_file_path, model_id_or_path):
     try:
         with open(prompt_file_path, encoding="utf=8") as file:
             prompt_template = file.read()
-    except FileNotFoundError as exc:
-        print(
-            f"Cannot find {prompt_file_path}. Using default prompt depending on model-family."
+    except FileNotFoundError:
+        sdg_logger.info(
+            "Cannot find %s. Using default prompt depending on model-family.",
+            prompt_file_path,
         )
         if "merlinite" in model_id_or_path:
             prompt_template = DEFAULT_PROMPT_TEMPLATE_MERLINITE
         elif "mixtral" in model_id_or_path or "llama" in model_id_or_path:
             prompt_template = DEFAULT_PROMPT_TEMPLATE_MIXTRAL
         else:
-            raise ValueError(f"Unsupported model '{model_id_or_path}': {exc}") from exc
+            sdg_logger.info(
+                "No custom prompt available for %s. Using default prompt for Mixtral.",
+                model_id_or_path,
+            )
+            prompt_template = DEFAULT_PROMPT_TEMPLATE_MIXTRAL
+
     prompt_template = prompt_template.strip() + "\n"
     return prompt_template
 
@@ -137,7 +143,12 @@ def encode_prompt(prompt_instructions: List[InstructLabSdgData], prompt: str):
 
     # pylint: disable=unused-variable
     for idx, task_obj in enumerate(prompt_instructions):
-        (instruction, prompt_input, prompt_output, taxonomy_path,) = (
+        (
+            instruction,
+            prompt_input,
+            prompt_output,
+            taxonomy_path,
+        ) = (
             task_obj.instruction,
             task_obj.input,
             task_obj.output,
@@ -153,12 +164,6 @@ def encode_prompt(prompt_instructions: List[InstructLabSdgData], prompt: str):
         prompt += f"** Output\n{prompt_output}\n"
     prompt += f"* Task {idx + 2}\n"
     return prompt
-
-
-def writeline2file(logfile, line):
-    t = datetime.now().replace(microsecond=0).isoformat()
-    with open(logfile, "a", encoding="utf-8") as fp:
-        fp.write(f"{t} - {line}\n")
 
 
 def post_process_gpt3_response(num_prompt_instructions, response):

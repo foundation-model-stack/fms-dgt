@@ -1,18 +1,18 @@
 name: simple
 blocks:
-  - name: llm1
-    type: genai
+  - name: generator
+    type: watsonx
+    model_id_or_path: mistralai/mixtral-8x7b-instruct-v01
     temperature: 0.0
     max_new_tokens: 512
     min_new_tokens: 1
-    model_id_or_path: mistralai/mixtral-8x7b-instruct-v01
-  - name: val1 # this is a placeholder validator
+  - name: validator # this is a placeholder validator
     type: always_true
-  - name: rouge_val
+  - name: dedup
     type: rouge_scorer
     filter: true
     threshold: 1.0
 postprocessors:
-  - name: rouge_val
+  - name: dedup
 metadata:
   version: 1.0
