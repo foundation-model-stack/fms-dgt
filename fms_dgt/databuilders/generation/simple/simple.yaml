@@ -2,10 +2,6 @@ name: simple
 blocks:
   - name: generator
     type: watsonx
-    # base_url: https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/mixtral-8x7b-instruct-v01/v1
-    # base_url: https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/granite-3-1-8b-instruct/v1
-    # # model_id_or_path: mistralai/mixtral-8x7B-instruct-v0.1
-    # model_id_or_path: ibm-granite/granite-3.1-8b-instruct
     model_id_or_path: mistralai/mixtral-8x7b-instruct-v01
     temperature: 0.0
     max_new_tokens: 512
