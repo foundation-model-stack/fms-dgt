@@ -28,8 +28,10 @@ GREEDY_GENAI_CFG = {
 GREEDY_VLLM_CFG = {
     "type": "vllm",
     "model_id_or_path": "ibm-granite/granite-8b-code-instruct",
+    "model_id_or_path": "mistralai/Mistral-7B-Instruct-v0.1",
     "tensor_parallel_size": 1,
     **GREEDY_CFG,
+    "n": 1,
 }
 GREEDY_VLLM_SERVER_CFG = {
     "type": "vllm-server",
@@ -56,7 +58,7 @@ PROMPTS = [f"Question: x = {i} + 1\nAnswer: x =" for i in range(25)]
         # GREEDY_VLLM_SERVER_CFG,
         GREEDY_VLLM_CFG,
         GREEDY_GENAI_CFG,
-        # GREEDY_OPENAI_CFG,
+        GREEDY_OPENAI_CFG,
     ],
 )
 def test_generate_batch(model_cfg):
@@ -78,7 +80,7 @@ def test_generate_batch(model_cfg):
             inp["prompt"] == inputs_copy[i]["prompt"]
         ), f"Input list has been rearranged at index {i}"
         assert isinstance(inp["result"], str) or (
-            isinstance(inp["result"], list) and len(inp["result"]) == GREEDY_CFG["n"]
+            isinstance(inp["result"], list) and len(inp["result"]) == model_cfg["n"]
         )
 
 

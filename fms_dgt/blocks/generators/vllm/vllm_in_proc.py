@@ -94,7 +94,7 @@ class vLLMGenerator(LMGenerator):
             "trust_remote_code": trust_remote_code,
             "tensor_parallel_size": int(tensor_parallel_size),
             "max_model_len": (
-                int(self.max_length) if self.max_length is not None else None
+                int(self._max_length) if self._max_length is not None else None
             ),
             "swap_space": int(swap_space) if swap_space is not None else None,
             "quantization": quantization,
@@ -294,7 +294,7 @@ class vLLMGenerator(LMGenerator):
 
                     self.update_instance_with_result(
                         "generate_batch",
-                        (n_s if len(n_s) > 1 else s),
+                        (n_s if len(n_s) > 1 else n_s[0]),
                         instance,
                         until,
                     )

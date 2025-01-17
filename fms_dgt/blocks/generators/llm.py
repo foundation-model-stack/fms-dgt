@@ -59,7 +59,7 @@ class LMGenerator(BaseBlock):
         truncate: bool = False,
         max_new_tokens: int = None,
         min_new_tokens: int = None,
-        max_length: int = 2049,
+        max_length: int = None,
         random_seed: int = None,
         stop_sequences: List[str] = None,
         temperature: float = None,
@@ -127,14 +127,10 @@ class LMGenerator(BaseBlock):
 
     @property
     def rank(self):
-        # used in the case of parallelism. Hardcoded to
-        # ensure no errors arise using API models which do
-        # not support multi-device parallelism nor expect it.
         return self._rank
 
     @property
     def max_length(self) -> int:
-        # Note: the OpenAI API supports up to 2049 tokens, with the first token being the first input token
         return self._max_length
 
     @property
