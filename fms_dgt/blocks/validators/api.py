@@ -70,7 +70,6 @@ class APIGenSpecValidator(BaseValidatorBlock):
             ]
         )
         api_names = set([api[_NAME] for api in inp.api_info.values()])
-
         if inp.multi_output and len(set([str(x) for x in sep_components])) <= 1:
             sdg_logger.debug(
                 'Input "%s" failed for text "%s" at [C]', inp.answer, inp.question
@@ -147,13 +146,19 @@ class APIGenSpecValidator(BaseValidatorBlock):
                     )
                     return False
 
+            if not isinstance(component_args, dict):
+                sdg_logger.debug(
+                    'Input "%s" failed for text "%s" [I]', inp.answer, inp.question
+                )
+                return False
+
             # now do individual arg checking
             for arg_name, arg_content in component_args.items():
 
                 # is argument name real
                 if not arg_name in matching_api_args:
                     sdg_logger.debug(
-                        'Input "%s" failed for text "%s" [I]', inp.answer, inp.question
+                        'Input "%s" failed for text "%s" [J]', inp.answer, inp.question
                     )
                     return False
 
@@ -166,10 +171,13 @@ class APIGenSpecValidator(BaseValidatorBlock):
                 if (
                     inp.check_arg_question_overlap
                     and not is_nested_call
-                    and str(arg_content).lower() not in inp.question.lower()
+                    and (
+                        str(arg_content).lower() not in inp.question.lower()
+                        or not str(arg_content)
+                    )
                 ):
                     sdg_logger.debug(
-                        'Input "%s" failed for text "%s" [J]', inp.answer, inp.question
+                        'Input "%s" failed for text "%s" [K]', inp.answer, inp.question
                     )
                     return False
 
@@ -179,7 +187,7 @@ class APIGenSpecValidator(BaseValidatorBlock):
 
         if not is_valid:
             sdg_logger.debug(
-                'Input "%s" failed for text "%s" [K]', inp.answer, inp.question
+                'Input "%s" failed for text "%s" [L]', inp.answer, inp.question
             )
 
         return is_valid
