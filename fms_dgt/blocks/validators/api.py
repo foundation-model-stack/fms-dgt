@@ -70,6 +70,7 @@ class APIGenSpecValidator(BaseValidatorBlock):
             ]
         )
         api_names = set([api[_NAME] for api in inp.api_info.values()])
+
         if inp.multi_output and len(set([str(x) for x in sep_components])) <= 1:
             sdg_logger.debug(
                 'Input "%s" failed for text "%s" at [C]', inp.answer, inp.question
