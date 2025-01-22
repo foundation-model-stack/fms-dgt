@@ -155,7 +155,7 @@ class LMGenerator(BaseBlock):
                     res = res.split(term)[0]
         instance.result = res
         instance.addtl = additional
-        self.cache_hook.add_partial(method, instance, res)
+        self.cache_hook.add_partial(method, instance, self, res)
 
     @abc.abstractmethod
     def generate_batch(
@@ -241,24 +241,18 @@ class LMGenerator(BaseBlock):
         self.release_model()
 
 
-### SQLite-based caching of LM responses
-def hash_args(attr, request: LMBlockData):
-    dat = json.dumps([attr] + [request.prompt, request.gen_kwargs])
-    return hashlib.sha256(dat.encode("utf-8")).hexdigest()
-
-
 class CacheHook:
+    """"""
+
     def __init__(self, cachinglm) -> None:
-        if cachinglm is None:
-            self.dbdict = None
-            return
+        self.dbdict: SqliteDict = None if cachinglm is None else cachinglm.dbdict
 
-        self.dbdict: SqliteDict = cachinglm.dbdict
-
-    def add_partial(self, attr, req, res) -> None:
+    def add_partial(
+        self, attr: str, req: LMBlockData, lm: LMGenerator, res: str
+    ) -> None:
         if self.dbdict is None:
             return
-        hsh = hash_args(attr, req)
+        hsh = _hash_args(attr, req, lm)
         self.dbdict[hsh] = res
 
 
@@ -282,8 +276,6 @@ class CachingLM:
         # add hook to lm
         self.lm.set_cache_hook(self.get_cache_hook())
 
-        self.dbdict
-
     def __getattr__(self, attr):
         lm_attr = getattr(self.lm, attr)
 
@@ -301,7 +293,7 @@ class CachingLM:
                 self.cache_db,
             )
             for req in tqdm(requests, desc="Checking cached requests"):
-                hsh = hash_args(attr, req)
+                hsh = _hash_args(attr, req, self.lm)
                 if (
                     attr == "generate_batch"
                     and not self._force_cache
@@ -343,9 +335,7 @@ class CachingLM:
 
                 res[resptr] = req.result
 
-                # caching
-                hsh = hash_args(attr, req)
-                self.dbdict[hsh] = req.result
+            # commit just in case...
             self.dbdict.commit()
 
             # now we store result
@@ -415,3 +405,10 @@ class CachingLM:
 
     def get_cache_hook(self):
         return CacheHook(self)
+
+
+def _hash_args(attr: str, request: LMBlockData, base_lm: LMGenerator):
+    dat = json.dumps(
+        [attr] + [request.prompt, request.gen_kwargs, base_lm.model_id_or_path]
+    )
+    return hashlib.sha256(dat.encode("utf-8")).hexdigest()
