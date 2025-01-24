@@ -46,7 +46,7 @@ GREEDY_OPENAI_CFG = {
 }
 GREEDY_WATSONX_CFG = {
     "type": "watsonx",
-    "model_id_or_path": "granite-3-8b-instruct",
+    "model_id_or_path": "ibm/granite-3-8b-instruct",
     **GREEDY_CFG,
 }
 PROMPTS = [f"Question: x = {i} + 1\nAnswer: x =" for i in range(25)]
@@ -136,13 +136,11 @@ def test_loglikelihood_batch(model_cfg):
 
 
 def test_lm_caching():
-    cache_path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "tmp_cache.db"
-    )
+    cache_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
     if os.path.exists(cache_path):
         os.remove(cache_path)
 
-    model_cfg = dict(GREEDY_GENAI_CFG)
+    model_cfg = dict(GREEDY_WATSONX_CFG)
     model_type = model_cfg.get("type")
     lm: LMGenerator = get_block(model_type, name=f"test_{model_type}", **model_cfg)
 

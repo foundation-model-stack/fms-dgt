@@ -273,48 +273,39 @@ def test_yes_no():
 
 TEST_APIS = {
     "add": {
-        "name": "add",
-        "parameters": {
-            "properties": {
-                "n1": {"type": "number"},
-                "n2": {"type": "number"},
-            },
-            "required": ["n1", "n2"],
+        "properties": {
+            "n1": {"type": "number"},
+            "n2": {"type": "number"},
         },
-        "output_parameters": {"properties": {"result": {"type": "number"}}},
+        "required": ["n1", "n2"],
+        "outputs": {"properties": {"result": {"type": "number"}}},
     },
     "add_event": {
-        "name": "add_event",
-        "parameters": {
-            "properties": {
-                "event": {"type": "string"},
-                "info": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "date": {"type": "string"},
-                            "address": {"type": "string"},
-                        },
-                        "required": ["date", "address"],
+        "properties": {
+            "event": {"type": "string"},
+            "info": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "date": {"type": "string"},
+                        "address": {"type": "string"},
                     },
+                    "required": ["date", "address"],
                 },
             },
-            "required": ["event"],
         },
-        "output_parameters": {"properties": {"added_successfully": {"type": "bool"}}},
+        "required": ["event"],
+        "outputs": {"properties": {"added_successfully": {"type": "bool"}}},
     },
     "ls": {
         "description": "list directory contents",
-        "name": "ls",
-        "parameters": {
-            "properties": {
-                "-a": {"description": "show hidden files", "type": "string"},
-                "-h": {"description": "human readable format", "type": "string"},
-                "-l": {"description": "use a long listing format", "type": "string"},
-            },
-            "required": [],
-            "type": "object",
+        "properties": {
+            "-a": {"description": "show hidden files", "type": "string"},
+            "-h": {"description": "human readable format", "type": "string"},
+            "-l": {"description": "use a long listing format", "type": "string"},
         },
+        "required": [],
+        "type": "object",
     },
 }

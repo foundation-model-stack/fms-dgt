@@ -263,8 +263,8 @@ def _api_spec_to_str(
     pos_functions: List[str],
     task_name: str,
 ):
-    api_infos = [api_group[api_id] for api_id in set(pos_functions)]
     if "parallel_single" in task_name:
-        api_infos = [api_infos[0]]
-    random.shuffle(api_infos)
-    return "\n".join([json.dumps(api_info, indent=4) for api_info in api_infos])
+        pos_functions = pos_functions[:1]
+    random.shuffle(pos_functions)
+    api_infos = {api_id: api_group[api_id] for api_id in set(pos_functions)}
+    return json.dumps(api_infos, indent=4)
