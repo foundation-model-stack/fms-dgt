@@ -81,7 +81,9 @@ class ApiSdgTask(SdgTask):
         allow_subset: bool = False,
         **kwargs: Any,
     ):
+        # TODO: Deprecate this
         api_specifications = _backwards_compatibility(api_specifications)
+
         super().__init__(*args, **kwargs)
         self.all_api_specifications = {
             k: v
@@ -149,7 +151,7 @@ class ApiSdgTask(SdgTask):
         return super().instantiate_instruction(data_copy)
 
 
-def _backwards_compatibility(api_specs: Dict):
+def _backwards_compatibility(domains: Dict):
     def walk(d):
         if isinstance(d, dict):
             new_d = dict()
@@ -166,7 +168,12 @@ def _backwards_compatibility(api_specs: Dict):
         else:
             return d
 
-    return walk(api_specs)
+    for func_specs in domains.values():
+        for func_info in func_specs.values():
+            if func_info.get("parameters", dict()).get("properties"):
+                return walk(domains)
+
+    return domains
 
 
 def _validate_data_schema(
