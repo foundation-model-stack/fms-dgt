@@ -1,12 +1,12 @@
 name: api_yes_no_detection
 blocks:
   - name: llm1
-    type: genai
+    type: watsonx
+    model_id_or_path: mistralai/mixtral-8x7b-instruct-v01
     decoding_method: sample
     temperature: 0.5
     max_new_tokens: 1024
     min_new_tokens: 1
-    model_id_or_path: mistralai/mixtral-8x7b-instruct-v01
   - name: val1
     type: api_yes_no
     filter: true
