@@ -15,11 +15,10 @@ from fms_dgt.utils import sdg_logger
 # Constants
 
 _NAME = "name"
-_PARAM = "parameters"
 _PROPERTIES = "properties"
 _ARGS = "arguments"
 _LABEL = "label"
-_OUTPUT_PARAM = "output_parameters"
+_OUTPUTS = "outputs"
 
 # Classes
 
@@ -69,7 +68,7 @@ class APIGenSpecValidator(BaseValidatorBlock):
                 for component in sep_components
             ]
         )
-        api_names = set([api[_NAME] for api in inp.api_info.values()])
+        api_names = set([api_name for api_name in inp.api_info])
 
         if inp.multi_output and len(set([str(x) for x in sep_components])) <= 1:
             sdg_logger.debug(
@@ -123,19 +122,16 @@ class APIGenSpecValidator(BaseValidatorBlock):
 
             # since we've checked that each component has an associated api, we can just grab the first (should be identical)
             matching_api = next(
-                api for api in inp.api_info.values() if api[_NAME] == component[_NAME]
+                api
+                for api_name, api in inp.api_info.items()
+                if api_name == component[_NAME]
             )
-            matching_api_args = (
-                matching_api[_PARAM][_PROPERTIES]
-                if _PARAM in matching_api and _PROPERTIES in matching_api[_PARAM]
-                else dict()
-            )
+            matching_api_args = matching_api.get(_PROPERTIES, dict())
             component_args = component[_ARGS]
 
             # validate schema
             try:
-                if _PARAM in matching_api:
-                    validate(component_args, matching_api[_PARAM])
+                matching_api and validate(component_args, matching_api)
             except (
                 jsonschema.exceptions.ValidationError,
                 jsonschema.exceptions.SchemaError,
@@ -143,9 +139,16 @@ class APIGenSpecValidator(BaseValidatorBlock):
                 # if error is about a var label, e.g., $var1, then ignore error. Otherwise, raise error
                 if not (inp.require_nested and str(e).startswith("'$")):
                     sdg_logger.debug(
-                        'Input "%s" failed for text "%s" [H]', inp.answer, inp.question
+                        'Input "%s" failed for text "%s" [H] with validation error:\n%s',
+                        inp.answer,
+                        inp.question,
+                        str(e),
                     )
                     return False
+
+            if not (inp.require_nested or inp.check_arg_question_overlap):
+                # if we get here, the validation from the `validate` function above means it abided by the spec
+                return True
 
             if not isinstance(component_args, dict):
                 sdg_logger.debug(
@@ -201,17 +204,16 @@ def is_nested_match(arg_content: str, prev_components: List[Dict], api_info: Dic
             continue
 
         matching_api = next(
-            api for api in api_info.values() if api[_NAME] == component[_NAME]
+            api for api_name, api in api_info.items() if api_name == component[_NAME]
         )
 
-        if _OUTPUT_PARAM in matching_api:
-            for out_param_name, out_param_info in matching_api[_OUTPUT_PARAM][
-                _PROPERTIES
-            ].items():
-                nested_call = ".".join([component[_LABEL], out_param_name])
+        for out_param_name, _ in (
+            matching_api.get(_OUTPUTS, dict()).get(_PROPERTIES, dict()).items()
+        ):
+            nested_call = ".".join([component[_LABEL], out_param_name])
 
-                if nested_call == arg_content:
-                    return True
+            if nested_call == arg_content:
+                return True
 
     return False
 
