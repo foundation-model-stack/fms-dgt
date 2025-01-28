@@ -107,7 +107,7 @@ class OpenaiCompletionsLM(LMGenerator):
             # Read RITS Key from environment and change header to recognize RITS key
             if self.block_type == "rits":
                 self._rits_resource: ApiKeyResource = get_resource(
-                    "api", key_name="RITS_API_KEY", call_limit=call_limit
+                    "api", key_name="RITS_API_KEY", call_limit=self.batch_size
                 )
                 self.client = openai.OpenAI(
                     api_key=api_key,

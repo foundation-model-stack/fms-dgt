@@ -19,7 +19,7 @@ from fms_dgt.constants import DATASET_TYPE, NAME_KEY, TASK_NAME_KEY, TYPE_KEY
 from fms_dgt.utils import all_annotations, init_dataclass_from_dict, sdg_logger
 
 DEFAULT_MAX_STALLED_ATTEMPTS = 5
-DEFAULT_MAX_GEN_REQUESTS = 10
+DEFAULT_MAX_GEN_REQUESTS = 1000000
 
 ###
 # Base config for databuilders
