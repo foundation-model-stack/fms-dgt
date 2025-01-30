@@ -24,13 +24,16 @@ class ApiDataBuilder(DataBuilder):
         self,
         *args: Any,
         num_prompt_instructions: Optional[int] = 3,
-        num_base_examples: Optional[int] = 10,
+        num_base_examples: Optional[int] = None,
         **kwargs: Any,
     ):
         super().__init__(*args, **kwargs)
 
         self._num_prompt_instructions = num_prompt_instructions
-        self._num_base_examples = num_base_examples
+        self._num_base_examples = (
+            num_base_examples if num_base_examples is not None else self.llm1.batch_size
+        )
+
         assert (
             self._num_prompt_instructions >= 1
         ), "Number of prompt examples must be at least 1"
