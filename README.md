@@ -1,5 +1,11 @@
 # Scalable Synthetic Data Generation (SDG)
 
+> [!WARNING]
+> 
+> This repository has been archived and will no longer be maintained. 
+> 
+> Please use the new repository at: https://github.com/IBM/fms-dgt.
+
 ## Introduction
 
 Framework for scalable [synthetic data generation (SDG)](https://en.wikipedia.org/wiki/Synthetic_data).
